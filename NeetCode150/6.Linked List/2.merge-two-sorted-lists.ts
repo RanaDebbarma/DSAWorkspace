@@ -1,8 +1,5 @@
 import { runTests, TestCase } from "#functions/code-tester.js";
-import {
-  createLinkedList,
-  ListNode,
-} from "#functions/linked-list.js";
+import { createLinkedList, ListNode } from "#functions/linked-list.js";
 
 // LeetCode 21
 

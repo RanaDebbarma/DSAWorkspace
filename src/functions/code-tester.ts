@@ -184,7 +184,7 @@ export function runTests<F extends (...args: any[]) => any>(
           }
           return `${name} = ${serializedValue}`;
         });
-        console.log(inputStrings.join(", "));
+        console.log(inputStrings.join(", \n"));
       } else {
         console.dir(formattedInputs, { depth: null });
       }
