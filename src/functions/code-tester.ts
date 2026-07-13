@@ -1,14 +1,22 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import { ListNode, cloneLinkedList, linkedListToString } from "#functions/linked-list.js";
-import { TreeNode, cloneBinaryTree, binaryTreeToArray } from "#functions/tree.js";
+import {
+  ListNode,
+  cloneLinkedList,
+  linkedListToString,
+} from "#functions/linked-list.js";
+import {
+  TreeNode,
+  cloneBinaryTree,
+  binaryTreeToArray,
+} from "#functions/tree.js";
 import { GraphNode, cloneGraph, graphToAdjList } from "#functions/graph.js";
 import {
   smartCompare,
   compareUnorderedArrays,
   compareUnordered2DArrays,
   compareGroupAnagrams,
-  compare3Sum
+  compare3Sum,
 } from "#functions/compare.js";
 
 export type TestCase<F extends (...args: any[]) => any> = {
@@ -30,11 +38,16 @@ export type ClassTestCase = {
  * Extracts the parameter names of a function at runtime.
  */
 function getParamNames(fn: Function): string[] {
-  const fnStr = fn.toString().replace(/[\r\n\s]+/g, " ").trim();
-  
+  const fnStr = fn
+    .toString()
+    .replace(/[\r\n\s]+/g, " ")
+    .trim();
+
   let paramsStr = "";
   // Check for parenthesis signature (regular functions, async functions, arrow functions)
-  const parenMatch = fnStr.match(/^(?:async\s+)?(?:function\s*[^(]*\s*)?\(([^)]*)\)/);
+  const parenMatch = fnStr.match(
+    /^(?:async\s+)?(?:function\s*[^(]*\s*)?\(([^)]*)\)/,
+  );
   if (parenMatch) {
     paramsStr = parenMatch[1];
   } else {
@@ -173,7 +186,10 @@ export function runTests<F extends (...args: any[]) => any>(
           let serializedValue = "";
           if (rawVal instanceof ListNode) {
             serializedValue = String(formattedVal);
-          } else if (rawVal instanceof TreeNode || rawVal instanceof GraphNode) {
+          } else if (
+            rawVal instanceof TreeNode ||
+            rawVal instanceof GraphNode
+          ) {
             serializedValue = JSON.stringify(formattedVal);
           } else if (typeof rawVal === "string") {
             serializedValue = `"${rawVal}"`;
@@ -185,10 +201,7 @@ export function runTests<F extends (...args: any[]) => any>(
           return `${name}: ${serializedValue}`;
         });
         console.log(inputStrings.join(", \n"));
-<<<<<<< HEAD
         console.log();
-=======
->>>>>>> 9ea2e2e6b111b035a06385d97b9bfcaa775bf915
       } else {
         console.dir(formattedInputs, { depth: null });
       }
@@ -199,27 +212,25 @@ export function runTests<F extends (...args: any[]) => any>(
     if (!passed) {
       console.log(chalk.hex("#cc6e0f")("Expected:"));
       console.dir(formatValue(output), { depth: null });
-      console.log();
 
       console.log(chalk.hex("#cc6e0f")("Received:"));
       console.dir(formatValue(result), { depth: null });
+
       console.log();
     }
 
     if (passed && showOutput) {
       console.log(chalk.gray("Output:"));
       console.dir(formatValue(result), { depth: null });
+      console.log();
     }
 
     console.log(passed ? chalk.green("✅ Passed") : chalk.red("❌ Failed"));
     console.log(chalk.gray(`Time: ${(end - start).toFixed(3)} ms`));
     console.log();
-
-    drawDivider();
   }
 
-  console.log();
-
+  drawDivider();
   if (passedCount === tests.length) {
     console.log(
       chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`),
@@ -229,6 +240,7 @@ export function runTests<F extends (...args: any[]) => any>(
       chalk.red.bold(`❌ Passed ${passedCount}/${tests.length} tests`),
     );
   }
+  drawDivider();
 }
 
 /**
@@ -305,30 +317,36 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     console.log(JSON.stringify(args));
 
     if (!passed) {
+      console.log();
       console.log(chalk.hex("#cc6e0f")("Expected:"));
       console.dir(formatValue(expected), { depth: null });
 
       console.log(chalk.hex("#cc6e0f")("Received:"));
       console.dir(formatValue(actualOutputs), { depth: null });
+      console.log();
 
       if (failedIdx !== -1) {
-        console.log(chalk.red(`Failed at step ${failedIdx}: operation "${operations[failedIdx]}" with args ${JSON.stringify(args[failedIdx])}`));
+        console.log(
+          chalk.red(
+            `Failed at step ${failedIdx}: operation "${operations[failedIdx]}" with args ${JSON.stringify(args[failedIdx])}`,
+          ),
+        );
       }
     }
 
     if (passed && showOutput) {
+      console.log();
       console.log(chalk.gray("Output:"));
       console.dir(formatValue(actualOutputs), { depth: null });
+      console.log();
     }
 
     console.log(passed ? chalk.green("✅ Passed") : chalk.red("❌ Failed"));
     console.log(chalk.gray(`Time: ${(end - start).toFixed(3)} ms`));
-
-    drawDivider();
+    console.log();
   }
 
-  console.log();
-
+  drawDivider();
   if (passedCount === tests.length) {
     console.log(
       chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`),
@@ -338,6 +356,7 @@ export function runClassTests<C extends new (...args: any[]) => any>(
       chalk.red.bold(`❌ Passed ${passedCount}/${tests.length} tests`),
     );
   }
+  drawDivider();
 }
 
 function drawDivider(char = "-", colorFn = chalk.gray) {
@@ -352,5 +371,5 @@ export {
   compareUnorderedArrays,
   compareUnordered2DArrays,
   compareGroupAnagrams,
-  compare3Sum
+  compare3Sum,
 };
