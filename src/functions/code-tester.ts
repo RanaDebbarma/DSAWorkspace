@@ -182,9 +182,10 @@ export function runTests<F extends (...args: any[]) => any>(
           } else {
             serializedValue = String(formattedVal);
           }
-          return `${name} = ${serializedValue}`;
+          return `${name}: ${serializedValue}`;
         });
-        console.log(inputStrings.join(", "));
+        console.log(inputStrings.join(", \n"));
+        console.log();
       } else {
         console.dir(formattedInputs, { depth: null });
       }
@@ -195,9 +196,11 @@ export function runTests<F extends (...args: any[]) => any>(
     if (!passed) {
       console.log(chalk.hex("#cc6e0f")("Expected:"));
       console.dir(formatValue(output), { depth: null });
+      console.log();
 
       console.log(chalk.hex("#cc6e0f")("Received:"));
       console.dir(formatValue(result), { depth: null });
+      console.log();
     }
 
     if (passed && showOutput) {
@@ -207,6 +210,7 @@ export function runTests<F extends (...args: any[]) => any>(
 
     console.log(passed ? chalk.green("✅ Passed") : chalk.red("❌ Failed"));
     console.log(chalk.gray(`Time: ${(end - start).toFixed(3)} ms`));
+    console.log();
 
     drawDivider();
   }
