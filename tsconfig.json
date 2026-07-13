@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "moduleDetection": "force",
+    "types": ["node"],
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "paths": {
+      "#lib/*": ["./src/lib/*"],
+      "#functions/*": ["./src/functions/*"]
+    }
+  }
+}
