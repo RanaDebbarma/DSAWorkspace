@@ -1,4 +1,4 @@
-# LeetCode / NeetCode 150 Local Workspace
+# LeetCode / NeetCode Local Workspace
 
 Welcome to your local practice environment for solving and testing LeetCode/NeetCode 150 problems in TypeScript. This setup includes a custom, zero-boilerplate testing framework, custom data structure parsers, system-design class runners, and CLI helper scripts.
 
