@@ -1,5 +1,5 @@
 import { runTests, TestCase } from "#functions/code-tester.js";
-import { createLinkedList, ListNode } from "#functions/linked-list.js";
+import { createLinkedList, ListNode, printLinkedList } from "#functions/linked-list.js";
 
 // LeetCode 21
 
@@ -7,8 +7,24 @@ const myLink = function mergeTwoLists(
   list1: ListNode | null,
   list2: ListNode | null,
 ): ListNode | null {
-  return list1;
-};
+  const dummy = new ListNode(0);
+  let tail = dummy;
+
+  while (list1 && list2) {
+    if (list1.val <= list2.val) {
+      tail.next = list1;
+      list1 = list1.next;
+    } else {
+      tail.next = list2;
+      list2 = list2.next;
+    }
+    tail = tail.next;
+  }
+
+  tail.next = list1 ?? list2;
+  
+  return dummy.next;
+}
 
 const ll_inputs: TestCase<typeof myLink>[] = [
   {
