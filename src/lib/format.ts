@@ -36,7 +36,29 @@ runTests(solve, [
 
 
 // ============================================================================
-// 3. BINARY TREE TEMPLATE
+// 3. CYCLIC LINKED LIST TEMPLATE (e.g. LC 141 - Linked List Cycle)
+// ============================================================================
+/*
+import { runTests } from "#functions/code-tester.js";
+import { createCyclicLinkedList, ListNode } from "#functions/linked-list.js";
+
+function solve(head: ListNode | null): boolean {
+  return false;
+}
+
+// createCyclicLinkedList(values, pos):
+//   pos = 0-based index where the tail connects back to  (-1 = no cycle)
+// e.g. [3,2,0,-4] with pos=1 → tail (-4) points back to node at index 1 (value 2)
+runTests(solve, [
+  { input: [createCyclicLinkedList([3, 2, 0, -4], 1)], output: true },
+  { input: [createCyclicLinkedList([1, 2], 0)],        output: true },
+  { input: [createCyclicLinkedList([1], -1)],           output: false },
+]);
+*/
+
+
+// ============================================================================
+// 4. BINARY TREE TEMPLATE
 // ============================================================================
 /*
 import { runTests } from "#functions/code-tester.js";
@@ -57,7 +79,7 @@ runTests(solve, [
 
 
 // ============================================================================
-// 4. GRAPH TEMPLATE
+// 5. GRAPH TEMPLATE
 // ============================================================================
 /*
 import { runTests } from "#functions/code-tester.js";
@@ -78,7 +100,7 @@ runTests(solve, [
 
 
 // ============================================================================
-// 5. CLASS DESIGN / SYSTEM DESIGN TEMPLATE
+// 6. CLASS DESIGN / SYSTEM DESIGN TEMPLATE
 // ============================================================================
 /*
 import { runClassTests } from "#functions/code-tester.js";
