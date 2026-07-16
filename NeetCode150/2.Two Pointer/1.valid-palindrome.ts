@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // O(n) time and space complexity
 // function isPalindrome(s: string) {
@@ -74,10 +74,8 @@ function isPalindrome(s: string) {
   return true;
 }
 
-const inputs: TestCase<typeof isPalindrome>[] = [
+runTests(isPalindrome, [
   { input: ["A man, a plan, a canal: Panama"], output: true },
   { input: ["race a car"], output: false },
   { input: [" "], output: true },
-];
-
-runTests(isPalindrome, inputs);
+]);

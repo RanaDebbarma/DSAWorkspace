@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // Brute Force O(n^2) time and o(1) space
 // function dailyTemperatures(temperatures: number[]): number[] {
@@ -40,7 +40,7 @@ function dailyTemperatures(temperatures: number[]): number[] {
   return result;
 }
 
-const inputs: TestCase<typeof dailyTemperatures>[] = [
+runTests(dailyTemperatures, [
   // Leetcode
   // {
   //   input: [[73, 74, 75, 71, 69, 72, 76, 73]],
@@ -66,6 +66,4 @@ const inputs: TestCase<typeof dailyTemperatures>[] = [
     input: [[77, 77, 77, 77, 77, 41, 77, 41, 41, 77]],
     output: [0, 0, 0, 0, 0, 1, 0, 2, 1, 0],
   },
-];
-
-runTests(dailyTemperatures, inputs, true);
+]);

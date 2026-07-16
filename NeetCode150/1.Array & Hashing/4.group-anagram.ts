@@ -1,8 +1,4 @@
-import {
-  runTests,
-  TestCase,
-  compareGroupAnagrams,
-} from "#functions/code-tester.js";
+import { runTests, compareGroupAnagrams } from "#functions/code-tester.js";
 
 // O(n * klogk)
 // function groupAnagrams(strs: string[]): string[][] {
@@ -42,7 +38,7 @@ function groupAnagrams(strs: string[]): string[][] {
     }
   }
   return [...groups.values()];
-  
+
   function convertKey(str: string): string {
     const count = new Array(26).fill(0);
     for (const s of str) {
@@ -53,7 +49,7 @@ function groupAnagrams(strs: string[]): string[][] {
   }
 }
 
-const inputs: TestCase<typeof groupAnagrams>[] = [
+runTests(groupAnagrams, [
   {
     input: [["eat", "tea", "tan", "ate", "nat", "bat"]],
     output: [["bat"], ["nat", "tan"], ["ate", "eat", "tea"]],
@@ -61,6 +57,4 @@ const inputs: TestCase<typeof groupAnagrams>[] = [
   },
   { input: [[""]], output: [[""]], compare: compareGroupAnagrams },
   { input: [["a"]], output: [["a"]], compare: compareGroupAnagrams },
-];
-
-runTests(groupAnagrams, inputs);
+]);

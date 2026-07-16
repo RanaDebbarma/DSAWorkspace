@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // Leetcode 875
 // const myFunc = function minEatingSpeed(piles: number[], h: number): number {
@@ -54,7 +54,7 @@ function canEatAll(piles: number[], speed: number, h: number) {
   return hours <= h;
 }
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: [[3, 6, 7, 11], 8], output: 4 },
   { input: [[30, 11, 23, 4, 20], 5], output: 30 },
@@ -63,6 +63,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   // // Neetcode
   { input: [[1, 4, 3, 2], 9], output: 2 },
   { input: [[25, 10, 23, 4], 4], output: 25 },
-];
-
-runTests(myFunc, inputs);
+]);

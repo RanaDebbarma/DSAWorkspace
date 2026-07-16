@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 const myFunc = function search(nums: number[], target: number): number {
   let l = 0;
@@ -27,7 +27,7 @@ const myFunc = function search(nums: number[], target: number): number {
   return -1;
 };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: [[4, 5, 6, 7, 0, 1, 2], 0], output: 4 },
   { input: [[4, 5, 6, 7, 0, 1, 2], 3], output: -1 },
@@ -40,6 +40,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   // Edge
   { input: [[6, 7, 8, 1, 2, 3, 4], 7], output: 1 },
   { input: [[3, 1], 1], output: 1 },
-];
-
-runTests(myFunc, inputs, true);
+]);

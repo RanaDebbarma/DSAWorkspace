@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // Elegent version
 const myFunc = function findMin(nums: number[]): number {
@@ -48,7 +48,7 @@ const myFunc = function findMin(nums: number[]): number {
 //   return min;
 // };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: [[3, 4, 5, 1, 2]], output: 1 },
   { input: [[4, 5, 6, 7, 0, 1, 2]], output: 0 },
@@ -61,6 +61,4 @@ const inputs: TestCase<typeof myFunc>[] = [
 
   // Edge
   { input: [[4, 5, 1, 2, 3]], output: 1 },
-];
-
-runTests(myFunc, inputs);
+]);

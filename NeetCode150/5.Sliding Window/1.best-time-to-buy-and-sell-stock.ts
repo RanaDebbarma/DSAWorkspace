@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // const myFunc = function maxProfit(prices: number[]): number {
 // let max = 0;
@@ -33,7 +33,7 @@ const myFunc = function maxProfit(prices: number[]): number {
   return maxProfit;
 };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: [[7, 1, 5, 3, 6, 4]], output: 5 },
   { input: [[7, 6, 4, 3, 1]], output: 0 },
@@ -41,6 +41,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   // Neetcode
   { input: [[10, 1, 5, 6, 7, 1]], output: 6 },
   { input: [[10, 8, 7, 5, 2]], output: 0 },
-];
-
-runTests(myFunc, inputs);
+]);

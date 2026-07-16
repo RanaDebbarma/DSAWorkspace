@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // class Solution {
 //   encode(strs: string[]): string {
@@ -19,7 +19,7 @@ class Solution {
     for (const str of strs) {
       result += `${str.length}#${str}`;
     }
-    console.log(result);
+    // console.log(result);
     return result;
   }
 
@@ -81,10 +81,8 @@ function customTest(input: string[]): string[] {
   return sol.decode(sol.encode(input));
 }
 
-const inputs: TestCase<typeof customTest>[] = [
+runTests(customTest, [
   { input: [["Hello", "World"]], output: ["Hello", "World"] },
   { input: [["Hello", "World!"]], output: ["Hello", "World!"] },
   { input: [["1Hello", "#$World!"]], output: ["1Hello", "#$World!"] },
-];
-
-runTests(customTest, inputs);
+]);

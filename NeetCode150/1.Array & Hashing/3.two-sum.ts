@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 function twoSum(nums: number[], target: number): number[] {
   const hash = new Map();
@@ -13,9 +13,7 @@ function twoSum(nums: number[], target: number): number[] {
   return [];
 }
 
-const inputs: TestCase<typeof twoSum>[] = [
+runTests(twoSum, [
   { input: [[2, 7, 11, 15], 9], output: [0, 1] },
   { input: [[3, 4, 5, 6], 7], output: [0, 1] },
-];
-
-runTests(twoSum, inputs);
+]);

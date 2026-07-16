@@ -24,7 +24,7 @@ import { createGraph, cloneGraph } from "#functions/graph.js";
 // SECTION HEADER UTILITY
 // ─────────────────────────────────────────────────────────────────────────────
 function section(n: number, title: string) {
-  console.log(`\n${chalk.bold.magenta(`┌─ §${n}  ${title}`)}`);
+  console.log(`\n${chalk.bold.magenta(`┌─ §-${n}  ${title}`)}`);
   console.log(chalk.magenta("│"));
 }
 

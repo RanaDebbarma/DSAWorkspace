@@ -19,7 +19,7 @@
 // }
 
 // O(n) optimizede solution (prefix * postfix)
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 function productExceptSelf(nums: number[]): number[] {
   const n = nums.length;
@@ -39,11 +39,8 @@ function productExceptSelf(nums: number[]): number[] {
   return result;
 }
 
-const inputs: TestCase<typeof productExceptSelf>[] = [
+runTests(productExceptSelf, [
   { input: [[1, 2, 3, 4]], output: [24, 12, 8, 6] },
   { input: [[1, 2, 4, 6]], output: [48, 24, 12, 8] },
   { input: [[-1, 1, 0, -3, 3]], output: [-0, 0, 9, -0, 0] },
-];
-
-runTests(productExceptSelf, inputs);
-
+]);

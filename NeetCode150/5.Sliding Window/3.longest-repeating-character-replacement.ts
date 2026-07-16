@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 // LeetCode 424
 
 // BruteForce o(n^2) time and o(n) space
@@ -72,11 +72,11 @@ const myFunc = function characterReplacement(s: string, k: number): number {
     // max_length = Math.max(max_length, r - l + 1);
   }
 
-  return s.length - l
+  return s.length - l;
   // return max_length;
 };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: ["ABAB", 2], output: 4 },
   { input: ["AABABBA", 1], output: 4 },
@@ -86,6 +86,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   { input: ["AAABABB", 1], output: 5 },
 
   // Edge
-];
-
-runTests(myFunc, inputs);
+]);

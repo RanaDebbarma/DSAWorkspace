@@ -1,17 +1,13 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
-import {
-  createLinkedList,
-  ListNode,
-} from "#functions/linked-list.js";
+import { runTests } from "#functions/code-tester.js";
+import { createLinkedList, ListNode } from "#functions/linked-list.js";
 
 // LeetCode 206
 
-const myLink = function reverseList(head: ListNode | null): ListNode | null {
-
+function reverseList(head: ListNode | null): ListNode | null {
   let prev = null;
   let curr = head;
 
-  while(curr) {
+  while (curr) {
     const next = curr.next;
     curr.next = prev;
     prev = curr;
@@ -19,9 +15,9 @@ const myLink = function reverseList(head: ListNode | null): ListNode | null {
   }
 
   return prev;
-};
+}
 
-const ll_inputs: TestCase<typeof myLink>[] = [
+runTests(reverseList, [
   {
     input: [createLinkedList([1, 2, 3, 4, 5])],
     output: createLinkedList([5, 4, 3, 2, 1]),
@@ -38,6 +34,4 @@ const ll_inputs: TestCase<typeof myLink>[] = [
     input: [createLinkedList([1])],
     output: createLinkedList([1]),
   },
-];
-
-runTests(myLink, ll_inputs, true);
+]);

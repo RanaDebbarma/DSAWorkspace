@@ -45,14 +45,14 @@ export type TestOptions = {
 export function runTests<F extends (...args: any[]) => any>(
   fn: F,
   tests: TestCase<F>[],
-  options: boolean | TestOptions = false,
+  options: boolean | TestOptions = true,
 ) {
   if (tests.length === 0) {
     console.log(chalk.yellow("⚠ No test cases provided."));
     return;
   }
 
-  const showHeader = typeof options === "boolean" ? false : (options?.showHeader ?? false);
+  const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
 
   let passedCount = 0;
 
@@ -60,7 +60,7 @@ export function runTests<F extends (...args: any[]) => any>(
   if (showHeader) {
     const fnName = fn.name || "solve";
     console.log(
-      `${chalk.bgCyan.black(" RUNS ")}  ${chalk.cyan.bold(`${fnName}()`)}`,
+      `${chalk.bold.bgMagenta.black(" RUNS ")}  ${chalk.magenta.bold(`${fnName}()`)}`,
     );
   }
 
@@ -85,8 +85,8 @@ export function runTests<F extends (...args: any[]) => any>(
     // ── Header ───────────────────────────────────────────────────────────────
     drawDivider();
     const statusBadge = passed
-      ? chalk.bgGreen.black(" PASS ")
-      : chalk.bgRed.white(" FAIL ");
+      ? chalk.bold.bgGreen.black(" PASS ")
+      : chalk.bold.bgRed.white(" FAIL ");
     const timeStr = chalk.gray(`${(end - start).toFixed(3)} ms`);
     console.log(
       `${statusBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${timeStr}`,
@@ -170,14 +170,14 @@ export function runTests<F extends (...args: any[]) => any>(
 export function runClassTests<C extends new (...args: any[]) => any>(
   cls: C,
   tests: ClassTestCase[],
-  options: boolean | TestOptions = false,
+  options: boolean | TestOptions = true,
 ) {
   if (tests.length === 0) {
     console.log(chalk.yellow("⚠ No test cases provided."));
     return;
   }
 
-  const showHeader = typeof options === "boolean" ? false : (options?.showHeader ?? false);
+  const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
 
   let passedCount = 0;
 
@@ -185,7 +185,7 @@ export function runClassTests<C extends new (...args: any[]) => any>(
   if (showHeader) {
     const className = cls.name || "Class";
     console.log(
-      `${chalk.bgCyan.black(" RUNS ")}  ${chalk.cyan.bold(`new ${className}()`)}`,
+      `${chalk.bold.bgMagenta.black(" RUNS ")}  ${chalk.magenta.bold(`new ${className}()`)}`,
     );
   }
 
@@ -239,8 +239,8 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     // ── Header (badge style matching runTests) ───────────────────────────────
     drawDivider();
     const classBadge = passed
-      ? chalk.bgGreen.black(" PASS ")
-      : chalk.bgRed.white(" FAIL ");
+      ? chalk.bold.bgGreen.black(" PASS ")
+      : chalk.bold.bgRed.white(" FAIL ");
     const classTime = chalk.gray(`${(end - start).toFixed(3)} ms`);
     console.log(
       `${classBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${classTime}`,

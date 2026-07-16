@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 // LeetCode 567
 
 // o(n)
@@ -134,7 +134,7 @@ const myFunc = function checkInclusion(s1: string, s2: string): boolean {
   }
 };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: ["ab", "eidbaooo"], output: true },
   { input: ["ab", "eidboaoo"], output: false },
@@ -144,6 +144,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   { input: ["abc", "lecaabee"], output: false },
 
   // Edge
-];
-
-runTests(myFunc, inputs);
+]);

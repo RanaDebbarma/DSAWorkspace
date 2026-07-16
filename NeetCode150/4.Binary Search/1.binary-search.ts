@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // Optimal (monotonic stack)
 function search(nums: number[], target: number): number {
@@ -20,7 +20,7 @@ function search(nums: number[], target: number): number {
   return -1;
 }
 
-const inputs: TestCase<typeof search>[] = [
+runTests(search, [
   // Leetcode
   { input: [[-1, 0, 3, 5, 9, 12], 9], output: 4 },
   { input: [[-1, 0, 3, 5, 9, 12], 1], output: -1 },
@@ -28,6 +28,4 @@ const inputs: TestCase<typeof search>[] = [
   // Neetcode
   // { input: [[-1,0,2,4,6,8], 4], output: 3 },
   // { input: [[-1,0,2,4,6,8], 3], output: -1 },
-];
-
-runTests(search, inputs, true);
+]);

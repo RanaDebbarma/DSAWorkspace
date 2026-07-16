@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // function threeSum(nums: number[]): number[][] {
 //   const result: number[][] = [];
@@ -62,7 +62,7 @@ function threeSum(nums: number[]): number[][] {
   return result;
 }
 
-const inputs: TestCase<typeof threeSum>[] = [
+runTests(threeSum, [
   {
     input: [[-1, 0, 1, 2, -1, -4]],
     output: [
@@ -82,6 +82,4 @@ const inputs: TestCase<typeof threeSum>[] = [
       [-1, 0, 1],
     ],
   },
-];
-
-runTests(threeSum, inputs, true);
+]);

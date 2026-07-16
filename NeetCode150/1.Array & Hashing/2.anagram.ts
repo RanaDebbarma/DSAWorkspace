@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // function isAnagram(s: string, t: string): boolean {
 //   if (s.length !== t.length) return false;
@@ -35,7 +35,7 @@ function isAnagram(s: string, t: string): boolean {
   return true;
 }
 
-const inputs: TestCase<typeof isAnagram>[] = [
+runTests(isAnagram, [
   { input: ["anagram", "nagaram"], output: true },
   { input: ["rat", "car"], output: false },
 
@@ -43,9 +43,7 @@ const inputs: TestCase<typeof isAnagram>[] = [
   // { input: ["anagram🔥", "naga🔥ram"], output: true },
   // { input: ["rac🙂", "c🙂ar"], output: true },
   // { input: ["rac🙂", "c🔥ar"], output: false },
-  
+
   // edge
   { input: ["aab", "abb"], output: false },
-];
-
-runTests(isAnagram, inputs);
+]);

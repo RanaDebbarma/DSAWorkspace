@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // Leetcode 3
 
@@ -56,11 +56,11 @@ const myFunc = function lengthOfLongestSubstring(s: string): number {
 
 //   for (const ch of s) {
 //     const lastSeen = seen.get(ch);
-    
+
 //     if (lastSeen !== undefined) {
 //       l = Math.max(l, lastSeen);
 //     }
-    
+
 //     seen.set(ch, r + 1);
 //     maxLength = Math.max(maxLength, r - l + 1);
 //     r++;
@@ -69,7 +69,7 @@ const myFunc = function lengthOfLongestSubstring(s: string): number {
 //   return maxLength;
 // };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   // Leetcode
   { input: ["abcabcbb"], output: 3 }, // "abc" or "bca" or "cab"
   { input: ["bbbbb"], output: 1 }, // "b"
@@ -82,6 +82,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   // Edge
   { input: ["dvdf"], output: 3 },
   { input: ["abcaef"], output: 5 },
-];
-
-runTests(myFunc, inputs);
+]);

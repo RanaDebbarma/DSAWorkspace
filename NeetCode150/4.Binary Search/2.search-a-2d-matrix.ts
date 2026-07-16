@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 const myFunc = function searchMatrix(
   matrix: number[][],
@@ -51,7 +51,7 @@ const myFunc = function searchMatrix(
   return false;
 };
 
-const inputs: TestCase<typeof myFunc>[] = [
+runTests(myFunc, [
   {
     input: [
       [
@@ -74,6 +74,4 @@ const inputs: TestCase<typeof myFunc>[] = [
     ],
     output: false,
   },
-];
-
-runTests(myFunc, inputs);
+]);

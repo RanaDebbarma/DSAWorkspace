@@ -1,4 +1,4 @@
-import { runTests, TestCase } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 function containsDuplicate(nums: number[]): boolean {
   const seen = new Set<number>();
@@ -10,10 +10,8 @@ function containsDuplicate(nums: number[]): boolean {
   return false;
 }
 
-const inputs: TestCase<typeof containsDuplicate>[] = [
+runTests(containsDuplicate, [
   { input: [[1, 2, 3, 1]], output: true },
   { input: [[1, 2, 3, 4]], output: false },
   { input: [[1, 1, 1, 3, 3, 4, 3, 2, 4, 2]], output: true },
-];
-
-runTests(containsDuplicate, inputs);
+]);
