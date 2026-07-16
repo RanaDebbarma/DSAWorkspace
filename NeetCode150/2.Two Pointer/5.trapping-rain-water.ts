@@ -59,4 +59,4 @@ const inputs: TestCase<typeof myFunc>[] = [
   { input: [[0, 2, 0, 3, 1, 0, 1, 3, 2, 1]], output: 9 },
 ];
 
-runTests(myFunc, inputs);
+runTests(myFunc, inputs, {showHeader: true});

@@ -1,13 +1,4 @@
-const s =
-  "aguokepatgbnvfqmgmlcupuufxoohdfpgjdmysgvhmvffcnqxjjxqncffvmhvgsymdjgpfdhooxfuupuculmgmqfvnbgtapekouga"; // True
-
-const a = "aca"; // True
-const b = "abbadc"; // False
-const c = "abbda"; // True
-const d = "acdccba"; // False
-const e = "ab"; // True
-const f = "eceec"; // True
-const g = "eeecc"; // False
+import { runTests } from "#functions/code-tester.js";
 
 function validPalindrome(s: string): boolean {
   let l = 0;
@@ -34,14 +25,18 @@ function checkPalindrome(s: string, l: number, r: number) {
 
   return true;
 }
-// console.log(checkPalindrome(a, 0, a.length - 1), "True");
-// console.log(checkPalindrome(b, 0, b.length - 1), "False");
 
-console.log(validPalindrome(s), "True");
-console.log(validPalindrome(a), "True");
-console.log(validPalindrome(b), "False");
-console.log(validPalindrome(c), "True");
-console.log(validPalindrome(d), "False");
-console.log(validPalindrome(e), "True");
-console.log(validPalindrome(f), "True");
-console.log(validPalindrome(g), "False");
+runTests(validPalindrome, [
+  { input: ["aca"], output: true },
+  { input: ["abbadc"], output: false },
+  { input: ["abbda"], output: true },
+  { input: ["acdccba"], output: false },
+  { input: ["ab"], output: true },
+  { input: ["eceec"], output: true },
+  {
+    input: [
+      "aguokepatgbnvfqmgmlcupuufxoohdfpgjdmysgvhmvffcnqxjjxqncffvmhvgsymdjgpfdhooxfuupuculmgmqfvnbgtapekouga",
+    ],
+    output: true,
+  },
+]);

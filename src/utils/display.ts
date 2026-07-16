@@ -190,7 +190,7 @@ export function serializeForDisplay(value: unknown): string {
 /**
  * Draws a visual divider in the console.
  */
-export function drawDivider(char = "─", colorFn = chalk.gray) {
+export function drawDivider(char = "─", colorFn = chalk.hex('#5d5d5d')) {
   const width = process.stdout.columns || 80;
   const line = char.repeat(width);
   console.log(colorFn(line));

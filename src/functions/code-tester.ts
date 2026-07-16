@@ -60,13 +60,12 @@ export function runTests<F extends (...args: any[]) => any>(
   if (showHeader) {
     const fnName = fn.name || "solve";
     console.log(
-      `  ${chalk.bgCyan.black(" RUNS ")}  ${chalk.cyan.bold(`${fnName}()`)}`,
+      `${chalk.bgCyan.black(" RUNS ")}  ${chalk.cyan.bold(`${fnName}()`)}`,
     );
-    drawDivider();
   }
 
   for (const [index, test] of tests.entries()) {
-    if (index > 0) drawDivider();
+    // if (index > 0) drawDivider();
     const { name, input, output, compare, cloneInput } = test;
 
     const actualInput = cloneInput
@@ -84,13 +83,15 @@ export function runTests<F extends (...args: any[]) => any>(
     if (passed) passedCount++;
 
     // ── Header ───────────────────────────────────────────────────────────────
+    drawDivider();
     const statusBadge = passed
       ? chalk.bgGreen.black(" PASS ")
       : chalk.bgRed.white(" FAIL ");
     const timeStr = chalk.gray(`${(end - start).toFixed(3)} ms`);
     console.log(
-      `\n  ${statusBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${timeStr}`,
+      `${statusBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${timeStr}`,
     );
+    drawDivider();
 
     // ── Input block ───────────────────────────────────────────────────────────
     console.log();
@@ -150,7 +151,6 @@ export function runTests<F extends (...args: any[]) => any>(
   }
 
   drawDivider()
-
   if (passedCount === tests.length) {
     console.log(
       chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`),
@@ -185,9 +185,8 @@ export function runClassTests<C extends new (...args: any[]) => any>(
   if (showHeader) {
     const className = cls.name || "Class";
     console.log(
-      `  ${chalk.bgCyan.black(" RUNS ")}  ${chalk.cyan.bold(`new ${className}()`)}`,
+      `${chalk.bgCyan.black(" RUNS ")}  ${chalk.cyan.bold(`new ${className}()`)}`,
     );
-    drawDivider();
   }
 
   for (const [index, test] of tests.entries()) {
@@ -238,13 +237,15 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     if (passed) passedCount++;
 
     // ── Header (badge style matching runTests) ───────────────────────────────
+    drawDivider();
     const classBadge = passed
       ? chalk.bgGreen.black(" PASS ")
       : chalk.bgRed.white(" FAIL ");
     const classTime = chalk.gray(`${(end - start).toFixed(3)} ms`);
     console.log(
-      `\n  ${classBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${classTime}`,
+      `${classBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${classTime}`,
     );
+    drawDivider();
 
     // ── Per-step trace table ──────────────────────────────────────────────────
     const COL_STEP = 5;
@@ -331,8 +332,6 @@ export function runClassTests<C extends new (...args: any[]) => any>(
       if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
       console.log();
     }
-
-
   }
 
   drawDivider();

@@ -1,3 +1,5 @@
+import { runClassTests } from "#functions/code-tester.js";
+
 class MinStack {
   #stack: number[] = [];
   #minstack: number[] = [];
@@ -32,34 +34,24 @@ class MinStack {
   }
 }
 
-// Output: [null,null,null,null,0,null,2,1]
-
-// Explanation:
-// const minStack = new MinStack();
-// minStack.push(1);
-// minStack.push(2);
-// minStack.push(0);
-// minStack.getMin(); // return 0
-// minStack.pop();
-// minStack.top(); // return 2
-// minStack.getMin(); // return 1
-// minStack.print();
-
-// ---------------------------------------------
-
-const minStack = new MinStack();
-minStack.push(-2);
-minStack.push(0);
-minStack.push(-3);
-const min1 = minStack.getMin(); // return -3
-minStack.pop();
-const top = minStack.top(); // return 0
-const min2 = minStack.getMin(); // return -2
-
-// ------- Test ----------
-minStack.print();
-console.log("");
-// console.log(minStack, "\n");
-console.log("min:", min1);
-console.log("top:", top);
-console.log("min:", min2);
+runClassTests(MinStack, [
+  {
+    operations: ["MinStack", "push", "push", "getMin", "pop", "top", "getMin"],
+    args: [[], [-2], [0]],
+    expected: [null, null, null, -2, null, -2, -2],
+  },
+  {
+    operations: [
+      "MinStack",
+      "push",
+      "push",
+      "push",
+      "getMin",
+      "pop",
+      "top",
+      "getMin",
+    ],
+    args: [[], [1], [2], [0]],
+    expected: [null, null, null, null, 0, null, 2, 1],
+  },
+], {showHeader: true});
