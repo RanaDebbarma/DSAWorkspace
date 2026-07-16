@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "title": "tsx src/scripts/copy-title.ts"
+    "title": "tsx src/scripts/copy-title.ts",
+    "test": "tsx src/tests/feature-test.ts"
   },
   "keywords": [],
   "author": "",

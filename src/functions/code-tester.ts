@@ -15,7 +15,8 @@ import {
   getParamNames,
   formatValue,
   serializeForDisplay,
-  drawDivider
+  drawDivider,
+  padMultiline
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
 
@@ -112,11 +113,11 @@ export function runTests<F extends (...args: any[]) => any>(
     // ── Expected / Got block ─────────────────────────────────────────────────
     console.log();
     if (passed) {
-      console.log(`  ${chalk.gray("Output  ")}  ${chalk.green(serializeForDisplay(result))}`);
+      console.log(`  ${chalk.gray("Output  ")}  ${padMultiline(chalk.green(serializeForDisplay(result)), 12)}`);
     } else {
       const { expLine, gotLine, hint } = renderDiff(result, output);
-      console.log(`  ${chalk.hex("#cc6e0f")("Expected")}  ${expLine}`);
-      console.log(`  ${chalk.hex("#cc6e0f")("Got     ")}  ${gotLine}`);
+      console.log(`  ${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`);
+      console.log(`  ${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`);
       if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
     }
     console.log();
@@ -271,8 +272,8 @@ export function runClassTests<C extends new (...args: any[]) => any>(
         chalk.red(`  ✗ Step #${failedIdx + 1}: `) +
         chalk.white(`${operations[failedIdx]}(${(args[failedIdx] ?? []).join(", ")})`)
       );
-      console.log(`  ${chalk.hex("#cc6e0f")("Expected")}  ${expLine}`);
-      console.log(`  ${chalk.hex("#cc6e0f")("Got     ")}  ${gotLine}`);
+      console.log(`  ${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`);
+      console.log(`  ${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`);
       if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
       console.log();
     }

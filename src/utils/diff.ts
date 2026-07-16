@@ -1,7 +1,9 @@
 import chalk from "chalk";
 import { ListNode } from "#functions/linked-list.js";
+import { TreeNode } from "#functions/tree.js";
+import { GraphNode } from "#functions/graph.js";
 import { smartCompare } from "#utils/compare.js";
-import { serializeForDisplay } from "#utils/display.js";
+import { serializeForDisplay, treeToString, graphToString } from "#utils/display.js";
 
 /**
  * Renders two arrays as inline colored strings.
@@ -121,6 +123,24 @@ export function renderDiff(
       actual instanceof ListNode ? actual : null,
       expected instanceof ListNode ? expected : null,
     );
+  }
+
+  // Tree diff
+  if (actual instanceof TreeNode || expected instanceof TreeNode) {
+    return {
+      expLine: chalk.green(treeToString(expected instanceof TreeNode ? expected : null)),
+      gotLine: chalk.red(treeToString(actual instanceof TreeNode ? actual : null)),
+      hint: "",
+    };
+  }
+
+  // Graph diff
+  if (actual instanceof GraphNode || expected instanceof GraphNode) {
+    return {
+      expLine: chalk.green(graphToString(expected instanceof GraphNode ? expected : null)),
+      gotLine: chalk.red(graphToString(actual instanceof GraphNode ? actual : null)),
+      hint: "",
+    };
   }
 
   // String: highlight first differing char

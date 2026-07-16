@@ -1,6 +1,6 @@
 # LeetCode / NeetCode Local Workspace
 
-Welcome to your local practice environment for solving and testing LeetCode/NeetCode 150 problems in TypeScript. This setup includes a custom, zero-boilerplate testing framework, custom data structure parsers, system-design class runners, and CLI helper scripts.
+Welcome to your local practice environment for solving and testing LeetCode/NeetCode problems in TypeScript. This setup includes a custom, zero-boilerplate testing framework, custom data structure parsers, system-design class runners, and CLI helper scripts.
 
 ---
 
@@ -22,6 +22,8 @@ src/                      # Core infrastructure files
 │   └── title-helper.ts   # Kebab-case title formatting
 ├── templates/
 │   └── boilerplates.ts   # Copy-pasteable boilerplate-free templates
+├── tests/
+│   └── feature-test.ts   # Framework feature test suite (run with: pnpm test)
 └── scripts/
     └── copy-title.ts     # CLI tool to format problem titles and copy to clipboard
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
@@ -152,6 +154,15 @@ Or for playground sandboxes:
 ```bash
 pnpm exec tsx playground/practice.ts
 ```
+
+---
+
+### Step 4: Run the Framework Feature Tests
+To verify the test runner, visualizers, comparators, and all framework features are working correctly:
+```bash
+pnpm test
+```
+This runs [src/tests/feature-test.ts](file:///e:/Agent/Antigravity/NeetCode150/src/tests/feature-test.ts) — a comprehensive suite that exercises every feature of the framework across all data structure types.
 
 ---
 
