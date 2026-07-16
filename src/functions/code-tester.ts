@@ -1,22 +1,14 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import {
-  ListNode,
-  cloneLinkedList,
-  linkedListToString,
-} from "#functions/linked-list.js";
-import {
-  TreeNode,
-  cloneBinaryTree,
-  binaryTreeToArray,
-} from "#functions/tree.js";
+import { ListNode, cloneLinkedList, linkedListToString } from "#functions/linked-list.js";
+import { TreeNode, cloneBinaryTree, binaryTreeToArray } from "#functions/tree.js";
 import { GraphNode, cloneGraph, graphToAdjList } from "#functions/graph.js";
 import {
   smartCompare,
   compareUnorderedArrays,
   compareUnordered2DArrays,
   compareGroupAnagrams,
-  compare3Sum,
+  compare3Sum
 } from "#functions/compare.js";
 
 export type TestCase<F extends (...args: any[]) => any> = {
@@ -38,16 +30,11 @@ export type ClassTestCase = {
  * Extracts the parameter names of a function at runtime.
  */
 function getParamNames(fn: Function): string[] {
-  const fnStr = fn
-    .toString()
-    .replace(/[\r\n\s]+/g, " ")
-    .trim();
-
+  const fnStr = fn.toString().replace(/[\r\n\s]+/g, " ").trim();
+  
   let paramsStr = "";
   // Check for parenthesis signature (regular functions, async functions, arrow functions)
-  const parenMatch = fnStr.match(
-    /^(?:async\s+)?(?:function\s*[^(]*\s*)?\(([^)]*)\)/,
-  );
+  const parenMatch = fnStr.match(/^(?:async\s+)?(?:function\s*[^(]*\s*)?\(([^)]*)\)/);
   if (parenMatch) {
     paramsStr = parenMatch[1];
   } else {
@@ -101,6 +88,173 @@ export function formatValue(value: unknown): unknown {
 }
 
 /**
+ * Like formatValue but always returns a printable string (for inline display).
+ */
+function serializeForDisplay(value: unknown): string {
+  if (value === null || value === undefined) return String(value);
+
+  if (value instanceof ListNode)  return linkedListToString(value);
+  if (value instanceof TreeNode)  return JSON.stringify(binaryTreeToArray(value));
+  if (value instanceof GraphNode) return JSON.stringify(graphToAdjList(value));
+
+  if (typeof value === "string") return `"${value}"`;
+
+  return JSON.stringify(formatValue(value)) ?? String(value);
+}
+
+// =============================================================================
+// DIFF RENDERING — LeetCode-style inline colored output
+// =============================================================================
+
+/**
+ * Renders two arrays as inline colored strings.
+ * Matching elements are gray, first mismatch is red(got)/green(expected).
+ * Returns { expLine, gotLine, hint } where hint is a short text label.
+ */
+function renderArrayDiff(
+  actual: unknown[],
+  expected: unknown[],
+): { expLine: string; gotLine: string; hint: string } {
+  const len = Math.max(actual.length, expected.length);
+  const expParts: string[] = [];
+  const gotParts: string[] = [];
+  let hint = "";
+
+  for (let i = 0; i < len; i++) {
+    const a = actual[i];
+    const e = expected[i];
+    const match = i < actual.length && i < expected.length && smartCompare(a, e);
+
+    if (match) {
+      expParts.push(chalk.gray(JSON.stringify(e)));
+      gotParts.push(chalk.gray(JSON.stringify(a)));
+    } else {
+      if (!hint) {
+        if (i >= actual.length) {
+          hint = `index [${i}]: expected ${JSON.stringify(e)}, got (missing)`;
+        } else if (i >= expected.length) {
+          hint = `index [${i}]: got extra element ${JSON.stringify(a)}`;
+        } else {
+          hint = `index [${i}]: expected ${JSON.stringify(e)}, got ${JSON.stringify(a)}`;
+        }
+      }
+      expParts.push(chalk.green.bold(JSON.stringify(e ?? "(missing)")));
+      gotParts.push(chalk.red.bold(JSON.stringify(a ?? "(extra)")));
+    }
+  }
+
+  if (actual.length !== expected.length && !hint) {
+    hint = `length mismatch — expected ${expected.length}, got ${actual.length}`;
+  }
+
+  return {
+    expLine: `[${expParts.join(", ")}]`,
+    gotLine: `[${gotParts.join(", ")}]`,
+    hint,
+  };
+}
+
+/**
+ * Renders two linked lists as inline colored strings.
+ * Matching nodes are gray, first mismatch is red(got)/green(expected).
+ */
+function renderListDiff(
+  actual: ListNode | null,
+  expected: ListNode | null,
+): { expLine: string; gotLine: string; hint: string } {
+  const expParts: string[] = [];
+  const gotParts: string[] = [];
+  let hint = "";
+
+  let a: ListNode | null = actual;
+  let e: ListNode | null = expected;
+  let idx = 0;
+  const visitedA = new Set<ListNode>();
+  const visitedE = new Set<ListNode>();
+
+  while (a || e) {
+    if (a && visitedA.has(a)) { expParts.push(chalk.gray("(cycle)")); gotParts.push(chalk.gray("(cycle)")); break; }
+    if (e && visitedE.has(e)) { expParts.push(chalk.gray("(cycle)")); gotParts.push(chalk.gray("(cycle)")); break; }
+    if (a) visitedA.add(a);
+    if (e) visitedE.add(e);
+
+    const match = a && e && a.val === e.val;
+    if (match) {
+      expParts.push(chalk.gray(String(e!.val)));
+      gotParts.push(chalk.gray(String(a!.val)));
+    } else {
+      if (!hint) {
+        if (!a) hint = `node [${idx}]: expected ${e!.val}, got (end of list)`;
+        else if (!e) hint = `node [${idx}]: expected (end of list), got ${a.val}`;
+        else hint = `node [${idx}]: expected ${e.val}, got ${a.val}`;
+      }
+      expParts.push(e ? chalk.green.bold(String(e.val)) : chalk.green.bold("(missing)"));
+      gotParts.push(a ? chalk.red.bold(String(a.val))   : chalk.red.bold("(extra)"));
+    }
+
+    a = a?.next ?? null;
+    e = e?.next ?? null;
+    idx++;
+  }
+
+  const arrow = chalk.gray(" → ");
+  return {
+    expLine: expParts.join(arrow) + chalk.gray(" → null"),
+    gotLine: gotParts.join(arrow) + chalk.gray(" → null"),
+    hint,
+  };
+}
+
+/**
+ * Main diff renderer. Returns { expLine, gotLine, hint } for any value pair.
+ * Falls back to plain serializeForDisplay when no structured diff is possible.
+ */
+function renderDiff(
+  actual: unknown,
+  expected: unknown,
+): { expLine: string; gotLine: string; hint: string } {
+  // Array diff
+  if (Array.isArray(actual) && Array.isArray(expected)) {
+    return renderArrayDiff(actual, expected);
+  }
+
+  // Linked list diff
+  if (actual instanceof ListNode || expected instanceof ListNode) {
+    return renderListDiff(
+      actual instanceof ListNode ? actual : null,
+      expected instanceof ListNode ? expected : null,
+    );
+  }
+
+  // String: highlight first differing char
+  if (typeof actual === "string" && typeof expected === "string") {
+    const len = Math.max(actual.length, expected.length);
+    let hint = "";
+    let expLine = '"';
+    let gotLine = '"';
+    for (let i = 0; i < len; i++) {
+      const ec = expected[i], ac = actual[i];
+      if (ec === ac) {
+        expLine += chalk.gray(ec ?? "");
+        gotLine += chalk.gray(ac ?? "");
+      } else {
+        if (!hint) hint = `char [${i}]: expected ${ec !== undefined ? `'${ec}'` : "(end)"}, got ${ac !== undefined ? `'${ac}'` : "(end)"}`;
+        expLine += ec !== undefined ? chalk.green.bold(ec) : "";
+        gotLine += ac !== undefined ? chalk.red.bold(ac)   : "";
+      }
+    }
+    return { expLine: expLine + '"', gotLine: gotLine + '"', hint };
+  }
+
+  // Fallback: plain display, no inline diff possible
+  return {
+    expLine: chalk.green(serializeForDisplay(expected)),
+    gotLine: chalk.red(serializeForDisplay(actual)),
+    hint: "",
+  };
+}
+
+/**
  * Deep clones any value recursively.
  * Special-cases ListNodes, TreeNodes, and GraphNodes.
  */
@@ -151,9 +305,10 @@ export function runTests<F extends (...args: any[]) => any>(
 
   let passedCount = 0;
 
-  for (const [index, test] of tests.entries()) {
-    drawDivider();
+  drawDivider();
 
+  for (const [index, test] of tests.entries()) {
+    if (index > 0) drawDivider();
     const { name, input, output, compare, cloneInput } = test;
 
     const actualInput = cloneInput
@@ -170,38 +325,39 @@ export function runTests<F extends (...args: any[]) => any>(
 
     if (passed) passedCount++;
 
+    // ── Header ───────────────────────────────────────────────────────────────
+    const statusBadge = passed ? chalk.bgGreen.black(" PASS ") : chalk.bgRed.white(" FAIL ");
+    const timeStr     = chalk.gray(`${(end - start).toFixed(3)} ms`);
     console.log(
-      chalk.cyan.bold(`\nTest ${index + 1}${name ? ` - ${name}` : ""}`),
+      `\n  ${statusBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${timeStr}`
     );
 
-    console.log(chalk.gray("Input:"));
+    // ── Input block ───────────────────────────────────────────────────────────
+    console.log();
     try {
-      const paramNames = getParamNames(fn);
+      const paramNames    = getParamNames(fn);
       const formattedInputs = input.map(formatValue);
-      if (paramNames.length === input.length) {
-        const inputStrings = paramNames.map((name, i) => {
-          const rawVal = input[i];
-          const formattedVal = formattedInputs[i];
 
-          let serializedValue = "";
+      if (paramNames.length === input.length) {
+        for (let i = 0; i < input.length; i++) {
+          const rawVal      = input[i];
+          const formattedVal = formattedInputs[i];
+          let serialized    = "";
+
           if (rawVal instanceof ListNode) {
-            serializedValue = String(formattedVal);
-          } else if (
-            rawVal instanceof TreeNode ||
-            rawVal instanceof GraphNode
-          ) {
-            serializedValue = JSON.stringify(formattedVal);
+            serialized = String(formattedVal);
+          } else if (rawVal instanceof TreeNode || rawVal instanceof GraphNode) {
+            serialized = JSON.stringify(formattedVal);
           } else if (typeof rawVal === "string") {
-            serializedValue = `"${rawVal}"`;
+            serialized = `"${rawVal}"`;
           } else if (Array.isArray(rawVal)) {
-            serializedValue = JSON.stringify(formattedVal);
+            serialized = JSON.stringify(formattedVal);
           } else {
-            serializedValue = String(formattedVal);
+            serialized = String(formattedVal);
           }
-          return `${name}: ${serializedValue}`;
-        });
-        console.log(inputStrings.join(", \n"));
-        console.log();
+
+          console.log(`  ${chalk.cyan(paramNames[i])} ${chalk.gray("=")} ${chalk.white(serialized)}`);
+        }
       } else {
         console.dir(formattedInputs, { depth: null });
       }
@@ -209,28 +365,23 @@ export function runTests<F extends (...args: any[]) => any>(
       console.dir(input.map(formatValue), { depth: null });
     }
 
-    if (!passed) {
-      console.log(chalk.hex("#cc6e0f")("Expected:"));
-      console.dir(formatValue(output), { depth: null });
-
-      console.log(chalk.hex("#cc6e0f")("Received:"));
-      console.dir(formatValue(result), { depth: null });
-
-      console.log();
+    // ── Expected / Got block ─────────────────────────────────────────────────
+    console.log();
+    if (passed) {
+      console.log(`  ${chalk.gray("Output  ")}  ${chalk.green(serializeForDisplay(result))}`);
+    } else {
+      const { expLine, gotLine, hint } = renderDiff(result, output);
+      console.log(`  ${chalk.hex("#cc6e0f")("Expected")}  ${expLine}`);
+      console.log(`  ${chalk.hex("#cc6e0f")("Got     ")}  ${gotLine}`);
+      if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
     }
-
-    if (passed && showOutput) {
-      console.log(chalk.gray("Output:"));
-      console.dir(formatValue(result), { depth: null });
-      console.log();
-    }
-
-    console.log(passed ? chalk.green("✅ Passed") : chalk.red("❌ Failed"));
-    console.log(chalk.gray(`Time: ${(end - start).toFixed(3)} ms`));
     console.log();
   }
 
-  drawDivider();
+  drawDivider("═");
+
+  console.log();
+
   if (passedCount === tests.length) {
     console.log(
       chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`),
@@ -240,7 +391,6 @@ export function runTests<F extends (...args: any[]) => any>(
       chalk.red.bold(`❌ Passed ${passedCount}/${tests.length} tests`),
     );
   }
-  drawDivider();
 }
 
 /**
@@ -258,17 +408,13 @@ export function runClassTests<C extends new (...args: any[]) => any>(
 
   let passedCount = 0;
 
-  for (const [index, test] of tests.entries()) {
-    drawDivider();
+  drawDivider("═");
 
+  for (const [index, test] of tests.entries()) {
     const { name, operations, args, expected } = test;
     const actualOutputs: any[] = [];
     let instance: any = null;
     let failedIdx = -1;
-
-    console.log(
-      chalk.cyan.bold(`\nTest ${index + 1}${name ? ` - ${name}` : ""}`),
-    );
 
     const start = performance.now();
     try {
@@ -311,42 +457,93 @@ export function runClassTests<C extends new (...args: any[]) => any>(
 
     if (passed) passedCount++;
 
-    console.log(chalk.gray("Operations:"));
-    console.log(JSON.stringify(operations));
-    console.log(chalk.gray("Arguments:"));
-    console.log(JSON.stringify(args));
+    // ── Header (badge style matching runTests) ───────────────────────────────
+    const classBadge = passed ? chalk.bgGreen.black(" PASS ") : chalk.bgRed.white(" FAIL ");
+    const classTime  = chalk.gray(`${(end - start).toFixed(3)} ms`);
+    console.log(
+      `\n  ${classBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${classTime}`
+    );
 
-    if (!passed) {
+    // ── Per-step trace table ──────────────────────────────────────────────────
+    const COL_STEP = 5;
+    const COL_OP   = Math.max(16, ...operations.map((op, i) => {
+      const argStr = args[i]?.length ? JSON.stringify(args[i]).slice(1, -1) : "";
+      return (`${op}(${argStr})`).length + 2;
+    }));
+    const COL_VAL  = Math.max(10, ...expected.map(v => (JSON.stringify(v) ?? "null").length + 2));
+    const COL_OK   = 7;
+
+    const pad = (s: string, n: number) => s.slice(0, n).padEnd(n);
+    const hr  = chalk.gray("─".repeat(COL_STEP + COL_OP + COL_VAL + COL_VAL + COL_OK + 10));
+
+    console.log();
+    console.log(
+      "  " + chalk.gray(
+        `${pad("Step", COL_STEP)}  ${pad("Operation", COL_OP)}  ${pad("Expected", COL_VAL)}  ${pad("Got", COL_VAL)}  Status`
+      )
+    );
+    console.log(hr);
+
+    for (let i = 0; i < operations.length; i++) {
+      const op      = operations[i];
+      const opArgs  = args[i] ?? [];
+      const argStr  = opArgs.length ? JSON.stringify(opArgs).slice(1, -1) : "";
+      const opLabel = `${op}(${argStr})`;
+
+      const expVal  = i < expected.length      ? expected[i]      : undefined;
+      const gotVal  = i < actualOutputs.length ? actualOutputs[i] : undefined;
+
+      const expStr  = JSON.stringify(expVal) ?? "null";
+      const gotStr  = JSON.stringify(gotVal) ?? "null";
+
+      const stepMatch = smartCompare(gotVal, expVal);
+      // Constructor row: always null → null, show neutral
+      const isConstructor = i === 0;
+      const isFail = !isConstructor && !stepMatch;
+
+      const stepLabel = chalk.gray(`#${String(i + 1).padStart(2, "0")}  `);
+      const opColor   = isConstructor ? chalk.magenta : chalk.white;
+      const expColor  = chalk.gray;
+      const gotColor  = isFail ? chalk.red : chalk.green;
+      const status    = isConstructor
+        ? chalk.gray("new")
+        : isFail
+          ? chalk.red("✗ FAIL")
+          : chalk.green("✓");
+
+      console.log(
+        `  ${stepLabel}${opColor(pad(opLabel, COL_OP))}  ${expColor(pad(expStr, COL_VAL))}  ${gotColor(pad(gotStr, COL_VAL))}  ${status}`
+      );
+    }
+
+    console.log(hr);
+    console.log();
+
+    if (!passed && failedIdx !== -1) {
+      const { expLine, gotLine, hint } = renderDiff(
+        actualOutputs[failedIdx],
+        expected[failedIdx],
+      );
+      console.log(
+        chalk.red(`  ✗ Step #${failedIdx + 1}: `) +
+        chalk.white(`${operations[failedIdx]}(${(args[failedIdx] ?? []).join(", ")})`)
+      );
+      console.log(`  ${chalk.hex("#cc6e0f")("Expected")}  ${expLine}`);
+      console.log(`  ${chalk.hex("#cc6e0f")("Got     ")}  ${gotLine}`);
+      if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
       console.log();
-      console.log(chalk.hex("#cc6e0f")("Expected:"));
-      console.dir(formatValue(expected), { depth: null });
-
-      console.log(chalk.hex("#cc6e0f")("Received:"));
-      console.dir(formatValue(actualOutputs), { depth: null });
-      console.log();
-
-      if (failedIdx !== -1) {
-        console.log(
-          chalk.red(
-            `Failed at step ${failedIdx}: operation "${operations[failedIdx]}" with args ${JSON.stringify(args[failedIdx])}`,
-          ),
-        );
-      }
     }
 
     if (passed && showOutput) {
-      console.log();
-      console.log(chalk.gray("Output:"));
+      console.log(chalk.gray("Outputs:"));
       console.dir(formatValue(actualOutputs), { depth: null });
-      console.log();
     }
-
-    console.log(passed ? chalk.green("✅ Passed") : chalk.red("❌ Failed"));
-    console.log(chalk.gray(`Time: ${(end - start).toFixed(3)} ms`));
-    console.log();
   }
 
-  drawDivider();
+  drawDivider("═");
+
+  console.log();
+
   if (passedCount === tests.length) {
     console.log(
       chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`),
@@ -356,10 +553,9 @@ export function runClassTests<C extends new (...args: any[]) => any>(
       chalk.red.bold(`❌ Passed ${passedCount}/${tests.length} tests`),
     );
   }
-  drawDivider();
 }
 
-function drawDivider(char = "-", colorFn = chalk.gray) {
+function drawDivider(char = "─", colorFn = chalk.gray) {
   const width = process.stdout.columns || 80;
   const line = char.repeat(width);
   console.log(colorFn(line));
@@ -371,5 +567,5 @@ export {
   compareUnorderedArrays,
   compareUnordered2DArrays,
   compareGroupAnagrams,
-  compare3Sum,
+  compare3Sum
 };
