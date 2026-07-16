@@ -18,11 +18,13 @@
   },
   "type": "module",
   "exports": {
-    "./lib/*": "./src/lib/*",
+    "./utils/*": "./src/utils/*",
+    "./templates/*": "./src/templates/*",
     "./functions/*": "./src/functions/*"
   },
   "imports": {
-    "#lib/*": "./src/lib/*",
+    "#utils/*": "./src/utils/*",
+    "#templates/*": "./src/templates/*",
     "#functions/*": "./src/functions/*"
   },
   "dependencies": {

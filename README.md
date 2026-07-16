@@ -7,22 +7,26 @@ Welcome to your local practice environment for solving and testing LeetCode/Neet
 ## 📂 Directory Structure
 
 ```
-NeetCode150/              # Contains categorized folders with solutions (untouched)
+NeetCode150/              # Contains categorized folders with solutions
 src/                      # Core infrastructure files
 ├── functions/
 │   ├── code-tester.ts    # Main test runner (runTests, runClassTests)
-│   ├── compare.ts        # Modularized comparison engine (smartCompare, unordered arrays, legacy aliases)
 │   ├── linked-list.ts    # ListNode definition, array-to-list parsers, and stringifiers
 │   ├── tree.ts           # TreeNode definition, BFS-level tree builders, and serializers
 │   └── graph.ts          # GraphNode definition, cycle-safe cloning, and adjList builders
-├── lib/
-│   ├── format.ts         # Copy-pasteable boilerplate-free templates
-│   └── helper.ts         # Text utilities (kebab-case title formatting)
+├── utils/                # Internal test runner & CLI helper utilities
+│   ├── clone.ts          # Input/Node structure cloning
+│   ├── compare.ts        # Comparison engine (smartCompare, unordered arrays, legacy aliases)
+│   ├── diff.ts           # Structured/Colored console diff rendering
+│   ├── display.ts        # Serialization, parameters parsing, and visual formatters
+│   └── title-helper.ts   # Kebab-case title formatting
+├── templates/
+│   └── boilerplates.ts   # Copy-pasteable boilerplate-free templates
 └── scripts/
     └── copy-title.ts     # CLI tool to format problem titles and copy to clipboard
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
 package.json              # Project scripts and dependency configuration
-tsconfig.json             # TypeScript path mappings (#functions/*, #lib/*)
+tsconfig.json             # TypeScript path mappings (#functions/*, #utils/*, #templates/*)
 ```
 
 ---
@@ -47,7 +51,7 @@ Instead of manually typing kebab-case file names, run the title-formatting scrip
 
 ### Step 2: Use the Minimal Templates
 
-To start writing your solution, open [src/lib/format.ts](file:///e:/Agent/Antigravity/NeetCode150/src/lib/format.ts), copy the relevant template, and paste it into your solution file.
+To start writing your solution, open [src/templates/boilerplates.ts](file:///e:/Agent/Antigravity/NeetCode150/src/templates/boilerplates.ts), copy the relevant template, and paste it into your solution file.
 
 #### 1. Standard Problems (Arrays, Strings, Math, etc.)
 ```typescript

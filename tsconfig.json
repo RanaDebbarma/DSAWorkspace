@@ -6,7 +6,8 @@
     "moduleResolution": "NodeNext",
     "module": "NodeNext",
     "paths": {
-      "#lib/*": ["./src/lib/*"],
+      "#utils/*": ["./src/utils/*"],
+      "#templates/*": ["./src/templates/*"],
       "#functions/*": ["./src/functions/*"]
     }
   }

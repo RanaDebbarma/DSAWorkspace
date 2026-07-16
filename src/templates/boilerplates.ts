@@ -58,7 +58,7 @@ runTests(solve, [
 
 
 // ============================================================================
-// 4. BINARY TREE TEMPLATE
+// 4. BINARY TREE TEMPLATE (already slot 4 — no change)
 // ============================================================================
 /*
 import { runTests } from "#functions/code-tester.js";

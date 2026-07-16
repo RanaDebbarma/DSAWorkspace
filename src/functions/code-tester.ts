@@ -1,15 +1,23 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import { ListNode, cloneLinkedList, linkedListToString } from "#functions/linked-list.js";
-import { TreeNode, cloneBinaryTree, binaryTreeToArray } from "#functions/tree.js";
-import { GraphNode, cloneGraph, graphToAdjList } from "#functions/graph.js";
+import { ListNode } from "#functions/linked-list.js";
+import { TreeNode } from "#functions/tree.js";
+import { GraphNode } from "#functions/graph.js";
 import {
   smartCompare,
   compareUnorderedArrays,
   compareUnordered2DArrays,
   compareGroupAnagrams,
   compare3Sum
-} from "#functions/compare.js";
+} from "#utils/compare.js";
+import { cloneValue } from "#utils/clone.js";
+import {
+  getParamNames,
+  formatValue,
+  serializeForDisplay,
+  drawDivider
+} from "#utils/display.js";
+import { renderDiff } from "#utils/diff.js";
 
 export type TestCase<F extends (...args: any[]) => any> = {
   name?: string;
@@ -25,270 +33,6 @@ export type ClassTestCase = {
   args: any[][];
   expected: any[];
 };
-
-/**
- * Extracts the parameter names of a function at runtime.
- */
-function getParamNames(fn: Function): string[] {
-  const fnStr = fn.toString().replace(/[\r\n\s]+/g, " ").trim();
-  
-  let paramsStr = "";
-  // Check for parenthesis signature (regular functions, async functions, arrow functions)
-  const parenMatch = fnStr.match(/^(?:async\s+)?(?:function\s*[^(]*\s*)?\(([^)]*)\)/);
-  if (parenMatch) {
-    paramsStr = parenMatch[1];
-  } else {
-    // Arrow function without parenthesis: x => ...
-    const arrowMatch = fnStr.match(/^([^=]+)=>/);
-    if (arrowMatch) {
-      paramsStr = arrowMatch[1].trim();
-    }
-  }
-
-  if (!paramsStr.trim()) return [];
-
-  return paramsStr
-    .split(",")
-    .map((p) => {
-      // Remove default assignments (e.g. x = 1 ➔ x)
-      let name = p.split("=")[0].trim();
-      // Remove comments
-      name = name.replace(/\/\*.*?\*\//g, "").trim();
-      return name;
-    })
-    .filter((p) => p !== "");
-}
-
-/**
- * Formats a value recursively into a clean, human-readable JSON/string format.
- * Automatically serializes ListNodes, TreeNodes, and GraphNodes.
- */
-export function formatValue(value: unknown): unknown {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  if (value instanceof ListNode) {
-    return linkedListToString(value);
-  }
-
-  if (value instanceof TreeNode) {
-    return binaryTreeToArray(value);
-  }
-
-  if (value instanceof GraphNode) {
-    return graphToAdjList(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(formatValue);
-  }
-
-  return value;
-}
-
-/**
- * Like formatValue but always returns a printable string (for inline display).
- */
-function serializeForDisplay(value: unknown): string {
-  if (value === null || value === undefined) return String(value);
-
-  if (value instanceof ListNode)  return linkedListToString(value);
-  if (value instanceof TreeNode)  return JSON.stringify(binaryTreeToArray(value));
-  if (value instanceof GraphNode) return JSON.stringify(graphToAdjList(value));
-
-  if (typeof value === "string") return `"${value}"`;
-
-  return JSON.stringify(formatValue(value)) ?? String(value);
-}
-
-// =============================================================================
-// DIFF RENDERING — LeetCode-style inline colored output
-// =============================================================================
-
-/**
- * Renders two arrays as inline colored strings.
- * Matching elements are gray, first mismatch is red(got)/green(expected).
- * Returns { expLine, gotLine, hint } where hint is a short text label.
- */
-function renderArrayDiff(
-  actual: unknown[],
-  expected: unknown[],
-): { expLine: string; gotLine: string; hint: string } {
-  const len = Math.max(actual.length, expected.length);
-  const expParts: string[] = [];
-  const gotParts: string[] = [];
-  let hint = "";
-
-  for (let i = 0; i < len; i++) {
-    const a = actual[i];
-    const e = expected[i];
-    const match = i < actual.length && i < expected.length && smartCompare(a, e);
-
-    if (match) {
-      expParts.push(chalk.gray(JSON.stringify(e)));
-      gotParts.push(chalk.gray(JSON.stringify(a)));
-    } else {
-      if (!hint) {
-        if (i >= actual.length) {
-          hint = `index [${i}]: expected ${JSON.stringify(e)}, got (missing)`;
-        } else if (i >= expected.length) {
-          hint = `index [${i}]: got extra element ${JSON.stringify(a)}`;
-        } else {
-          hint = `index [${i}]: expected ${JSON.stringify(e)}, got ${JSON.stringify(a)}`;
-        }
-      }
-      expParts.push(chalk.green.bold(JSON.stringify(e ?? "(missing)")));
-      gotParts.push(chalk.red.bold(JSON.stringify(a ?? "(extra)")));
-    }
-  }
-
-  if (actual.length !== expected.length && !hint) {
-    hint = `length mismatch — expected ${expected.length}, got ${actual.length}`;
-  }
-
-  return {
-    expLine: `[${expParts.join(", ")}]`,
-    gotLine: `[${gotParts.join(", ")}]`,
-    hint,
-  };
-}
-
-/**
- * Renders two linked lists as inline colored strings.
- * Matching nodes are gray, first mismatch is red(got)/green(expected).
- */
-function renderListDiff(
-  actual: ListNode | null,
-  expected: ListNode | null,
-): { expLine: string; gotLine: string; hint: string } {
-  const expParts: string[] = [];
-  const gotParts: string[] = [];
-  let hint = "";
-
-  let a: ListNode | null = actual;
-  let e: ListNode | null = expected;
-  let idx = 0;
-  const visitedA = new Set<ListNode>();
-  const visitedE = new Set<ListNode>();
-
-  while (a || e) {
-    if (a && visitedA.has(a)) { expParts.push(chalk.gray("(cycle)")); gotParts.push(chalk.gray("(cycle)")); break; }
-    if (e && visitedE.has(e)) { expParts.push(chalk.gray("(cycle)")); gotParts.push(chalk.gray("(cycle)")); break; }
-    if (a) visitedA.add(a);
-    if (e) visitedE.add(e);
-
-    const match = a && e && a.val === e.val;
-    if (match) {
-      expParts.push(chalk.gray(String(e!.val)));
-      gotParts.push(chalk.gray(String(a!.val)));
-    } else {
-      if (!hint) {
-        if (!a) hint = `node [${idx}]: expected ${e!.val}, got (end of list)`;
-        else if (!e) hint = `node [${idx}]: expected (end of list), got ${a.val}`;
-        else hint = `node [${idx}]: expected ${e.val}, got ${a.val}`;
-      }
-      expParts.push(e ? chalk.green.bold(String(e.val)) : chalk.green.bold("(missing)"));
-      gotParts.push(a ? chalk.red.bold(String(a.val))   : chalk.red.bold("(extra)"));
-    }
-
-    a = a?.next ?? null;
-    e = e?.next ?? null;
-    idx++;
-  }
-
-  const arrow = chalk.gray(" → ");
-  return {
-    expLine: expParts.join(arrow) + chalk.gray(" → null"),
-    gotLine: gotParts.join(arrow) + chalk.gray(" → null"),
-    hint,
-  };
-}
-
-/**
- * Main diff renderer. Returns { expLine, gotLine, hint } for any value pair.
- * Falls back to plain serializeForDisplay when no structured diff is possible.
- */
-function renderDiff(
-  actual: unknown,
-  expected: unknown,
-): { expLine: string; gotLine: string; hint: string } {
-  // Array diff
-  if (Array.isArray(actual) && Array.isArray(expected)) {
-    return renderArrayDiff(actual, expected);
-  }
-
-  // Linked list diff
-  if (actual instanceof ListNode || expected instanceof ListNode) {
-    return renderListDiff(
-      actual instanceof ListNode ? actual : null,
-      expected instanceof ListNode ? expected : null,
-    );
-  }
-
-  // String: highlight first differing char
-  if (typeof actual === "string" && typeof expected === "string") {
-    const len = Math.max(actual.length, expected.length);
-    let hint = "";
-    let expLine = '"';
-    let gotLine = '"';
-    for (let i = 0; i < len; i++) {
-      const ec = expected[i], ac = actual[i];
-      if (ec === ac) {
-        expLine += chalk.gray(ec ?? "");
-        gotLine += chalk.gray(ac ?? "");
-      } else {
-        if (!hint) hint = `char [${i}]: expected ${ec !== undefined ? `'${ec}'` : "(end)"}, got ${ac !== undefined ? `'${ac}'` : "(end)"}`;
-        expLine += ec !== undefined ? chalk.green.bold(ec) : "";
-        gotLine += ac !== undefined ? chalk.red.bold(ac)   : "";
-      }
-    }
-    return { expLine: expLine + '"', gotLine: gotLine + '"', hint };
-  }
-
-  // Fallback: plain display, no inline diff possible
-  return {
-    expLine: chalk.green(serializeForDisplay(expected)),
-    gotLine: chalk.red(serializeForDisplay(actual)),
-    hint: "",
-  };
-}
-
-/**
- * Deep clones any value recursively.
- * Special-cases ListNodes, TreeNodes, and GraphNodes.
- */
-export function cloneValue(value: unknown): unknown {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  if (value instanceof ListNode) {
-    return cloneLinkedList(value);
-  }
-
-  if (value instanceof TreeNode) {
-    return cloneBinaryTree(value);
-  }
-
-  if (value instanceof GraphNode) {
-    return cloneGraph(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(cloneValue);
-  }
-
-  if (typeof value === "object") {
-    try {
-      return structuredClone(value);
-    } catch {
-      return value; // fallback
-    }
-  }
-
-  return value;
-}
 
 /**
  * Generic runner for standard functions.
@@ -497,7 +241,6 @@ export function runClassTests<C extends new (...args: any[]) => any>(
       const gotStr  = JSON.stringify(gotVal) ?? "null";
 
       const stepMatch = smartCompare(gotVal, expVal);
-      // Constructor row: always null → null, show neutral
       const isConstructor = i === 0;
       const isFail = !isConstructor && !stepMatch;
 
@@ -555,14 +298,10 @@ export function runClassTests<C extends new (...args: any[]) => any>(
   }
 }
 
-function drawDivider(char = "─", colorFn = chalk.gray) {
-  const width = process.stdout.columns || 80;
-  const line = char.repeat(width);
-  console.log(colorFn(line));
-}
-
-// Re-export comparators for general utility import
+// Re-export variables/functions for general utility import and backward compatibility
 export {
+  cloneValue,
+  formatValue,
   smartCompare,
   compareUnorderedArrays,
   compareUnordered2DArrays,
