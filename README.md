@@ -53,7 +53,7 @@ Instead of manually typing kebab-case file names, run the title-formatting scrip
 
 ### Step 2: Use the Minimal Templates
 
-To start writing your solution, open [src/templates/boilerplates.ts](file:///e:/Agent/Antigravity/NeetCode150/src/templates/boilerplates.ts), copy the relevant template, and paste it into your solution file.
+To start writing your solution, open [src/templates/boilerplates.ts], copy the relevant template, and paste it into your solution file.
 
 #### 1. Standard Problems (Arrays, Strings, Math, etc.)
 ```typescript
@@ -162,7 +162,7 @@ To verify the test runner, visualizers, comparators, and all framework features 
 ```bash
 pnpm test
 ```
-This runs [src/tests/feature-test.ts](file:///e:/Agent/Antigravity/NeetCode150/src/tests/feature-test.ts) — a comprehensive suite that exercises every feature of the framework across all data structure types.
+This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises every feature of the framework across all data structure types.
 
 ---
 
