@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import { ListNode } from "#functions/linked-list.js";
+import { ListNode, Node } from "#functions/linked-list.js";
 import { TreeNode } from "#functions/tree.js";
 import { GraphNode } from "#functions/graph.js";
 import {
@@ -109,7 +109,8 @@ export function runTests<F extends (...args: any[]) => any>(
             serialized = String(formattedVal);
           } else if (
             rawVal instanceof TreeNode ||
-            rawVal instanceof GraphNode
+            rawVal instanceof GraphNode ||
+            rawVal instanceof Node
           ) {
             serialized = JSON.stringify(formattedVal);
           } else if (typeof rawVal === "string") {
