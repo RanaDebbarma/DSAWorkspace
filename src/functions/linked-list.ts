@@ -181,6 +181,33 @@ export function randomListToArray(head: Node | null): [number, number | null][] 
   return arr;
 }
 
+export function randomListHasNoSharedNodes(
+  original: Node | null,
+  copied: Node | null,
+): boolean {
+  const originalNodes = new Set<Node>();
+  let curr = original;
+
+  while (curr) {
+    originalNodes.add(curr);
+    curr = curr.next;
+  }
+
+  const copiedNodes = new Set<Node>();
+  curr = copied;
+
+  while (curr) {
+    if (originalNodes.has(curr)) return false;
+    if (curr.random && originalNodes.has(curr.random)) return false;
+    if (copiedNodes.has(curr)) break;
+
+    copiedNodes.add(curr);
+    curr = curr.next;
+  }
+
+  return true;
+}
+
 export function cloneRandomList(head: Node | null): Node | null {
   if (!head) return null;
 

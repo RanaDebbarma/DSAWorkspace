@@ -24,7 +24,11 @@ export type TestCase<F extends (...args: any[]) => any> = {
   name?: string;
   input: Parameters<F>;
   output: ReturnType<F>;
-  compare?: (actual: ReturnType<F>, expected: ReturnType<F>) => boolean;
+  compare?: (
+    actual: ReturnType<F>,
+    expected: ReturnType<F>,
+    actualInput: Parameters<F>,
+  ) => boolean;
   cloneInput?: (input: Parameters<F>) => Parameters<F>;
 };
 
@@ -77,8 +81,8 @@ export function runTests<F extends (...args: any[]) => any>(
     const end = performance.now();
 
     const passed = compare
-      ? compare(result, output)
-      : smartCompare(result, output);
+      ? compare(result, output, actualInput)
+      : smartCompare(result, output, actualInput);
 
     if (passed) passedCount++;
 

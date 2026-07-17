@@ -45,15 +45,15 @@ function copyRandomList(head: Node | null): Node | null {
 runTests(copyRandomList, [
   {
     input: [createRandomList([[7, null], [13, 0], [11, 4], [10, 2], [1, 0]])],
-    output: createRandomList([[7, null], [13, 0], [11, 4], [10, 2], [1, 0]])
+    output: createRandomList([[7, null], [13, 0], [11, 4], [10, 2], [1, 0]]),
   },
   {
     input: [createRandomList([[1, 1], [2, 1]])],
-    output: createRandomList([[1, 1], [2, 1]])
+    output: createRandomList([[1, 1], [2, 1]]),
   },
   {
     input: [createRandomList([[3, null], [3, 0], [3, null]])],
-    output: createRandomList([[3, null], [3, 0], [3, null]])
+    output: createRandomList([[3, null], [3, 0], [3, null]]),
   }
 ]);
 

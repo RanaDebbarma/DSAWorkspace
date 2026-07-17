@@ -1,5 +1,11 @@
 import { isDeepStrictEqual } from "node:util";
-import { ListNode, compareLinkedLists, Node, randomListToArray } from "#functions/linked-list.js";
+import {
+  ListNode,
+  compareLinkedLists,
+  Node,
+  randomListHasNoSharedNodes,
+  randomListToArray,
+} from "#functions/linked-list.js";
 import { TreeNode, compareBinaryTrees } from "#functions/tree.js";
 import { GraphNode, compareGraphs } from "#functions/graph.js";
 
@@ -7,7 +13,7 @@ import { GraphNode, compareGraphs } from "#functions/graph.js";
  * Smart recursively compares two values.
  * Automatically selects specialized comparators for ListNodes, TreeNodes, and GraphNodes.
  */
-export function smartCompare(actual: any, expected: any): boolean {
+export function smartCompare(actual: any, expected: any, actualInput?: any[]): boolean {
   if (actual === expected) return true;
   if (actual === null || actual === undefined || expected === null || expected === undefined) {
     return actual === expected;
@@ -18,7 +24,12 @@ export function smartCompare(actual: any, expected: any): boolean {
   }
 
   if (actual instanceof Node || expected instanceof Node) {
-    return compareRandomLists(actual as Node | null, expected as Node | null);
+    const original = actualInput?.find((value) => value instanceof Node) as Node | undefined;
+    return compareRandomLists(
+      actual as Node | null,
+      expected as Node | null,
+      original ?? null,
+    );
   }
 
   if (actual instanceof TreeNode || expected instanceof TreeNode) {
@@ -97,8 +108,12 @@ export function compare3Sum(actual: number[][], expected: number[][]): boolean {
 export function compareRandomLists(
   actual: Node | null,
   expected: Node | null,
+  original: Node | null = null,
 ): boolean {
   const actualArr = randomListToArray(actual);
   const expectedArr = randomListToArray(expected);
-  return isDeepStrictEqual(actualArr, expectedArr);
+  return (
+    isDeepStrictEqual(actualArr, expectedArr) &&
+    randomListHasNoSharedNodes(original, actual)
+  );
 }

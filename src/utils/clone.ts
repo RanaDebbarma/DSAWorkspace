@@ -1,10 +1,15 @@
-import { ListNode, cloneLinkedList } from "#functions/linked-list.js";
+import {
+  ListNode,
+  Node,
+  cloneLinkedList,
+  cloneRandomList,
+} from "#functions/linked-list.js";
 import { TreeNode, cloneBinaryTree } from "#functions/tree.js";
 import { GraphNode, cloneGraph } from "#functions/graph.js";
 
 /**
  * Deep clones any value recursively.
- * Special-cases ListNodes, TreeNodes, and GraphNodes.
+ * Special-cases ListNodes, random-list Nodes, TreeNodes, and GraphNodes.
  */
 export function cloneValue(value: unknown): unknown {
   if (value === null || value === undefined) {
@@ -13,6 +18,10 @@ export function cloneValue(value: unknown): unknown {
 
   if (value instanceof ListNode) {
     return cloneLinkedList(value);
+  }
+
+  if (value instanceof Node) {
+    return cloneRandomList(value);
   }
 
   if (value instanceof TreeNode) {
