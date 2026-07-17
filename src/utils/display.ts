@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { ListNode, linkedListToString } from "#functions/linked-list.js";
+import { ListNode, linkedListToString, Node, randomListToArray } from "#functions/linked-list.js";
 import { TreeNode, binaryTreeToArray } from "#functions/tree.js";
 import { GraphNode, graphToAdjList } from "#functions/graph.js";
 
@@ -47,6 +47,10 @@ export function formatValue(value: unknown): unknown {
 
   if (value instanceof ListNode) {
     return linkedListToString(value);
+  }
+
+  if (value instanceof Node) {
+    return randomListToArray(value);
   }
 
   if (value instanceof TreeNode) {

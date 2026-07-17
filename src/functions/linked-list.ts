@@ -133,9 +133,83 @@ export function createCyclicLinkedList(
   return nodes[0];
 }
 
+export class Node {
+  val: number;
+  next: Node | null;
+  random: Node | null;
+
+  constructor(val = 0, next: Node | null = null, random: Node | null = null) {
+    this.val = val;
+    this.next = next;
+    this.random = random;
+  }
+}
+
+export function createRandomList(arr: [number, number | null][]): Node | null {
+  if (arr.length === 0) return null;
+
+  const nodes = arr.map(([val]) => new Node(val));
+
+  for (let i = 0; i < arr.length; i++) {
+    nodes[i].next = nodes[i + 1] || null;
+    const randomIndex = arr[i][1];
+    if (randomIndex !== null) {
+      nodes[i].random = nodes[randomIndex];
+    }
+  }
+
+  return nodes[0];
+}
+
+export function randomListToArray(head: Node | null): [number, number | null][] {
+  const arr: [number, number | null][] = [];
+  const nodes: Node[] = [];
+  const indexMap = new Map<Node, number>();
+
+  let curr = head;
+  while (curr) {
+    indexMap.set(curr, nodes.length);
+    nodes.push(curr);
+    curr = curr.next;
+  }
+
+  for (const node of nodes) {
+    const randomIndex = node.random ? indexMap.get(node.random) ?? null : null;
+    arr.push([node.val, randomIndex]);
+  }
+
+  return arr;
+}
+
+export function cloneRandomList(head: Node | null): Node | null {
+  if (!head) return null;
+
+  const nodeMap = new Map<Node, Node>();
+  let curr: Node | null = head;
+
+  while (curr) {
+    nodeMap.set(curr, new Node(curr.val));
+    curr = curr.next;
+  }
+
+  curr = head;
+  while (curr) {
+    const clone = nodeMap.get(curr)!;
+    clone.next = curr.next ? nodeMap.get(curr.next)! : null;
+    clone.random = curr.random ? nodeMap.get(curr.random)! : null;
+    curr = curr.next;
+  }
+
+  return nodeMap.get(head)!;
+}
+
 export function cloneValue(value: unknown): unknown {
   if (value instanceof ListNode || value === null) {
     return cloneLinkedList(value as ListNode | null);
+  }
+
+  if (value instanceof Node) {
+    return cloneRandomList(value);
   }
 
   if (Array.isArray(value)) {

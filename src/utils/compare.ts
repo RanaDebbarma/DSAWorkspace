@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { ListNode, compareLinkedLists } from "#functions/linked-list.js";
+import { ListNode, compareLinkedLists, Node, randomListToArray } from "#functions/linked-list.js";
 import { TreeNode, compareBinaryTrees } from "#functions/tree.js";
 import { GraphNode, compareGraphs } from "#functions/graph.js";
 
@@ -15,6 +15,10 @@ export function smartCompare(actual: any, expected: any): boolean {
 
   if (actual instanceof ListNode || expected instanceof ListNode) {
     return compareLinkedLists(actual as ListNode | null, expected as ListNode | null);
+  }
+
+  if (actual instanceof Node || expected instanceof Node) {
+    return compareRandomLists(actual as Node | null, expected as Node | null);
   }
 
   if (actual instanceof TreeNode || expected instanceof TreeNode) {
@@ -88,4 +92,13 @@ export function compareGroupAnagrams(actual: string[][], expected: string[][]): 
 
 export function compare3Sum(actual: number[][], expected: number[][]): boolean {
   return compareUnordered2DArrays(actual, expected);
+}
+
+export function compareRandomLists(
+  actual: Node | null,
+  expected: Node | null,
+): boolean {
+  const actualArr = randomListToArray(actual);
+  const expectedArr = randomListToArray(expected);
+  return isDeepStrictEqual(actualArr, expectedArr);
 }
