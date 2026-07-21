@@ -19,6 +19,10 @@ import {
   padMultiline,
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
+import {
+  captureConsoleOutput,
+  printConsoleOutput,
+} from "#utils/console-capture.js";
 
 export type TestCase<F extends (...args: any[]) => any> = {
   name?: string;
@@ -56,7 +60,8 @@ export function runTests<F extends (...args: any[]) => any>(
     return;
   }
 
-  const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
+  const showHeader =
+    typeof options === "boolean" ? true : (options?.showHeader ?? true);
 
   let passedCount = 0;
 
@@ -77,12 +82,15 @@ export function runTests<F extends (...args: any[]) => any>(
       : (cloneValue(input) as Parameters<F>);
 
     const start = performance.now();
-    const result = fn(...actualInput);
+    const execution = captureConsoleOutput(() => fn(...actualInput));
     const end = performance.now();
+    const result = execution.value as ReturnType<F>;
 
-    const passed = compare
-      ? compare(result, output, actualInput)
-      : smartCompare(result, output, actualInput);
+    const passed = execution.error
+      ? false
+      : compare
+        ? compare(result, output, actualInput)
+        : smartCompare(result, output, actualInput);
 
     if (passed) passedCount++;
 
@@ -99,6 +107,7 @@ export function runTests<F extends (...args: any[]) => any>(
 
     // ── Input block ───────────────────────────────────────────────────────────
     console.log();
+    // console.log(chalk.grey("Inputs:"));
     try {
       const paramNames = getParamNames(fn);
       const formattedInputs = input.map(formatValue);
@@ -126,7 +135,7 @@ export function runTests<F extends (...args: any[]) => any>(
           }
 
           console.log(
-            `  ${chalk.cyan(paramNames[i])} ${chalk.gray("=")} ${chalk.white(serialized)}`,
+            `${chalk.cyan(paramNames[i])} ${chalk.gray("=")} ${chalk.white(serialized)}`,
           );
         }
       } else {
@@ -136,26 +145,39 @@ export function runTests<F extends (...args: any[]) => any>(
       console.dir(input.map(formatValue), { depth: null });
     }
 
+    printConsoleOutput(execution.logs);
+
     // ── Expected / Got block ─────────────────────────────────────────────────
     console.log();
-    if (passed) {
+    if (execution.error) {
+      const error =
+        execution.error instanceof Error
+          ? `${execution.error.name}: ${execution.error.message}`
+          : String(execution.error);
       console.log(
-        `  ${chalk.gray("Output  ")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`, // result || output
+        `${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`,
+      );
+      console.log(
+        `${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 12)}`,
+      );
+    } else if (passed) {
+      console.log(
+        `${chalk.grey("Output:  ")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`, // result || output
       );
     } else {
       const { expLine, gotLine, hint } = renderDiff(result, output);
       console.log(
-        `  ${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`,
+        `${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`,
       );
       console.log(
-        `  ${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`,
+        `${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`,
       );
-      if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
+      if (hint) console.log(`${chalk.red("↳")} ${chalk.gray(hint)}`);
     }
     console.log();
   }
 
-  drawDivider()
+  drawDivider();
   if (passedCount === tests.length) {
     console.log(
       chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`),
@@ -182,7 +204,8 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     return;
   }
 
-  const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
+  const showHeader =
+    typeof options === "boolean" ? true : (options?.showHeader ?? true);
 
   let passedCount = 0;
 
@@ -199,9 +222,10 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     const actualOutputs: any[] = [];
     let instance: any = null;
     let failedIdx = -1;
+    let runtimeError: unknown;
 
     const start = performance.now();
-    try {
+    const execution = captureConsoleOutput(() => {
       for (let i = 0; i < operations.length; i++) {
         const op = operations[i];
         const opArgs = args[i] || [];
@@ -220,14 +244,15 @@ export function runClassTests<C extends new (...args: any[]) => any>(
           actualOutputs.push(res !== undefined ? res : null);
         }
       }
-    } catch (err: any) {
-      console.log(chalk.red(`Runtime Error: ${err.message}`));
+    });
+    if (execution.error) {
+      runtimeError = execution.error;
       actualOutputs.push(null);
     }
     const end = performance.now();
 
     let passed = true;
-    if (actualOutputs.length !== expected.length) {
+    if (runtimeError || actualOutputs.length !== expected.length) {
       passed = false;
     } else {
       for (let i = 0; i < expected.length; i++) {
@@ -277,9 +302,9 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     console.log();
     console.log(
       "  " +
-      chalk.gray(
-        `${pad("Step", COL_STEP)}  ${pad("Operation", COL_OP)}  ${pad("Expected", COL_VAL)}  ${pad("Got", COL_VAL)}  Status`,
-      ),
+        chalk.gray(
+          `${pad("Step", COL_STEP)}  ${pad("Operation", COL_OP)}  ${pad("Expected", COL_VAL)}  ${pad("Got", COL_VAL)}  Status`,
+        ),
     );
     console.log(hr);
 
@@ -317,22 +342,33 @@ export function runClassTests<C extends new (...args: any[]) => any>(
     console.log(hr);
     console.log();
 
+    printConsoleOutput(execution.logs);
+
+    if (runtimeError) {
+      const error =
+        runtimeError instanceof Error
+          ? `${runtimeError.name}: ${runtimeError.message}`
+          : String(runtimeError);
+      console.log(`${chalk.red("Runtime Error:")} ${chalk.gray(error)}`);
+      console.log();
+    }
+
     if (!passed && failedIdx !== -1) {
       const { expLine, gotLine, hint } = renderDiff(
         actualOutputs[failedIdx],
         expected[failedIdx],
       );
       console.log(
-        chalk.red(`  ✗ Step #${failedIdx + 1}: `) +
-        chalk.white(
-          `${operations[failedIdx]}(${(args[failedIdx] ?? []).join(", ")})`,
-        ),
+        chalk.red(`✗ Step #${failedIdx + 1}: `) +
+          chalk.white(
+            `${operations[failedIdx]}(${(args[failedIdx] ?? []).join(", ")})`,
+          ),
       );
       console.log(
-        `  ${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`,
+        `${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`,
       );
       console.log(
-        `  ${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`,
+        `${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`,
       );
       if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
       console.log();
