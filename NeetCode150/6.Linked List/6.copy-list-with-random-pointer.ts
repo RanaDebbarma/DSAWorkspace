@@ -3,6 +3,29 @@ import { Node, createRandomList } from "#functions/linked-list.js";
 
 // LeetCode 138
 
+// Approach one
+// function copyRandomList(head: Node | null): Node | null {
+//   const hash = new Map();
+
+//   let curr = head;
+//   while(curr) {
+//     const copied_node = new Node(curr.val);
+//     hash.set(curr, copied_node);
+//     curr = curr.next;
+//   }
+  
+//   curr = head;
+//   while(curr) {
+//     const copied_node = hash.get(curr);
+//     copied_node.next = hash.get(curr.next);
+//     copied_node.random = hash.get(curr.random);
+//     curr = curr.next;
+//   }
+
+//   return hash.get(head);
+// }
+
+// Optimized Approach
 function copyRandomList(head: Node | null): Node | null {
   if (!head) return null;
 
@@ -31,11 +54,14 @@ function copyRandomList(head: Node | null): Node | null {
   curr = head;
   while (curr) {
     const clone: Node = curr.next!;
+    // de-interleave clone from original
     curr.next = clone.next;
 
+    // stores clone in dummy
     cloneTail.next = clone;
+    
+    // progress pointeres
     cloneTail = clone;
-
     curr = curr.next;
   }
 
