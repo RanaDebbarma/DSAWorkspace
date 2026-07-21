@@ -3,11 +3,22 @@ import { Node, createRandomList } from "#functions/linked-list.js";
 
 // LeetCode 138
 
-// Approach one
 // function copyRandomList(head: Node | null): Node | null {
-//   const hash = new Map();
 
-//   let curr = head;
+//   const copy = structuredClone(head);
+//   console.log(isDeepStrictEqual(head, copy));
+//   console.log(randomListToArray(copy));
+
+//   return copy;
+// }
+
+// o(n) time and space compelxity ------ (Map Approach)
+// function copyRandomList(head: Node | null): Node | null {
+//   if (!head) return null;
+
+//   const hash = new Map<Node, Node>();
+
+//   let curr: Node | null = head;
 //   while(curr) {
 //     const copied_node = new Node(curr.val);
 //     hash.set(curr, copied_node);
@@ -16,16 +27,16 @@ import { Node, createRandomList } from "#functions/linked-list.js";
   
 //   curr = head;
 //   while(curr) {
-//     const copied_node = hash.get(curr);
-//     copied_node.next = hash.get(curr.next);
-//     copied_node.random = hash.get(curr.random);
+//     const copied_node = hash.get(curr)!;
+//     copied_node.next = hash.get(curr.next!) ?? null;
+//     copied_node.random = hash.get(curr.random!) ?? null;
 //     curr = curr.next;
 //   }
 
-//   return hash.get(head);
+//   return hash.get(head) ?? null;
 // }
 
-// Optimized Approach
+// o(n) time and o(1) space complexities ------ Optimized Approach
 function copyRandomList(head: Node | null): Node | null {
   if (!head) return null;
 
