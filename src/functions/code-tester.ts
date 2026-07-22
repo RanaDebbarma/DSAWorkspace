@@ -155,24 +155,24 @@ export function runTests<F extends (...args: any[]) => any>(
           ? `${execution.error.name}: ${execution.error.message}`
           : String(execution.error);
       console.log(
-        `${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`,
+        `${chalk.hex("#cc6e0f")("Expected")}    ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`,
       );
       console.log(
-        `${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 12)}`,
+        `${chalk.hex("#cc6e0f")("Got       ")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 12)}`,
       );
     } else if (passed) {
       console.log(
-        `${chalk.grey("Output:  ")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`, // result || output
+        `${chalk.grey("Output:   ")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`, // result || output
       );
     } else {
       const { expLine, gotLine, hint } = renderDiff(result, output);
       console.log(
-        `${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`,
+        `${chalk.hex("#cc6e0f")("Expected")}    ${padMultiline(expLine, 12)}`,
       );
       console.log(
-        `${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`,
+        `${chalk.hex("#cc6e0f")("Got       ")}  ${padMultiline(gotLine, 12)}`,
       );
-      if (hint) console.log(`${chalk.red("↳")} ${chalk.gray(hint)}`);
+      // if (hint) console.log(`${chalk.red("↳")} ${chalk.gray(hint)}`);
     }
     console.log();
   }
