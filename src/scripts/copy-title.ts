@@ -4,7 +4,7 @@ import { titleFormat } from "#utils/title-helper.js";
 // This will now print perfectly without causing any side-channel crashes
 
 // const title = process.argv.slice(2).join(" ");
-const title = "LRU Cache";
+const title = "Merge k Sorted Lists";
 const formatted = titleFormat(title);
 
 // Native Windows clip utility reads the input stream flawlessly.
