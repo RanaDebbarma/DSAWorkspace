@@ -1,2 +1,7 @@
 node_modules/
-playground/
+
+# Ignore all contents inside the folder
+playground/*
+
+# Exception: Do not ignore the placeholder file
+!playground/.gitkeep
