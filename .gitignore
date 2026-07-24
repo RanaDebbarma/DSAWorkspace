@@ -4,4 +4,4 @@ node_modules/
 playground/*
 
 # Exception: Do not ignore the placeholder file
-!playground/.gitkeep
+!playground/test-upgrade.ts.gitkeep
