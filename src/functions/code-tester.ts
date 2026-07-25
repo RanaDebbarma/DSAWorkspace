@@ -123,7 +123,7 @@ export function runTests<F extends (...args: any[]) => any>(
 
           // input visualizer
           if (visualizeInput) {
-            if (rawVal instanceof TreeNode) {
+            if (rawVal instanceof TreeNode || rawVal instanceof GraphNode) {
               console.log(`${chalk.gray('input: ')}${padMultiline(serializeForDisplay(rawVal), 7)}\n`);
             }
           }
