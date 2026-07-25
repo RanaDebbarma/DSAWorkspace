@@ -48,6 +48,7 @@ export type ClassTestCase = {
  */
 export type TestOptions = {
   showHeader?: boolean;
+  visualizeInput?: boolean;
 };
 
 export function runTests<F extends (...args: any[]) => any>(
@@ -62,6 +63,9 @@ export function runTests<F extends (...args: any[]) => any>(
 
   const showHeader =
     typeof options === "boolean" ? true : (options?.showHeader ?? true);
+
+  const visualizeInput =
+    typeof options === "boolean" ? false : (options?.visualizeInput ?? false);
 
   let passedCount = 0;
 
@@ -107,7 +111,6 @@ export function runTests<F extends (...args: any[]) => any>(
 
     // ── Input block ───────────────────────────────────────────────────────────
     console.log();
-    // console.log(chalk.grey("Inputs:"));
     try {
       const paramNames = getParamNames(fn);
       const formattedInputs = input.map(formatValue);
@@ -117,6 +120,13 @@ export function runTests<F extends (...args: any[]) => any>(
           const rawVal = input[i];
           const formattedVal = formattedInputs[i];
           let serialized = "";
+
+          // input visualizer
+          if (visualizeInput) {
+            if (rawVal instanceof TreeNode) {
+              console.log(`${chalk.gray('input: ')}${padMultiline(serializeForDisplay(rawVal), 7)}\n`);
+            }
+          }
 
           if (rawVal instanceof ListNode) {
             serialized = String(formattedVal);
