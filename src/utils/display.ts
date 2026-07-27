@@ -70,9 +70,14 @@ export function formatValue(value: unknown): unknown {
 
 /**
  * Visualizes a binary tree using a rotated, clean, vertical ASCII structure.
+ * @param vertical - If true, renders the tree top-down (BFS layout) instead of the default sideways view.
  */
-export function treeToString(root: TreeNode | null): string {
+export function treeToString(root: TreeNode | null, vertical = false): string {
   if (!root) return chalk.gray("empty tree");
+
+  if (vertical) {
+    return treeToStringVertical(root);
+  }
 
   const lines: string[] = [];
 
@@ -111,6 +116,88 @@ export function treeToString(root: TreeNode | null): string {
 
   buildLines(root, "", null);
   return lines.join("\n");
+}
+
+/**
+ * Renders a binary tree top-down using inorder rank for column positions,
+ * so no two nodes overlap. Branch rows use ┌─┘ / └─┐ connectors.
+ */
+function treeToStringVertical(root: TreeNode): string {
+  // Step 1: Assign each node an inorder rank (0-based) — this is its column position
+  const colMap = new Map<TreeNode, number>();
+  let counter = 0;
+  function assignCols(node: TreeNode | null) {
+    if (!node) return;
+    assignCols(node.left);
+    colMap.set(node, counter++);
+    assignCols(node.right);
+  }
+  assignCols(root);
+
+  // Step 2: BFS to collect levels
+  type LevelNode = { node: TreeNode; parent: TreeNode | null; isLeft: boolean | null };
+  const levels: LevelNode[][] = [];
+  let queue: LevelNode[] = [{ node: root, parent: null, isLeft: null }];
+  while (queue.length > 0) {
+    levels.push(queue);
+    const next: LevelNode[] = [];
+    for (const { node } of queue) {
+      if (node.left)  next.push({ node: node.left,  parent: node, isLeft: true });
+      if (node.right) next.push({ node: node.right, parent: node, isLeft: false });
+    }
+    queue = next;
+  }
+
+  const totalCols = counter;
+  const cellWidth = 3;
+  const totalWidth = totalCols * cellWidth;
+
+  const getCenter = (node: TreeNode) => colMap.get(node)! * cellWidth + Math.floor(cellWidth / 2);
+
+  const outputLines: string[] = [];
+
+  for (let d = 0; d < levels.length; d++) {
+    const level = levels[d];
+    const nodeChars = Array(totalWidth).fill(" ");
+    const branchChars = Array(totalWidth).fill(" ");
+
+    for (const { node, parent, isLeft } of level) {
+      const pos = getCenter(node);
+      const valStr = String(node.val);
+      // Center the value label around pos
+      const start = pos - Math.floor(valStr.length / 2);
+      for (let i = 0; i < valStr.length; i++) {
+        if (start + i >= 0 && start + i < totalWidth) {
+          nodeChars[start + i] = valStr[i];
+        }
+      }
+
+      // Draw branch from this node up to parent
+      if (parent !== null) {
+        const parentPos = getCenter(parent);
+        if (isLeft) {
+          // Left child: this node opens to the right toward parent
+          // pos gets ┌, everything between gets ─, parent col gets ┘ (or ┴ if right sibling also draws here)
+          branchChars[pos] = "┌";
+          for (let p = pos + 1; p < parentPos; p++) branchChars[p] = "─";
+          // Merge at parent col: if right child already placed └ here, upgrade to ┴
+          branchChars[parentPos] = branchChars[parentPos] === "└" ? "┴" : "┘";
+        } else {
+          // Right child: parent col gets └ (or ┴ if left sibling already placed ┘ there)
+          branchChars[parentPos] = branchChars[parentPos] === "┘" ? "┴" : "└";
+          for (let p = parentPos + 1; p < pos; p++) branchChars[p] = "─";
+          branchChars[pos] = "┐";
+        }
+      }
+    }
+
+    if (d > 0) {
+      outputLines.push(chalk.gray(branchChars.join("").trimEnd()));
+    }
+    outputLines.push(chalk.cyan(nodeChars.join("").trimEnd()));
+  }
+
+  return outputLines.join("\n");
 }
 
 /**
