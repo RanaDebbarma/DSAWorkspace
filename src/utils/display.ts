@@ -270,7 +270,7 @@ export function serializeForDisplay(value: unknown): string {
   if (value === null || value === undefined) return String(value);
 
   if (value instanceof ListNode)  return linkedListToString(value);
-  if (value instanceof TreeNode)  return treeToString(value);
+  if (value instanceof TreeNode)  return treeToString(value, true);
   if (value instanceof GraphNode) return graphToString(value);
 
   if (typeof value === "string") return `"${value}"`;
