@@ -124,6 +124,7 @@ export function runTests<F extends (...args: any[]) => any>(
           // input visualizer
           if (visualizeInput) {
             if (rawVal instanceof TreeNode || rawVal instanceof GraphNode) {
+              if (input.length > 0 && i > 0) console.log()
               console.log(`${chalk.gray('input: ')}${padMultiline(serializeForDisplay(rawVal), 7)}\n`);
             }
           }
