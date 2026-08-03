@@ -141,6 +141,32 @@ runClassTests(MinStack, [
 ]);
 ```
 
+#### 6. Multi-Param Tree Problems (LCA, path queries, etc.)
+For problems where `p` and `q` are nodes *within* the same tree (e.g. Lowest Common Ancestor):
+```typescript
+import { runTests } from "#functions/code-tester.js";
+import { createBinaryTree, TreeNode } from "#functions/tree.js";
+
+function solve(
+  root: TreeNode | null,
+  p: TreeNode | null,
+  q: TreeNode | null,
+): TreeNode | null {
+  return root;
+}
+
+// Use .find(val) to get node references within the SAME tree instance.
+// visualizeInput will render the full tree with p and q color-highlighted.
+const tree1 = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
+
+runTests(solve, [
+  {
+    input: [tree1, tree1.find(2), tree1.find(8)],
+    output: tree1.find(6),
+  },
+], { visualizeInput: true });
+```
+
 ---
 
 ### Step 3: Run the Code
@@ -190,3 +216,17 @@ This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises e
    For problems returning multiple combinations (e.g., *Group Anagrams*, *3Sum*, *Subsets*), order doesn't matter. You can import and use:
    - `compareUnorderedArrays(actual, expected)`: compares lists regardless of order.
    - `compareUnordered2DArrays(actual, expected)`: compares matrices regardless of row or column order.
+
+7. **`visualizeInput` — Structured Input Display**:
+   Pass `{ visualizeInput: true }` as the third argument to `runTests` to print a rich visual of your inputs before each test:
+   - **Binary Trees**: Rendered top-down in a grid with branch connectors.
+   - **Grids / 2D Arrays**: Printed as a box-drawing table.
+   - **Linked Lists**: Printed as `1 → 2 → 3 → null`.
+   - **Multi-param Trees (LCA, etc.)**: When multiple `TreeNode` arguments belong to the same tree, `visualizeInput` automatically merges them into a single tree diagram with the sub-nodes (e.g. `p`, `q`) **highlighted in color** using their parameter names as labels.
+
+8. **`TreeNode.find(val)` — Node Reference Lookup**:
+   For problems that take multiple tree node references (e.g. `p`, `q` in LCA), use `root.find(val)` to get a reference to a specific node within an existing tree instance rather than constructing a separate tree.
+   ```typescript
+   const tree = createBinaryTree([6, 2, 8, 0, 4])!;
+   tree.find(2)  // returns the TreeNode with val=2 inside tree
+   ```

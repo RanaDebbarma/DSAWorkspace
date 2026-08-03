@@ -241,10 +241,11 @@ runTests(cloneGraph, [
   },
 ]);
 
+
 // =============================================================================
-// § 8 — CLASS DESIGN (runClassTests)
+// § 8 — CLASS DESIGN / SYSTEM DESIGN (runClassTests)
 // =============================================================================
-section(8, "Class Design — runClassTests with pass and per-step failure");
+section(8, "Class Design — runClassTests (MinStack)");
 
 class MinStack {
   private stack: number[] = [];
@@ -252,29 +253,97 @@ class MinStack {
 
   push(val: number): void {
     this.stack.push(val);
-    if (!this.minStack.length || val <= this.minStack[this.minStack.length - 1])
-      this.minStack.push(val);
+    this.minStack.push(Math.min(val, this.minStack.at(-1) ?? val));
   }
   pop(): void {
-    const val = this.stack.pop();
-    if (val !== undefined && val === this.minStack[this.minStack.length - 1])
-      this.minStack.pop();
+    this.stack.pop();
+    this.minStack.pop();
   }
-  top(): number    { return this.stack[this.stack.length - 1]; }
-  getMin(): number { return this.minStack[this.minStack.length - 1]; }
+  top(): number { return this.stack.at(-1)!; }
+  getMin(): number { return this.minStack.at(-1)!; }
 }
 
 runClassTests(MinStack, [
   {
-    name: "MinStack — pass",
+    name: "MinStack — standard operations pass",
     operations: ["MinStack", "push", "push", "push", "getMin", "pop", "top", "getMin"],
-    args:      [[], [-2],    [0],    [-3],   [],       [],      [],    []],
-    expected:  [null, null,  null,   null,   -3,       null,    0,     -2],
+    args:       [[], [-2], [0], [-3], [], [], [], []],
+    expected:   [null, null, null, null, -3, null, 0, -2],
   },
   {
     name: "MinStack — FAIL (visual diff demo)",
     operations: ["MinStack", "push", "getMin"],
-    args:      [[], [5],    []],
-    expected:  [null, null,   99],   // wrong expected to show failure output
+    args:       [[], [5], []],
+    expected:   [null, null, 99],
   },
 ]);
+
+// =============================================================================
+// § 9 — 2D MATRIX GRID VISUALIZATION
+// =============================================================================
+section(9, "2D Matrix Grid Visualization (visualizeInput: true)");
+
+function numIslands(grid: string[][]): number {
+  if (!grid.length) return 0;
+  let count = 0;
+  const rows = grid.length, cols = grid[0].length;
+
+  function dfs(r: number, c: number) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols || grid[r][c] === "0") return;
+    grid[r][c] = "0";
+    dfs(r + 1, c); dfs(r - 1, c); dfs(r, c + 1); dfs(r, c - 1);
+  }
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c] === "1") {
+        count++;
+        dfs(r, c);
+      }
+    }
+  }
+  return count;
+}
+
+runTests(numIslands, [
+  {
+    name: "Num Islands — 2D Matrix Grid Visualizer",
+    input: [[
+      ["1", "1", "0", "0", "0"],
+      ["1", "1", "0", "0", "0"],
+      ["0", "0", "1", "0", "0"],
+      ["0", "0", "0", "1", "1"]
+    ]],
+    output: 3,
+  }
+], { visualizeInput: true });
+
+// =============================================================================
+// § 10 — TREE NODE HIGHLIGHT VISUALIZATION (LCA)
+// =============================================================================
+section(10, "Tree Node Highlight Visualization (LCA with visualizeInput: true)");
+
+function lowestCommonAncestor(
+  root: TreeNode | null,
+  p: TreeNode | null,
+  q: TreeNode | null
+): TreeNode | null {
+  let curr = root;
+  while (curr && p && q) {
+    if (p.val < curr.val && q.val < curr.val) curr = curr.left;
+    else if (p.val > curr.val && q.val > curr.val) curr = curr.right;
+    else return curr;
+  }
+  return null;
+}
+
+const lcaTree = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
+
+runTests(lowestCommonAncestor, [
+  {
+    name: "LCA — Unified Tree with Highlighted p & q",
+    input: [lcaTree, lcaTree.find(2), lcaTree.find(8)],
+    output: 6,
+  }
+], { visualizeInput: true });
+

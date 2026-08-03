@@ -72,11 +72,32 @@ export function formatValue(value: unknown): unknown {
  * Visualizes a binary tree using a rotated, clean, vertical ASCII structure.
  * @param vertical - If true, renders the tree top-down (BFS layout) instead of the default sideways view.
  */
-export function treeToString(root: TreeNode | null, vertical = false): string {
+export type NodeHighlight = {
+  label?: string;
+  color?: (str: string) => string;
+};
+
+export type TreeHighlightMap = Map<TreeNode, NodeHighlight>;
+
+export function containsTreeNode(root: TreeNode | null, target: TreeNode | null): boolean {
+  if (!root || !target) return false;
+  if (root === target) return true;
+  return containsTreeNode(root.left, target) || containsTreeNode(root.right, target);
+}
+
+/**
+ * Visualizes a binary tree using a rotated or vertical ASCII layout.
+ * Supports highlighting target nodes (e.g. p, q in LCA).
+ */
+export function treeToString(
+  root: TreeNode | null,
+  vertical = true,
+  highlights?: TreeHighlightMap
+): string {
   if (!root) return chalk.gray("empty tree");
 
   if (vertical) {
-    return treeToStringVertical(root);
+    return treeToStringVertical(root, highlights);
   }
 
   const lines: string[] = [];
@@ -84,7 +105,6 @@ export function treeToString(root: TreeNode | null, vertical = false): string {
   function buildLines(node: TreeNode | null, prefix: string, isLeft: boolean | null) {
     if (!node) return;
 
-    // Traverse right first (will appear at the top of the tree representation)
     if (node.right) {
       buildLines(
         node.right,
@@ -93,18 +113,20 @@ export function treeToString(root: TreeNode | null, vertical = false): string {
       );
     }
 
-    // Node itself
+    const hl = highlights?.get(node);
+    const labelStr = `${node.val}${hl?.label ? ` [${hl.label}]` : ""}`;
+    const coloredVal = hl?.color ? hl.color(labelStr) : chalk.cyan(labelStr);
+
     let nodeStr = prefix;
     if (isLeft === null) {
-      nodeStr += `── ${chalk.cyan(node.val)}`;
+      nodeStr += `── ${coloredVal}`;
     } else if (isLeft) {
-      nodeStr += `${chalk.gray("└──")} ${chalk.cyan(node.val)}`;
+      nodeStr += `${chalk.gray("└──")} ${coloredVal}`;
     } else {
-      nodeStr += `${chalk.gray("┌──")} ${chalk.cyan(node.val)}`;
+      nodeStr += `${chalk.gray("┌──")} ${coloredVal}`;
     }
     lines.push(nodeStr);
 
-    // Traverse left
     if (node.left) {
       buildLines(
         node.left,
@@ -120,10 +142,9 @@ export function treeToString(root: TreeNode | null, vertical = false): string {
 
 /**
  * Renders a binary tree top-down using inorder rank for column positions,
- * so no two nodes overlap. Branch rows use ┌─┘ / └─┐ connectors.
+ * supporting dynamic cell widths for node highlights (e.g. [p], [q]) with perfect alignment.
  */
-function treeToStringVertical(root: TreeNode): string {
-  // Step 1: Assign each node an inorder rank (0-based) — this is its column position
+function treeToStringVertical(root: TreeNode, highlights?: TreeHighlightMap): string {
   const colMap = new Map<TreeNode, number>();
   let counter = 0;
   function assignCols(node: TreeNode | null) {
@@ -134,7 +155,6 @@ function treeToStringVertical(root: TreeNode): string {
   }
   assignCols(root);
 
-  // Step 2: BFS to collect levels
   type LevelNode = { node: TreeNode; parent: TreeNode | null; isLeft: boolean | null };
   const levels: LevelNode[][] = [];
   let queue: LevelNode[] = [{ node: root, parent: null, isLeft: null }];
@@ -148,8 +168,19 @@ function treeToStringVertical(root: TreeNode): string {
     queue = next;
   }
 
+  let maxLabelLen = 1;
+  function findMaxLen(n: TreeNode | null) {
+    if (!n) return;
+    const hl = highlights?.get(n);
+    const plain = `${n.val}${hl?.label ? ` [${hl.label}]` : ""}`;
+    maxLabelLen = Math.max(maxLabelLen, plain.length);
+    findMaxLen(n.left);
+    findMaxLen(n.right);
+  }
+  findMaxLen(root);
+
+  const cellWidth = Math.max(3, maxLabelLen + 2);
   const totalCols = counter;
-  const cellWidth = 3;
   const totalWidth = totalCols * cellWidth;
 
   const getCenter = (node: TreeNode) => colMap.get(node)! * cellWidth + Math.floor(cellWidth / 2);
@@ -158,32 +189,33 @@ function treeToStringVertical(root: TreeNode): string {
 
   for (let d = 0; d < levels.length; d++) {
     const level = levels[d];
-    const nodeChars = Array(totalWidth).fill(" ");
     const branchChars = Array(totalWidth).fill(" ");
+
+    type PlacedNode = { startPos: number; plainText: string; formattedText: string };
+    const placedNodes: PlacedNode[] = [];
 
     for (const { node, parent, isLeft } of level) {
       const pos = getCenter(node);
+      const hl = highlights?.get(node);
       const valStr = String(node.val);
-      // Center the value label around pos
-      const start = pos - Math.floor(valStr.length / 2);
-      for (let i = 0; i < valStr.length; i++) {
-        if (start + i >= 0 && start + i < totalWidth) {
-          nodeChars[start + i] = valStr[i];
-        }
-      }
+      const tagStr = hl?.label ? ` [${hl.label}]` : "";
 
-      // Draw branch from this node up to parent
+      const coloredVal = hl?.color ? hl.color(valStr) : chalk.cyan(valStr);
+      const coloredTag = hl?.color ? hl.color(tagStr) : chalk.yellow(tagStr);
+
+      const valStartPos = Math.max(0, pos - Math.floor(valStr.length / 2));
+      const plainText = valStr + tagStr;
+      const formattedText = coloredVal + coloredTag;
+
+      placedNodes.push({ startPos: valStartPos, plainText, formattedText });
+
       if (parent !== null) {
         const parentPos = getCenter(parent);
         if (isLeft) {
-          // Left child: this node opens to the right toward parent
-          // pos gets ┌, everything between gets ─, parent col gets ┘ (or ┴ if right sibling also draws here)
           branchChars[pos] = "┌";
           for (let p = pos + 1; p < parentPos; p++) branchChars[p] = "─";
-          // Merge at parent col: if right child already placed └ here, upgrade to ┴
           branchChars[parentPos] = branchChars[parentPos] === "└" ? "┴" : "┘";
         } else {
-          // Right child: parent col gets └ (or ┴ if left sibling already placed ┘ there)
           branchChars[parentPos] = branchChars[parentPos] === "┘" ? "┴" : "└";
           for (let p = parentPos + 1; p < pos; p++) branchChars[p] = "─";
           branchChars[pos] = "┐";
@@ -194,10 +226,65 @@ function treeToStringVertical(root: TreeNode): string {
     if (d > 0) {
       outputLines.push(chalk.gray(branchChars.join("").trimEnd()));
     }
-    outputLines.push(chalk.cyan(nodeChars.join("").trimEnd()));
+
+    placedNodes.sort((a, b) => a.startPos - b.startPos);
+    let nodeRow = "";
+    let currentIdx = 0;
+    for (const pn of placedNodes) {
+      if (pn.startPos > currentIdx) {
+        nodeRow += " ".repeat(pn.startPos - currentIdx);
+        currentIdx = pn.startPos;
+      }
+      nodeRow += pn.formattedText;
+      currentIdx += pn.plainText.length;
+    }
+    outputLines.push(nodeRow.trimEnd());
   }
 
   return outputLines.join("\n");
+}
+
+/**
+ * Visualizes a 2D array / matrix grid as an aligned ASCII table.
+ */
+export function matrixToString(matrix: any[][]): string {
+  if (!Array.isArray(matrix) || matrix.length === 0) return "[]";
+  if (!Array.isArray(matrix[0])) return JSON.stringify(matrix);
+
+  const rows = matrix.length;
+  const cols = Math.max(...matrix.map((r) => (Array.isArray(r) ? r.length : 0)));
+  if (cols === 0) return "[]";
+
+  const colWidths = Array(cols).fill(1);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const valStr = String(matrix[r]?.[c] ?? "");
+      colWidths[c] = Math.max(colWidths[c], valStr.length);
+    }
+  }
+
+  const topBorder = "┌" + colWidths.map((w) => "─".repeat(w + 2)).join("┬") + "┐";
+  const midBorder = "├" + colWidths.map((w) => "─".repeat(w + 2)).join("┼") + "┤";
+  const botBorder = "└" + colWidths.map((w) => "─".repeat(w + 2)).join("┴") + "┘";
+
+  const lines: string[] = [chalk.gray(topBorder)];
+
+  for (let r = 0; r < rows; r++) {
+    const cells = [];
+    for (let c = 0; c < cols; c++) {
+      const rawVal = matrix[r]?.[c];
+      const valStr = String(rawVal ?? "").padStart(colWidths[c]);
+      const coloredVal = typeof rawVal === "number" ? chalk.cyan(valStr) : chalk.yellow(valStr);
+      cells.push(` ${coloredVal} `);
+    }
+    lines.push(chalk.gray("│") + cells.join(chalk.gray("│")) + chalk.gray("│"));
+    if (r < rows - 1) {
+      lines.push(chalk.gray(midBorder));
+    }
+  }
+
+  lines.push(chalk.gray(botBorder));
+  return lines.join("\n");
 }
 
 /**
@@ -260,6 +347,15 @@ export function padMultiline(str: string, indentSize: number): string {
   if (lines.length <= 1) return str;
   const padding = " ".repeat(indentSize);
   return lines[0] + "\n" + lines.slice(1).map(line => padding + line).join("\n");
+}
+
+/**
+ * Indents ALL lines of a multiline string (including the first) uniformly.
+ * Use this for standalone block outputs (trees, grids) where all lines must stay column-aligned.
+ */
+export function indentAll(str: string, indentSize: number): string {
+  const padding = " ".repeat(indentSize);
+  return str.split("\n").map(line => padding + line).join("\n");
 }
 
 /**

@@ -121,3 +121,34 @@ runClassTests(MinStack, [
   }
 ]);
 */
+
+
+// ============================================================================
+// 7. MULTI-PARAM TREE TEMPLATE (e.g. LCA, path problems)
+//    Uses visualizeInput to highlight sub-nodes (p, q) on the main tree.
+//    Use TreeNode.find(val) to reference nodes within the same tree instance.
+// ============================================================================
+/*
+import { runTests } from "#functions/code-tester.js";
+import { createBinaryTree, TreeNode } from "#functions/tree.js";
+
+function solve(
+  root: TreeNode | null,
+  p: TreeNode | null,
+  q: TreeNode | null,
+): TreeNode | null {
+  return root;
+}
+
+// IMPORTANT: p and q must be references into the same tree instance (root).
+// Use root.find(val) to locate the node — do NOT create separate trees.
+// visualizeInput renders the full tree with p and q highlighted in color.
+const tree1 = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
+
+runTests(solve, [
+  {
+    input: [tree1, tree1.find(2), tree1.find(8)],
+    output: tree1.find(6),
+  },
+], { visualizeInput: true });
+*/

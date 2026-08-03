@@ -17,6 +17,11 @@ import {
   serializeForDisplay,
   drawDivider,
   padMultiline,
+  indentAll,
+  treeToString,
+  matrixToString,
+  containsTreeNode,
+  TreeHighlightMap,
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
 import {
@@ -126,11 +131,61 @@ export function runTests<F extends (...args: any[]) => any>(
           const formattedVal = formattedInputs[i];
           let serialized = "";
 
-          // input visualizer
+          // Generic input visualizer
           if (visualizeInput) {
-            if (rawVal instanceof TreeNode || rawVal instanceof GraphNode) {
-              if (input.length > 0 && i > 0) console.log()
-              console.log(`${chalk.gray('input: ')}${padMultiline(serializeForDisplay(rawVal), 7)}\n`);
+            // Render trees with subnode highlight detection
+            if (i === 0) {
+              const treeParams: { idx: number; name: string; node: TreeNode }[] = [];
+              for (let j = 0; j < input.length; j++) {
+                if (input[j] instanceof TreeNode) {
+                  treeParams.push({
+                    idx: j,
+                    name: paramNames[j] || `param${j + 1}`,
+                    node: input[j],
+                  });
+                }
+              }
+
+              if (treeParams.length > 0) {
+                const primaryTree = treeParams[0];
+                const subnodeHighlights: TreeHighlightMap = new Map();
+                const colors = [chalk.green.bold, chalk.yellow.bold, chalk.magenta.bold];
+
+                for (let j = 1; j < treeParams.length; j++) {
+                  const tp = treeParams[j];
+                  if (containsTreeNode(primaryTree.node, tp.node)) {
+                    subnodeHighlights.set(tp.node, {
+                      label: tp.name,
+                      color: colors[(j - 1) % colors.length],
+                    });
+                  }
+                }
+
+                if (subnodeHighlights.size > 0) {
+                  console.log(chalk.gray(`${primaryTree.name}:`));
+                  console.log(indentAll(treeToString(primaryTree.node, true, subnodeHighlights), 2));
+                  console.log();
+                } else {
+                  for (const tp of treeParams) {
+                    console.log(chalk.gray(`${tp.name}:`));
+                    console.log(indentAll(treeToString(tp.node, true), 2));
+                    console.log();
+                  }
+                }
+              }
+            }
+
+            // Render 2D matrix grids
+            if (Array.isArray(rawVal) && rawVal.length > 0 && Array.isArray(rawVal[0])) {
+              const pName = paramNames[i] || `grid`;
+              console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
+              console.log(indentAll(matrixToString(rawVal), 2));
+              console.log();
+            } else if (rawVal instanceof GraphNode && i === 0) {
+              const pName = paramNames[i] || `graph`;
+              console.log(chalk.gray(`${pName}:`));
+              console.log(padMultiline(serializeForDisplay(rawVal), 2));
+              console.log();
             }
           }
 
