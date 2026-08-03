@@ -10,6 +10,21 @@ export class ListNode {
     this.val = val;
     this.next = next;
   }
+
+  /**
+   * Finds the first node in this list with the matching target value.
+   */
+  find(target: number): ListNode | null {
+    let curr: ListNode | null = this;
+    const visited = new Set<ListNode>();
+    while (curr) {
+      if (visited.has(curr)) break;
+      visited.add(curr);
+      if (curr.val === target) return curr;
+      curr = curr.next;
+    }
+    return null;
+  }
 }
 
 export function createLinkedList(values: number[]): ListNode | null {

@@ -24,13 +24,18 @@ import {
   printConsoleOutput,
 } from "#utils/console-capture.js";
 
+export type ExpectedOutput<T> =
+  [T] extends [TreeNode | null] ? T | number :
+  [T] extends [ListNode | null] ? T | number :
+  T;
+
 export type TestCase<F extends (...args: any[]) => any> = {
   name?: string;
   input: Parameters<F>;
-  output: ReturnType<F>;
+  output: ExpectedOutput<ReturnType<F>>;
   compare?: (
     actual: ReturnType<F>,
-    expected: ReturnType<F>,
+    expected: any,
     actualInput: Parameters<F>,
   ) => boolean;
   cloneInput?: (input: Parameters<F>) => Parameters<F>;

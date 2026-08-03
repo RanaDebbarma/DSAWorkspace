@@ -8,6 +8,14 @@ export class TreeNode {
     this.left = left;
     this.right = right;
   }
+
+  /**
+   * Finds the first node in this tree with the matching target value (DFS).
+   */
+  find(target: number): TreeNode | null {
+    if (this.val === target) return this;
+    return this.left?.find(target) ?? this.right?.find(target) ?? null;
+  }
 }
 
 /**

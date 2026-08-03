@@ -20,6 +20,12 @@ export function smartCompare(actual: any, expected: any, actualInput?: any[]): b
   }
 
   if (actual instanceof ListNode || expected instanceof ListNode) {
+    if (actual instanceof ListNode && typeof expected === "number") {
+      return actual.val === expected;
+    }
+    if (expected instanceof ListNode && typeof actual === "number") {
+      return expected.val === actual;
+    }
     return compareLinkedLists(actual as ListNode | null, expected as ListNode | null);
   }
 
@@ -33,6 +39,12 @@ export function smartCompare(actual: any, expected: any, actualInput?: any[]): b
   }
 
   if (actual instanceof TreeNode || expected instanceof TreeNode) {
+    if (actual instanceof TreeNode && typeof expected === "number") {
+      return actual.val === expected;
+    }
+    if (expected instanceof TreeNode && typeof actual === "number") {
+      return expected.val === actual;
+    }
     return compareBinaryTrees(actual as TreeNode | null, expected as TreeNode | null);
   }
 
