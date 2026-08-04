@@ -149,7 +149,7 @@ export function runTests<F extends (...args: any[]) => any>(
               if (treeParams.length > 0) {
                 const primaryTree = treeParams[0];
                 const subnodeHighlights: TreeHighlightMap = new Map();
-                const colors = [chalk.green.bold, chalk.yellow.bold, chalk.magenta.bold];
+                const colors = [chalk.green, chalk.yellow, chalk.magenta];
 
                 for (let j = 1; j < treeParams.length; j++) {
                   const tp = treeParams[j];
