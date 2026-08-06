@@ -24,7 +24,7 @@ function isValidSudoku(board: string[][]): boolean {
   }
 
   for (let i = 0; i < board.length; i++) {
-    
+
     const row = board[i];
 
     // row validation
@@ -83,5 +83,5 @@ runTests(
     { input: [board1], output: true },
     { input: [board2], output: false },
   ],
-  { visualizeInput: true },
+  { visualizeInput: true, showStringInput: false },
 );
