@@ -245,6 +245,62 @@ function treeToStringVertical(root: TreeNode, highlights?: TreeHighlightMap): st
 }
 
 /**
+ * Colors a matrix cell based on its raw value type and common DSA semantics.
+ *
+ * Priority order:
+ *   null / undefined  → dim gray        (absent / missing)
+ *   boolean true      → bold mint green (positive / pass)
+ *   boolean false     → bold warm red   (negative / fail)
+ *   number < 0        → warm red        (negative value)
+ *   number === 0      → muted gray      (zero / neutral)
+ *   number > 0        → cyan            (positive value)
+ *   "."               → faint gray      (empty placeholder)
+ *   "#"               → coral red       (wall / obstacle)
+ *   "*"               → amber           (path / visited marker)
+ *   "0"               → light blue      (string-zero, e.g. water)
+ *   "1"               → mint green      (string-one, e.g. land)
+ *   "X" / "x"         → warm red        (blocked / invalid)
+ *   "S"               → bold teal       (start node)
+ *   "E"               → bold pink       (end node)
+ *   other single char → light gold      (generic marker)
+ *   multi-char string → white           (label / general)
+ */
+function colorMatrixCell(val: any, str: string): string {
+  if (val === null || val === undefined) return chalk.dim(str);
+
+  if (typeof val === "boolean") {
+    return val
+      ? chalk.bold.hex("#55efc4")(str)   // true  → mint green
+      : chalk.bold.hex("#ff7675")(str);  // false → warm red
+  }
+
+  if (typeof val === "number") {
+    if (val < 0)   return chalk.hex("#ff7675")(str);  // negative → warm red
+    if (val === 0) return chalk.hex("#636e72")(str);  // zero     → muted gray
+    return chalk.cyan(str);                            // positive → cyan
+  }
+
+  if (typeof val === "string") {
+    switch (val) {
+      case ".":  return chalk.hex("#555f6e")(str);          // empty placeholder → dark gray
+      case "#":  return chalk.hex("#e17055")(str);          // wall / obstacle   → coral red
+      case "*":  return chalk.hex("#fdcb6e")(str);          // path / visited    → amber
+      case "0":  return chalk.hex("#74b9ff")(str);          // string zero       → light blue
+      case "1":  return chalk.hex("#55efc4")(str);          // string one        → mint green
+      case "X":
+      case "x":  return chalk.hex("#ff7675")(str);          // blocked / invalid → warm red
+      case "S":  return chalk.bold.hex("#00cec9")(str);     // start node        → teal
+      case "E":  return chalk.bold.hex("#fd79a8")(str);     // end node          → pink
+      default:
+        if (val.length === 1) return chalk.hex("#ffeaa7")(str); // single char  → light gold
+        return chalk.white(str);                               // multi-char     → white
+    }
+  }
+
+  return chalk.white(str);
+}
+
+/**
  * Visualizes a 2D array / matrix grid as an aligned ASCII table.
  */
 export function matrixToString(matrix: any[][]): string {
@@ -274,8 +330,7 @@ export function matrixToString(matrix: any[][]): string {
     for (let c = 0; c < cols; c++) {
       const rawVal = matrix[r]?.[c];
       const valStr = String(rawVal ?? "").padStart(colWidths[c]);
-      const coloredVal = typeof rawVal === "number" ? chalk.cyan(valStr) : chalk.yellow(valStr);
-      cells.push(` ${coloredVal} `);
+      cells.push(` ${colorMatrixCell(rawVal, valStr)} `);
     }
     lines.push(chalk.gray("│") + cells.join(chalk.gray("│")) + chalk.gray("│"));
     if (r < rows - 1) {
