@@ -1,4 +1,4 @@
-import { runTests, compareGroupAnagrams } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // O(n * klogk)
 // function groupAnagrams(strs: string[]): string[][] {

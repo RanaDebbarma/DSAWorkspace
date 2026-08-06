@@ -1,4 +1,4 @@
-import { compare3Sum, runTests } from "#functions/code-tester.js";
+import { runTests } from "#functions/code-tester.js";
 
 // function threeSum(nums: number[]): number[][] {
 //   const result: number[][] = [];
@@ -81,6 +81,5 @@ runTests(threeSum, [
       [-3, 1, 2],
       [1, 0, -1],
     ],
-    compare: compare3Sum
   },
 ]);
