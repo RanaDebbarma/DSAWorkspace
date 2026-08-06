@@ -27,7 +27,26 @@ const solve = function mySqrt(x: number): number {
   return ans;
 };
 
+// Newtons Method
+function mySqrt(x: number): number {
+  if (x < 2) return x;
+
+  let r = x;
+
+  while (x / r < r) {
+    r = (r + Math.floor(x / r)) >>> 1;
+  }
+
+  return r;
+}
+
 runTests(solve, [
+  { input: [4], output: 2 },
+  { input: [8], output: 2 },
+  { input: [2147302921], output: 46339 },
+]);
+
+runTests(mySqrt, [
   { input: [4], output: 2 },
   { input: [8], output: 2 },
   { input: [2147302921], output: 46339 },
