@@ -77,5 +77,5 @@ runTests(
       output: false,
     },
   ],
-  { visualizeInput: true },
+  { visualizeInput: true, showStringInput: false },
 );
