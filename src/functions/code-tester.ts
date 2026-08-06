@@ -59,6 +59,8 @@ export type ClassTestCase = {
 export type TestOptions = {
   showHeader?: boolean;
   visualizeInput?: boolean;
+  /** When false, suppresses the plain `param = value` string lines printed below visual input blocks. Defaults to true. */
+  showStringInput?: boolean;
 };
 
 export function runTests<F extends (...args: any[]) => any>(
@@ -76,6 +78,9 @@ export function runTests<F extends (...args: any[]) => any>(
 
   const visualizeInput =
     typeof options === "boolean" ? false : (options?.visualizeInput ?? false);
+
+  const showStringInput =
+    typeof options === "boolean" ? true : (options?.showStringInput ?? true);
 
   let passedCount = 0;
 
@@ -205,9 +210,11 @@ export function runTests<F extends (...args: any[]) => any>(
             serialized = String(formattedVal);
           }
 
-          console.log(
-            `${chalk.cyan(paramNames[i])} ${chalk.gray("=")} ${chalk.white(serialized)}`,
-          );
+          if (showStringInput) {
+            console.log(
+              `${chalk.cyan(paramNames[i])} ${chalk.gray("=")} ${chalk.white(serialized)}`,
+            );
+          }
         }
       } else {
         console.dir(formattedInputs, { depth: null });
