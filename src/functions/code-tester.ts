@@ -218,7 +218,7 @@ export function runTests<F extends (...args: any[]) => any>(
 
     printConsoleOutput(execution.logs);
 
-    // ── Expected / Got block ─────────────────────────────────────────────────
+    // ── Expected / Got / Output block ─────────────────────────────────────────────────
     console.log();
     if (execution.error) {
       const error =
