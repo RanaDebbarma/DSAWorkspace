@@ -240,7 +240,7 @@ export function runTests<F extends (...args: any[]) => any>(
       );
     } else if (passed) {
       console.log(
-        `${chalk.grey("Output:   ")}  ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`, // result || output
+        `${chalk.grey("Output:   ")}  ${padMultiline(chalk.green(serializeForDisplay(result)), 12)}`,
       );
     } else {
       const { expLine, gotLine, hint } = renderDiff(result, output);

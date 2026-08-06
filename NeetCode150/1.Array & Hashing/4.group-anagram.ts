@@ -53,8 +53,7 @@ runTests(groupAnagrams, [
   {
     input: [["eat", "tea", "tan", "ate", "nat", "bat"]],
     output: [["bat"], ["nat", "tan"], ["ate", "eat", "tea"]],
-    compare: compareGroupAnagrams,
   },
-  { input: [[""]], output: [[""]], compare: compareGroupAnagrams },
-  { input: [["a"]], output: [["a"]], compare: compareGroupAnagrams },
+  { input: [[""]], output: [[""]] },
+  { input: [["a"]], output: [["a"]] },
 ]);

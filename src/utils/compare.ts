@@ -54,6 +54,20 @@ export function smartCompare(actual: any, expected: any, actualInput?: any[]): b
 
   if (Array.isArray(actual) && Array.isArray(expected)) {
     if (actual.length !== expected.length) return false;
+
+    // Auto-detect 2D arrays of primitives (subsets / combinations / permutations).
+    // Both outer order and inner order are treated as unordered.
+    const is2DPrimitive = (arr: any[]): boolean =>
+      arr.length === 0 ||
+      (Array.isArray(arr[0]) && arr.every(
+        (row) => Array.isArray(row) && row.every((v) => v === null || typeof v !== "object")
+      ));
+
+    if (is2DPrimitive(actual) && is2DPrimitive(expected)) {
+      return compareUnordered2DArrays(actual, expected);
+    }
+
+    // Default: ordered element-wise comparison
     for (let i = 0; i < actual.length; i++) {
       if (!smartCompare(actual[i], expected[i])) return false;
     }
