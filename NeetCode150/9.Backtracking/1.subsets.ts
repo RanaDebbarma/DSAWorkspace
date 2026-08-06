@@ -2,6 +2,9 @@ import { runTests } from "#functions/code-tester.js";
 
 // LeetCode 78
 
+// o(n * 2^n) & o(n) space complexity
+// There are 2^n subsets 
+// copying each subset into anser takes upto o(n) time
 const solve = function subsets(nums: number[]): number[][] {
   if (!nums.length) return [];
 
@@ -14,13 +17,16 @@ const solve = function subsets(nums: number[]): number[][] {
 
   function dfs(i: number) {
     if (i >= nums.length) {
+      // save a copy of subset
       ans.push([...subset]);
       return;
     }
 
+    // include num
     subset.push(nums[i]);
     dfs(i + 1);
-
+    
+    // exlude num
     subset.pop();
     dfs(i + 1);
   }
