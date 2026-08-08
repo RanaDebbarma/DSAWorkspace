@@ -348,7 +348,7 @@ export function matrixToString(matrix: any[][]): string {
 function isUndirected(nodes: GraphNode[]): boolean {
   for (const u of nodes) {
     for (const v of u.neighbors) {
-      const hasBackEdge = v.neighbors.some(neighbor => neighbor.val === u.val);
+      const hasBackEdge = v.neighbors.some(neighbor => neighbor === u || neighbor.val === u.val);
       if (!hasBackEdge) {
         return false; // found a directed/unidirectional edge
       }
@@ -363,18 +363,18 @@ function isUndirected(nodes: GraphNode[]): boolean {
 export function graphToString(node: GraphNode | null): string {
   if (!node) return chalk.gray("empty graph");
 
-  // Collect all reachable nodes via BFS
-  const visited = new Set<number>();
+  // Collect all reachable nodes via BFS using Node reference
+  const visited = new Set<GraphNode>();
   const nodes: GraphNode[] = [];
   const queue: GraphNode[] = [node];
-  visited.add(node.val);
+  visited.add(node);
 
   while (queue.length > 0) {
     const curr = queue.shift()!;
     nodes.push(curr);
     for (const neighbor of curr.neighbors) {
-      if (!visited.has(neighbor.val)) {
-        visited.add(neighbor.val);
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
         queue.push(neighbor);
       }
     }

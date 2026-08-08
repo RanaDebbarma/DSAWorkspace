@@ -20,6 +20,7 @@ import {
   indentAll,
   treeToString,
   matrixToString,
+  graphToString,
   containsTreeNode,
   TreeHighlightMap,
 } from "#utils/display.js";
@@ -77,7 +78,7 @@ export function runTests<F extends (...args: any[]) => any>(
     typeof options === "boolean" ? true : (options?.showHeader ?? true);
 
   const visualizeInput =
-    typeof options === "boolean" ? false : (options?.visualizeInput ?? false);
+    typeof options === "boolean" ? true : (options?.visualizeInput ?? true);
 
   const showStringInput =
     typeof options === "boolean" ? true : (options?.showStringInput ?? true);
@@ -186,10 +187,10 @@ export function runTests<F extends (...args: any[]) => any>(
               console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
               console.log(indentAll(matrixToString(rawVal), 2));
               console.log();
-            } else if (rawVal instanceof GraphNode && i === 0) {
+            } else if (rawVal instanceof GraphNode) {
               const pName = paramNames[i] || `graph`;
               console.log(chalk.gray(`${pName}:`));
-              console.log(padMultiline(serializeForDisplay(rawVal), 2));
+              console.log(indentAll(graphToString(rawVal), 2));
               console.log();
             }
           }
