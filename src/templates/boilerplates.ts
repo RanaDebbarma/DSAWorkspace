@@ -1,111 +1,106 @@
 // ============================================================================
-// 1. STANDARD SOLUTION TEMPLATE (Arrays, Strings, Math, etc.)
+// Exported boilerplate template functions.
+// Each accepts `fnName` (camelCase) to inject into the generated file.
 // ============================================================================
-/*
-import { runTests } from "#functions/code-tester.js";
 
-function solve(nums: number[]): number {
+// 1. STANDARD SOLUTION TEMPLATE (Arrays, Strings, Math, etc.)
+export function getStandardTemplate(fnName: string): string {
+  return `import { runTests } from "#functions/code-tester.js";
+
+function ${fnName}(nums: number[]): number {
   return 0;
 }
 
-runTests(solve, [
-  { input: [[1, 2, 3]], output: 0 }
+runTests(${fnName}, [
+  { input: [[1, 2, 3]], output: 0 },
 ]);
-*/
+`;
+}
 
-
-// ============================================================================
 // 2. LINKED LIST TEMPLATE
-// ============================================================================
-/*
-import { runTests } from "#functions/code-tester.js";
+export function getLinkedListTemplate(fnName: string): string {
+  return `import { runTests } from "#functions/code-tester.js";
 import { createLinkedList, ListNode } from "#functions/linked-list.js";
 
-function solve(head: ListNode | null): ListNode | null {
+function ${fnName}(head: ListNode | null): ListNode | null {
   return head;
 }
 
 // Note: smartCompare automatically compares Linked Lists recursively!
-runTests(solve, [
+runTests(${fnName}, [
   {
     input: [createLinkedList([1, 2, 3])],
-    output: createLinkedList([1, 2, 3])
-  }
+    output: createLinkedList([1, 2, 3]),
+  },
 ]);
-*/
+`;
+}
 
-
-// ============================================================================
 // 3. CYCLIC LINKED LIST TEMPLATE (e.g. LC 141 - Linked List Cycle)
-// ============================================================================
-/*
-import { runTests } from "#functions/code-tester.js";
+export function getCyclicLinkedListTemplate(fnName: string): string {
+  return `import { runTests } from "#functions/code-tester.js";
 import { createCyclicLinkedList, ListNode } from "#functions/linked-list.js";
 
-function solve(head: ListNode | null): boolean {
+function ${fnName}(head: ListNode | null): boolean {
   return false;
 }
 
 // createCyclicLinkedList(values, pos):
 //   pos = 0-based index where the tail connects back to  (-1 = no cycle)
 // e.g. [3,2,0,-4] with pos=1 → tail (-4) points back to node at index 1 (value 2)
-runTests(solve, [
+runTests(${fnName}, [
   { input: [createCyclicLinkedList([3, 2, 0, -4], 1)], output: true },
   { input: [createCyclicLinkedList([1, 2], 0)],        output: true },
   { input: [createCyclicLinkedList([1], -1)],           output: false },
 ]);
-*/
+`;
+}
 
-
-// ============================================================================
-// 4. BINARY TREE TEMPLATE (already slot 4 — no change)
-// ============================================================================
-/*
-import { runTests } from "#functions/code-tester.js";
+// 4. BINARY TREE TEMPLATE
+export function getBinaryTreeTemplate(fnName: string): string {
+  return `import { runTests } from "#functions/code-tester.js";
 import { createBinaryTree, TreeNode } from "#functions/tree.js";
 
-function solve(root: TreeNode | null): TreeNode | null {
+function ${fnName}(root: TreeNode | null): TreeNode | null {
   return root;
 }
 
 // Note: smartCompare automatically compares Binary Trees recursively!
-runTests(solve, [
+runTests(${fnName}, [
   {
     input: [createBinaryTree([1, null, 2, 3])],
-    output: createBinaryTree([1, null, 2, 3])
-  }
+    output: createBinaryTree([1, null, 2, 3]),
+  },
 ]);
-*/
+`;
+}
 
-
-// ============================================================================
 // 5. GRAPH TEMPLATE
-// ============================================================================
-/*
-import { runTests } from "#functions/code-tester.js";
+export function getGraphTemplate(fnName: string): string {
+  return `import { runTests } from "#functions/code-tester.js";
 import { createGraph, GraphNode } from "#functions/graph.js";
 
-function solve(node: GraphNode | null): GraphNode | null {
+function ${fnName}(node: GraphNode | null): GraphNode | null {
   return node;
 }
 
 // Note: smartCompare automatically handles cycles and compares Graph structures!
-runTests(solve, [
+runTests(${fnName}, [
   {
     input: [createGraph([[2, 4], [1, 3], [2, 4], [1, 3]])],
-    output: createGraph([[2, 4], [1, 3], [2, 4], [1, 3]])
-  }
+    output: createGraph([[2, 4], [1, 3], [2, 4], [1, 3]]),
+  },
 ]);
-*/
+`;
+}
 
-
-// ============================================================================
 // 6. CLASS DESIGN / SYSTEM DESIGN TEMPLATE
-// ============================================================================
-/*
-import { runClassTests } from "#functions/code-tester.js";
+export function getClassDesignTemplate(fnName: string): string {
+  // fnName is used as the class name (PascalCase) here
+  const className = fnName.charAt(0).toUpperCase() + fnName.slice(1);
+  return `import { runClassTests } from "#functions/code-tester.js";
 
-class MinStack {
+class ${className} {
   // Implement class here...
   push(val: number): void {}
   pop(): void {}
@@ -113,26 +108,22 @@ class MinStack {
   getMin(): number { return 0; }
 }
 
-runClassTests(MinStack, [
+runClassTests(${className}, [
   {
-    operations: ["MinStack", "push", "push", "getMin", "pop", "top", "getMin"],
+    operations: ["${className}", "push", "push", "getMin", "pop", "top", "getMin"],
     args: [[], [-2], [0], [], [], [], []],
-    expected: [null, null, null, -2, null, -2, -2]
-  }
+    expected: [null, null, null, -2, null, -2, -2],
+  },
 ]);
-*/
+`;
+}
 
-
-// ============================================================================
 // 7. MULTI-PARAM TREE TEMPLATE (e.g. LCA, path problems)
-//    Uses visualizeInput to highlight sub-nodes (p, q) on the main tree.
-//    Use TreeNode.find(val) to reference nodes within the same tree instance.
-// ============================================================================
-/*
-import { runTests } from "#functions/code-tester.js";
+export function getMultiParamTreeTemplate(fnName: string): string {
+  return `import { runTests } from "#functions/code-tester.js";
 import { createBinaryTree, TreeNode } from "#functions/tree.js";
 
-function solve(
+function ${fnName}(
   root: TreeNode | null,
   p: TreeNode | null,
   q: TreeNode | null,
@@ -145,10 +136,54 @@ function solve(
 // visualizeInput renders the full tree with p and q highlighted in color.
 const tree1 = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
 
-runTests(solve, [
+runTests(${fnName}, [
   {
     input: [tree1, tree1.find(2), tree1.find(8)],
     output: tree1.find(6),
   },
 ], { visualizeInput: true });
-*/
+`;
+}
+
+// ============================================================================
+// Template registry for use in the CLI
+// ============================================================================
+export const TEMPLATES = [
+  {
+    label: "Standard          (arrays, strings, math)",
+    value: "standard" as const,
+    fn: getStandardTemplate,
+  },
+  {
+    label: "Linked List",
+    value: "linked-list" as const,
+    fn: getLinkedListTemplate,
+  },
+  {
+    label: "Cyclic Linked List",
+    value: "cyclic-linked-list" as const,
+    fn: getCyclicLinkedListTemplate,
+  },
+  {
+    label: "Binary Tree",
+    value: "binary-tree" as const,
+    fn: getBinaryTreeTemplate,
+  },
+  {
+    label: "Graph",
+    value: "graph" as const,
+    fn: getGraphTemplate,
+  },
+  {
+    label: "Class Design      (MinStack, LRU Cache, etc.)",
+    value: "class-design" as const,
+    fn: getClassDesignTemplate,
+  },
+  {
+    label: "Multi-Param Tree  (LCA, path problems)",
+    value: "multi-param-tree" as const,
+    fn: getMultiParamTreeTemplate,
+  },
+] as const;
+
+export type TemplateValue = (typeof TEMPLATES)[number]["value"];

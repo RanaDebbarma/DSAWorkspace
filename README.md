@@ -8,6 +8,7 @@ Welcome to your local practice environment for solving and testing LeetCode/Neet
 
 ```
 NeetCode150/              # Contains categorized folders with solutions
+LeetCode/                 # Flat folder for standalone LeetCode problems
 src/                      # Core infrastructure files
 ├── functions/
 │   ├── code-tester.ts    # Main test runner (runTests, runClassTests)
@@ -19,12 +20,13 @@ src/                      # Core infrastructure files
 │   ├── compare.ts        # Comparison engine (smartCompare, unordered arrays, legacy aliases)
 │   ├── diff.ts           # Structured/Colored console diff rendering
 │   ├── display.ts        # Serialization, parameters parsing, and visual formatters
-│   └── title-helper.ts   # Kebab-case title formatting
+│   └── title-helper.ts   # Kebab-case title formatting + camelCase derivation
 ├── templates/
-│   └── boilerplates.ts   # Copy-pasteable boilerplate-free templates
+│   └── boilerplates.ts   # Exported boilerplate template functions (used by CLI)
 ├── tests/
 │   └── feature-test.ts   # Framework feature test suite (run with: pnpm test)
 └── scripts/
+    ├── new.ts            # CLI tool to scaffold new problem files interactively
     └── copy-title.ts     # CLI tool to format problem titles and copy to clipboard
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
 package.json              # Project scripts and dependency configuration
@@ -35,147 +37,59 @@ tsconfig.json             # TypeScript path mappings (#functions/*, #utils/*, #t
 
 ## 🚀 Quick Start Guide
 
-### Step 1: Scaffold a New Problem Name
-Instead of manually typing kebab-case file names, run the title-formatting script:
-1. Open `src/scripts/copy-title.ts` and set your LeetCode problem title:
-   ```typescript
-   const title = "Merge Two Sorted Lists";
-   ```
-2. Run the copy script:
-   ```bash
-   pnpm run title
-   ```
-   *This automatically formats the title into `merge-two-sorted-lists` and copies it directly to your clipboard.*
+### Step 1: Scaffold a New Problem File
 
-3. Create your solution file inside the correct subfolder under `NeetCode150/` or in `playground/` using that name.
+Run the interactive file generator from **inside the target directory**:
 
----
-
-### Step 2: Use the Minimal Templates
-
-To start writing your solution, open [src/templates/boilerplates.ts], copy the relevant template, and paste it into your solution file.
-
-#### 1. Standard Problems (Arrays, Strings, Math, etc.)
-```typescript
-import { runTests } from "#functions/code-tester.js";
-
-function solve(nums: number[]): number {
-  return 0; // Write your solution here
-}
-
-runTests(solve, [
-  { input: [[1, 2, 3]], output: 0 }
-]);
-```
-
-#### 2. Linked List Problems
-```typescript
-import { runTests } from "#functions/code-tester.js";
-import { createLinkedList, ListNode } from "#functions/linked-list.js";
-
-function solve(head: ListNode | null): ListNode | null {
-  return head;
-}
-
-runTests(solve, [
-  {
-    input: [createLinkedList([1, 2, 3])],
-    output: createLinkedList([1, 2, 3]) // smartCompare auto-verifies lists
-  }
-]);
-```
-
-#### 3. Binary Tree Problems
-```typescript
-import { runTests } from "#functions/code-tester.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
-
-function solve(root: TreeNode | null): TreeNode | null {
-  return root;
-}
-
-runTests(solve, [
-  {
-    input: [createBinaryTree([1, null, 2, 3])],
-    output: createBinaryTree([1, null, 2, 3]) // smartCompare auto-verifies trees
-  }
-]);
-```
-
-#### 4. Graph Problems (Supports cycles)
-```typescript
-import { runTests } from "#functions/code-tester.js";
-import { createGraph, GraphNode } from "#functions/graph.js";
-
-function solve(node: GraphNode | null): GraphNode | null {
-  return node;
-}
-
-runTests(solve, [
-  {
-    input: [createGraph([[2, 4], [1, 3], [2, 4], [1, 3]])],
-    output: createGraph([[2, 4], [1, 3], [2, 4], [1, 3]]) // smartCompare handles cycles
-  }
-]);
-```
-
-#### 5. Interactive Class / System Design Problems (MinStack, LRUCache, etc.)
-```typescript
-import { runClassTests } from "#functions/code-tester.js";
-
-class MinStack {
-  // Implement class here...
-  push(val: number): void {}
-  pop(): void {}
-  top(): number { return 0; }
-  getMin(): number { return 0; }
-}
-
-runClassTests(MinStack, [
-  {
-    name: "Standard MinStack Operations",
-    operations: ["MinStack", "push", "push", "getMin", "pop", "top", "getMin"],
-    args: [[], [-2], [0], [], [], [], []],
-    expected: [null, null, null, -2, null, -2, -2]
-  }
-]);
-```
-
-#### 6. Multi-Param Tree Problems (LCA, path queries, etc.)
-For problems where `p` and `q` are nodes *within* the same tree (e.g. Lowest Common Ancestor):
-```typescript
-import { runTests } from "#functions/code-tester.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
-
-function solve(
-  root: TreeNode | null,
-  p: TreeNode | null,
-  q: TreeNode | null,
-): TreeNode | null {
-  return root;
-}
-
-// Use .find(val) to get node references within the SAME tree instance.
-// visualizeInput will render the full tree with p and q color-highlighted.
-const tree1 = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
-
-runTests(solve, [
-  {
-    input: [tree1, tree1.find(2), tree1.find(8)],
-    output: tree1.find(6),
-  },
-], { visualizeInput: true });
-```
-
----
-
-### Step 3: Run the Code
-You can run any solution file directly using `tsx` (TypeScript Execute). 
-
-Run the command from the root of this folder:
 ```bash
-pnpm exec tsx "NeetCode150/6.Linked List/1.reverse-linked-list.ts"
+# Navigate to the category first
+cd "NeetCode150/1.Array & Hashing"
+
+# Then run:
+pnpm new
 ```
+
+The CLI will guide you through three prompts:
+
+```
+✦ DSA File Generator
+
+◆ Problem number (auto-detected: 10)
+│  Press Enter to accept, or type to override (e.g. an LC number like 1299)
+│  Leave blank for no number prefix.
+
+◆ Problem name
+│  e.g. Valid Sudoku  (leave blank for 'untitled')
+
+◆ Select a template
+│  ❯ Standard          (arrays, strings, math)
+│    Linked List
+│    Cyclic Linked List
+│    Binary Tree
+│    Graph
+│    Class Design      (MinStack, LRU Cache, etc.)
+│    Multi-Param Tree  (LCA, path problems)
+
+✔  Created: 10.valid-sudoku.ts
+```
+
+**How numbering works:**
+- If the directory already contains numbered files (`1.foo.ts`, `9.bar.ts`), the tool **auto-detects the next number** (e.g. `10`) as the default.
+- You can **type any number** to override — useful for LeetCode problem numbers like `1299`.
+- **Leave blank** to create a file with no number prefix (e.g. `valid-sudoku.ts`).
+
+The generated file will have your function already named correctly (e.g. `validSudoku`) and is immediately runnable.
+
+---
+
+### Step 2: Run the Code
+
+Run any solution file directly using `tsx` from the workspace root:
+
+```bash
+pnpm exec tsx "NeetCode150/1.Array & Hashing/10.valid-sudoku.ts"
+```
+
 Or for playground sandboxes:
 ```bash
 pnpm exec tsx playground/practice.ts
@@ -183,7 +97,7 @@ pnpm exec tsx playground/practice.ts
 
 ---
 
-### Step 4: Run the Framework Feature Tests
+### Step 3: Run the Framework Feature Tests
 To verify the test runner, visualizers, comparators, and all framework features are working correctly:
 ```bash
 pnpm test
@@ -192,11 +106,37 @@ This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises e
 
 ---
 
+## 🛠 Scripts Reference
+
+| Command | Description |
+|---|---|
+| `pnpm new` | Interactively scaffold a new problem file with numbering and boilerplate |
+| `pnpm title "My Problem Name"` | Formats a title to kebab-case and copies it to your clipboard |
+| `pnpm test` | Runs the full framework feature test suite |
+
+---
+
+## 📋 Available Boilerplate Templates
+
+The CLI (`pnpm new`) lets you pick from these templates at creation time:
+
+| Template | Use case |
+|---|---|
+| **Standard** | Arrays, strings, math — the default for most problems |
+| **Linked List** | Problems with `ListNode` inputs/outputs |
+| **Cyclic Linked List** | Cycle-detection problems (e.g. LC 141) |
+| **Binary Tree** | Problems with `TreeNode` inputs/outputs |
+| **Graph** | Problems with `GraphNode` and adjacency lists |
+| **Class Design** | System design problems (MinStack, LRU Cache, etc.) |
+| **Multi-Param Tree** | LCA and path problems with multiple node refs in the same tree |
+
+---
+
 ## ✨ Features Breakdown
 
 1. **Zero-Boilerplate Comparison (`smartCompare`)**:
    Our upgraded testing runner automatically inspects your solution outputs and arguments. If it sees standard objects, nested arrays, `ListNode`s, `TreeNode`s, or cyclic `GraphNode`s, it will recursively compare their structures out-of-the-box. You never need to write custom comparators inside your test cases.
-   
+
 2. **LeetCode-Style Parameter Display**:
    Using runtime reflection, the test runner extracts your function's parameter names at runtime. The console output formats inputs with their exact variable names, matching LeetCode's console formatting:
    - `nums = [1,2,3,1]`
@@ -205,10 +145,10 @@ This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises e
 
 3. **Cycle-Safe Graph Testing**:
    Graphs with cycles (like undirected adjacency networks) won't cause stack overflows. The test runner serializes cyclic structures into stable, sorted adjacency lists safely.
-   
+
 4. **Execution Timing**:
    For every test case, the execution time is tracked using high-precision timers (`performance.now()`), allowing you to benchmark and optimize your algorithms immediately.
-   
+
 5. **Input Preservation**:
    The test runner deep-clones all arguments before executing your functions. This ensures that solutions utilizing in-place mutations (e.g., sorting an array in-place or reversing a list) do not corrupt parameters for subsequent test cases.
 

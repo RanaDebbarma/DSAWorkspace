@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "title": "tsx src/scripts/copy-title.ts",
-    "test": "tsx src/tests/feature-test.ts"
+    "test": "tsx src/tests/feature-test.ts",
+    "new": "tsx src/scripts/new.ts"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +35,7 @@
     "pretty-format": "^30.4.1"
   },
   "devDependencies": {
+    "@clack/prompts": "^1.7.0",
     "@types/node": "^26.0.0",
     "tsx": "^4.22.5"
   }
