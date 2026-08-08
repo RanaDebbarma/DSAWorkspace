@@ -229,11 +229,12 @@ export function runTests<F extends (...args: any[]) => any>(
     } catch {
       console.dir(input.map(formatValue), { depth: null });
     }
+    // add gap only if params are visible
+    showStringInput && console.log();
 
     printConsoleOutput(execution.logs);
 
     // ── Expected / Got / Output block ─────────────────────────────────────────────────
-    console.log();
     if (execution.error) {
       const error =
         execution.error instanceof Error
