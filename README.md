@@ -181,38 +181,96 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 ## ✨ Features Breakdown
 
 1. **Zero-Boilerplate Comparison (`smartCompare`)**:
-   Our upgraded testing runner automatically inspects your solution outputs and arguments. If it sees standard objects, nested arrays, `ListNode`s, `TreeNode`s, or cyclic `GraphNode`s, it will recursively compare their structures out-of-the-box. You never need to write custom comparators inside your test cases.
+   The test runner automatically inspects your solution outputs and arguments. If it sees nested arrays, `ListNode`s, `TreeNode`s, or cyclic `GraphNode`s, it selects the correct structural comparator out-of-the-box — no custom comparators needed.
+   - **Unordered 2D arrays** (Subsets, Combinations, Group Anagrams, 3Sum): Automatically compared without caring about order of rows or elements.
+   - **Floating-point results** (Pow, geometry, probability): Compared with `1e-5` tolerance automatically.
 
 2. **LeetCode-Style Parameter Display**:
-   Using runtime reflection, the test runner extracts your function's parameter names at runtime. The console output formats inputs with their exact variable names, matching LeetCode's console formatting:
+   The test runner extracts your function's parameter names at runtime. The console output formats inputs with their exact variable names:
    - `nums = [1,2,3,1]`
    - `root = [4,2,7,1,3,6,9]`
    - `s = "abc", k = 2`
 
-3. **Cycle-Safe Graph Testing**:
-   Graphs with cycles (like undirected adjacency networks) won't cause stack overflows. The test runner serializes cyclic structures into stable, sorted adjacency lists safely.
+3. **Execution Timing**:
+   Every test case tracks execution time using high-precision timers (`performance.now()`).
 
-4. **Execution Timing**:
-   For every test case, the execution time is tracked using high-precision timers (`performance.now()`), allowing you to benchmark and optimize your algorithms immediately.
+4. **Input Preservation**:
+   The test runner deep-clones all arguments before running your function, so in-place mutations (reversing a list, sorting an array) never corrupt subsequent test cases.
 
-5. **Input Preservation**:
-   The test runner deep-clones all arguments before executing your functions. This ensures that solutions utilizing in-place mutations (e.g., sorting an array in-place or reversing a list) do not corrupt parameters for subsequent test cases.
+5. **Cycle-Safe Graph Testing**:
+   Cyclic graph structures are serialized into stable, sorted adjacency lists without causing stack overflows.
 
-6. **Unordered Array Verification Helpers**:
-   For problems returning multiple combinations (e.g., *Group Anagrams*, *3Sum*, *Subsets*), order doesn't matter. You can import and use:
-   - `compareUnorderedArrays(actual, expected)`: compares lists regardless of order.
-   - `compareUnordered2DArrays(actual, expected)`: compares matrices regardless of row or column order.
-
-7. **`visualizeInput` — Structured Input Display**:
-   Pass `{ visualizeInput: true }` as the third argument to `runTests` to print a rich visual of your inputs before each test:
-   - **Binary Trees**: Rendered top-down in a grid with branch connectors.
-   - **Grids / 2D Arrays**: Printed as a box-drawing table.
-   - **Linked Lists**: Printed as `1 → 2 → 3 → null`.
-   - **Multi-param Trees (LCA, etc.)**: When multiple `TreeNode` arguments belong to the same tree, `visualizeInput` automatically merges them into a single tree diagram with the sub-nodes (e.g. `p`, `q`) **highlighted in color** using their parameter names as labels.
-
-8. **`TreeNode.find(val)` — Node Reference Lookup**:
-   For problems that take multiple tree node references (e.g. `p`, `q` in LCA), use `root.find(val)` to get a reference to a specific node within an existing tree instance rather than constructing a separate tree.
+6. **`TreeNode.find(val)` — Node Reference Lookup**:
+   For problems that take multiple tree node refs (e.g. `p`, `q` in LCA), locate a node within an existing tree:
    ```typescript
    const tree = createBinaryTree([6, 2, 8, 0, 4])!;
    tree.find(2)  // returns the TreeNode with val=2 inside tree
    ```
+
+---
+
+## ⚙️ Test Options Reference
+
+The third argument to `runTests(fn, tests, options)` controls display behavior. All options default to `true` and `visualizeInput` is **on by default**.
+
+```typescript
+runTests(solve, tests, {
+  showHeader?: boolean;       // Show the "RUNS solve()" banner. Default: true
+  visualizeInput?: boolean;   // Render rich visual inputs per test. Default: true
+  showStringInput?: boolean;  // Show `param = value` lines below visuals. Default: true
+});
+```
+
+### Option Details
+
+| Option | Default | Description |
+|---|---|---|
+| `showHeader` | `true` | Displays the `RUNS fn()` banner at the top |
+| `visualizeInput` | **`true`** | Renders structured visual diagrams before each test case |
+| `showStringInput` | `true` | Prints plain `param = value` lines (can suppress when using visuals only) |
+
+### Visualizer Output by Type
+
+When `visualizeInput: true` (the default), each input is rendered before every test case:
+
+| Input Type | Visual Output |
+|---|---|
+| **Binary Tree** | Top-down ASCII tree with branch connectors |
+| **2D Grid / Matrix** | Box-drawing table with row/column borders |
+| **Linked List** | `1 → 2 → 3 → null` arrow chain |
+| **Graph** | Adjacency-list representation |
+| **Multi-param Trees (LCA, etc.)** | Single unified tree diagram with `p [green]` and `q [yellow]` node labels |
+
+### Examples
+
+```typescript
+// Default — visualizeInput is ON
+runTests(levelOrder, [
+  { input: [createBinaryTree([3, 9, 20, null, null, 15, 7])], output: [[3], [9, 20], [15, 7]] },
+]);
+
+// Suppress visualizer (plain param = value output only)
+runTests(twoSum, tests, { visualizeInput: false });
+
+// Suppress all input display entirely (output-only)
+runTests(solve, tests, { visualizeInput: false, showStringInput: false });
+
+// Tree problems with highlighted sub-nodes for LCA
+runTests(lowestCommonAncestor, tests, { visualizeInput: true });
+```
+
+### Unordered Comparison Helpers
+
+For problems where output order doesn't matter, import directly:
+
+```typescript
+import { compareUnorderedArrays, compareUnordered2DArrays } from "#functions/code-tester.js";
+
+// 1D unordered (e.g. find all targets)
+runTests(fn, [{ input: [...], output: [...], compare: (actual, expected) => compareUnorderedArrays(actual, expected) }]);
+
+// 2D unordered (e.g. Group Anagrams, 3Sum)
+// NOTE: smartCompare handles these automatically for primitive 2D arrays — no need to pass compare manually.
+```
+
+---
