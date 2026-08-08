@@ -82,8 +82,25 @@ async function main() {
   }
 
   // ── Generate ─────────────────────────────────────────────────────────────
+  let clipboardCasesStr: string | undefined = undefined;
+  let sig: import("#utils/testcase-parser.js").SignatureInfo | undefined = undefined;
+
+  try {
+    const { execSync } = await import("node:child_process");
+    const rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
+    const { parseLeetCodeText, formatParsedCasesForTs, inferFunctionSignature } = await import("#utils/testcase-parser.js");
+    const parsed = parseLeetCodeText(rawClipboard);
+    if (parsed.length > 0) {
+      clipboardCasesStr = formatParsedCasesForTs(parsed, templateChoice as string);
+      sig = inferFunctionSignature(parsed, templateChoice as string);
+      p.log.info(`✔ Auto-filled ${parsed.length} test case(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`);
+    }
+  } catch {
+    // Ignore clipboard read errors
+  }
+
   const chosen = TEMPLATES.find((t) => t.value === templateChoice)!;
-  const content = chosen.fn(fnName);
+  const content = chosen.fn(fnName, clipboardCasesStr, sig);
 
   const filename = buildFilename(numberInput as string, slug);
   const outputPath = path.join(targetDir, filename);
@@ -102,8 +119,16 @@ async function main() {
 
   fs.writeFileSync(outputPath, content, "utf-8");
 
+  // Automatically open in VS Code
+  try {
+    const { execSync } = await import("node:child_process");
+    execSync(`code "${outputPath}"`);
+  } catch {
+    // Ignore if 'code' CLI is not in PATH
+  }
+
   const relativeOutput = path.relative(process.cwd(), outputPath);
-  p.outro(`  ✔ Created: ${relativeOutput}`);
+  p.outro(`  ✔ Created & opened: ${relativeOutput}`);
 }
 
 main().catch((err) => {

@@ -19,6 +19,13 @@ export function smartCompare(actual: any, expected: any, actualInput?: any[]): b
     return actual === expected;
   }
 
+  // Handle floating point tolerance for non-integers (e.g. LC Pow(x, n), Geometry, Probabilities)
+  if (typeof actual === "number" && typeof expected === "number") {
+    if (!Number.isInteger(actual) || !Number.isInteger(expected)) {
+      return Math.abs(actual - expected) < 1e-5;
+    }
+  }
+
   if (actual instanceof ListNode || expected instanceof ListNode) {
     if (actual instanceof ListNode && typeof expected === "number") {
       return actual.val === expected;

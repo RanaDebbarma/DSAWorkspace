@@ -21,12 +21,14 @@ src/                      # Core infrastructure files
 │   ├── diff.ts           # Structured/Colored console diff rendering
 │   ├── display.ts        # Serialization, parameters parsing, and visual formatters
 │   └── title-helper.ts   # Kebab-case title formatting + camelCase derivation
+│   └── testcase-parser.ts # LeetCode testcase parser (clipboard transformer)
 ├── templates/
 │   └── boilerplates.ts   # Exported boilerplate template functions (used by CLI)
 ├── tests/
 │   └── feature-test.ts   # Framework feature test suite (run with: pnpm test)
 └── scripts/
     ├── new.ts            # CLI tool to scaffold new problem files interactively
+    ├── add-tests.ts      # CLI tool to parse copied LeetCode testcases from clipboard
     └── copy-title.ts     # CLI tool to format problem titles and copy to clipboard
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
 package.json              # Project scripts and dependency configuration
@@ -70,7 +72,7 @@ The CLI will guide you through three prompts:
 │    Class Design      (MinStack, LRU Cache, etc.)
 │    Multi-Param Tree  (LCA, path problems)
 
-✔  Created: 10.valid-sudoku.ts
+✔  Created & opened: 10.valid-sudoku.ts
 ```
 
 **How numbering works:**
@@ -78,11 +80,54 @@ The CLI will guide you through three prompts:
 - You can **type any number** to override — useful for LeetCode problem numbers like `1299`.
 - **Leave blank** to create a file with no number prefix (e.g. `valid-sudoku.ts`).
 
-The generated file will have your function already named correctly (e.g. `validSudoku`) and is immediately runnable.
+The generated file will have your function already named correctly (e.g. `validSudoku`), opened in VS Code, and ready to run.
 
 ---
 
-### Step 2: Run the Code
+### Step 2: Auto-Fill Test Cases (`pnpm add-tests`)
+
+You don't need to manually type test case objects!
+
+1. **Copy** any text block straight off LeetCode (supports single or multiple example blocks, explanations, raw lines, and `runClassTests` formats):
+
+```text
+Example 1:
+
+Input:
+nums = [2,5,6,9]
+target = 9
+
+Output: [[2,2,5],[9]]
+Explanation:
+2 + 2 + 5 = 9. We use 2 twice, and 5 once.
+9 = 9. We use 9 once.
+
+Example 2:
+
+Input:
+nums = [3,4,5]
+target = 16
+
+Output: [[3,3,3,3,4],[3,3,5,5],[4,4,4,4],[3,4,4,5]]
+```
+
+2. Run:
+```bash
+pnpm add-tests
+```
+
+3. Press **`Ctrl + V`** inside `runTests(solve, [...])` in your file! The clipboard is transformed into clean TypeScript objects:
+
+```typescript
+  { input: [[2, 5, 6, 9], 9], output: [[2, 2, 5], [9]] },
+  { input: [[3, 4, 5], 16], output: [[3, 3, 3, 3, 4], [3, 3, 5, 5], [4, 4, 4, 4], [3, 4, 4, 5]] },
+```
+
+> 💡 **Bonus**: If you copy LeetCode test cases *before* running `pnpm new`, `pnpm new` will detect them in your clipboard and automatically pre-fill your new file!
+
+---
+
+### Step 3: Run the Code
 
 Run any solution file directly using `tsx` from the workspace root:
 
@@ -97,7 +142,7 @@ pnpm exec tsx playground/practice.ts
 
 ---
 
-### Step 3: Run the Framework Feature Tests
+### Step 4: Run the Framework Feature Tests
 To verify the test runner, visualizers, comparators, and all framework features are working correctly:
 ```bash
 pnpm test
@@ -110,7 +155,8 @@ This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises e
 
 | Command | Description |
 |---|---|
-| `pnpm new` | Interactively scaffold a new problem file with numbering and boilerplate |
+| `pnpm new` | Interactively scaffold a new problem file with numbering, boilerplate, and auto-opens in VS Code |
+| `pnpm add-tests` | Parses copied LeetCode testcases from clipboard into TS objects ready to paste (`Ctrl+V`) |
 | `pnpm title "My Problem Name"` | Formats a title to kebab-case and copies it to your clipboard |
 | `pnpm test` | Runs the full framework feature test suite |
 

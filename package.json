@@ -6,7 +6,8 @@
   "scripts": {
     "title": "tsx src/scripts/copy-title.ts",
     "test": "tsx src/tests/feature-test.ts",
-    "new": "tsx src/scripts/new.ts"
+    "new": "tsx src/scripts/new.ts",
+    "add-tests": "tsx src/scripts/add-tests.ts"
   },
   "keywords": [],
   "author": "",
