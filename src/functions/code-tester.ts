@@ -21,6 +21,8 @@ import {
   treeToString,
   matrixToString,
   graphToString,
+  edgeListGraphToString,
+  isEdgeListParam,
   containsTreeNode,
   TreeHighlightMap,
 } from "#utils/display.js";
@@ -181,15 +183,19 @@ export function runTests<F extends (...args: any[]) => any>(
               }
             }
 
-            // Render 2D matrix grids
+            // Render 2D matrix grids or Edge Lists
             if (Array.isArray(rawVal) && rawVal.length > 0 && Array.isArray(rawVal[0])) {
               const pName = paramNames[i] || `grid`;
-              console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
-              console.log(indentAll(matrixToString(rawVal), 2));
-              console.log();
+              if (isEdgeListParam(pName, rawVal)) {
+                console.log(indentAll(edgeListGraphToString(rawVal, pName), 2));
+                console.log();
+              } else {
+                console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
+                console.log(indentAll(matrixToString(rawVal), 2));
+                console.log();
+              }
             } else if (rawVal instanceof GraphNode) {
               const pName = paramNames[i] || `graph`;
-              console.log(chalk.gray(`${pName}:`));
               console.log(indentAll(graphToString(rawVal), 2));
               console.log();
             }

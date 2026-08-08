@@ -230,14 +230,45 @@ section(7, "Graph — undirected cyclic, pass and visual fail");
 
 runTests(cloneGraph, [
   {
-    name: "Clone Graph — pass",
+    name: "Clone Graph — 2D Spatial Box (4 Nodes)",
     input: [createGraph([[2, 4], [1, 3], [2, 4], [1, 3]])],
     output: createGraph([[2, 4], [1, 3], [2, 4], [1, 3]]),
   },
+]);
+
+function canFinish(numCourses: number, prerequisites: number[][]): boolean {
+  return true;
+}
+
+runTests(canFinish, [
   {
-    name: "Clone Graph — FAIL (visual diff demo)",
-    input: [createGraph([[2, 3], [1], [1]])],
-    output: createGraph([[2, 4], [1, 3], [2, 4], [1, 3]]),
+    name: "Course Schedule — Large DAG (8 Nodes, non-2D)",
+    input: [8, [[1, 0], [2, 0], [3, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6]]],
+    output: true,
+  },
+]);
+
+function countComponents(n: number, edges: number[][]): number {
+  return 3;
+}
+
+runTests(countComponents, [
+  {
+    name: "Connected Components — Disconnected Graph (8 Nodes, 3 Components)",
+    input: [8, [[0, 1], [1, 2], [3, 4], [5, 6], [6, 7]]],
+    output: 3,
+  },
+]);
+
+function networkDelayTime(times: number[][], n: number, k: number): number {
+  return 2;
+}
+
+runTests(networkDelayTime, [
+  {
+    name: "Weighted Graph — Network Delay Time",
+    input: [[[2, 1, 1], [2, 3, 2], [3, 4, 1]], 4, 2],
+    output: 2,
   },
 ]);
 
