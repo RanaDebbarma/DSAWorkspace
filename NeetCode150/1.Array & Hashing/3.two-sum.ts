@@ -1,14 +1,16 @@
 import { runTests } from "#functions/code-tester.js";
 
 function twoSum(nums: number[], target: number): number[] {
-  const hash = new Map();
+  const seen = new Map<number, number>();
+
   for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    if (hash.has(complement)) {
-      return [hash.get(complement), i];
-    } else {
-      hash.set(nums[i], i);
+    const idx = seen.get(target - nums[i]);
+
+    if (idx !== undefined) {
+      return [idx, i];
     }
+
+    seen.set(nums[i], i);
   }
   return [];
 }
@@ -16,4 +18,5 @@ function twoSum(nums: number[], target: number): number[] {
 runTests(twoSum, [
   { input: [[2, 7, 11, 15], 9], output: [0, 1] },
   { input: [[3, 4, 5, 6], 7], output: [0, 1] },
+  { input: [[4, 5, 6], 10], output: [0, 2] },
 ]);
