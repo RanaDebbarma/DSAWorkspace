@@ -80,9 +80,15 @@ class MinHeap {
 //   const minHeap = new MinHeap();
 // }
 
-runTests(topKFrequent, [
-  { input: [[1, 1, 1, 2, 2, 3], 2], output: [1, 2] },
-  { input: [[1], 1], output: [1] },
-  { input: [[1, 2, 1, 2, 1, 2, 3, 1, 3, 2], 2], output: [1, 2] },
-  // { input: [[4, 4, 5, 5, 6, 6], 1], output: [4] },
-]);
+runTests(
+  topKFrequent,
+  [
+    { input: [[1, 1, 1, 2, 2, 3], 2], output: [1, 2] },
+    { input: [[1], 1], output: [1] },
+    { input: [[1, 2, 1, 2, 1, 2, 3, 1, 3, 2], 2], output: [1, 2] },
+    // { input: [[4, 4, 5, 5, 6, 6], 1], output: [4] },
+    { input: [[1, 2, 2, 3, 3, 3], 2], output: [2, 3] },
+    { input: [[7, 7], 1], output: [7] },
+  ],
+  { unordered: true },
+);

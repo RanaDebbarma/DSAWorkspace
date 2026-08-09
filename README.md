@@ -244,6 +244,7 @@ runTests(solve, tests, {
   showHeader?: boolean;       // Show the "RUNS solve()" banner. Default: true
   visualizeInput?: boolean;   // Render rich visual inputs per test. Default: true
   showStringInput?: boolean;  // Show `param = value` lines below visuals. Default: true
+  unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
 });
 ```
 
@@ -254,6 +255,7 @@ runTests(solve, tests, {
 | `showHeader` | `true` | Displays the `RUNS fn()` banner at the top |
 | `visualizeInput` | **`true`** | Renders structured visual diagrams before each test case |
 | `showStringInput` | `true` | Prints plain `param = value` lines (can suppress when using visuals only) |
+| `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
 
 ### Visualizer Output by Type
 
@@ -287,16 +289,25 @@ runTests(lowestCommonAncestor, tests, { visualizeInput: true });
 
 ### Unordered Comparison Helpers
 
-For problems where output order doesn't matter, import directly:
+For problems where 1D or 2D output order doesn't matter (e.g. *Top K Frequent Elements*, *Intersection of Two Arrays*):
 
 ```typescript
-import { compareUnorderedArrays, compareUnordered2DArrays } from "#functions/code-tester.js";
+// 1. Suite-level option (applies to all test cases in the run)
+runTests(topKFrequent, [
+  { input: [[1, 2, 2, 3, 3, 3], 2], output: [2, 3] },
+  { input: [[7, 7], 1], output: [7] },
+], { unordered: true });
 
-// 1D unordered (e.g. find all targets)
-runTests(fn, [{ input: [...], output: [...], compare: (actual, expected) => compareUnorderedArrays(actual, expected) }]);
+// 2. Per test case option
+runTests(topKFrequent, [
+  { input: [[1, 2, 2, 3, 3, 3], 2], output: [2, 3], unordered: true },
+]);
 
-// 2D unordered (e.g. Group Anagrams, 3Sum)
-// NOTE: smartCompare handles these automatically for primitive 2D arrays — no need to pass compare manually.
+// 3. Custom comparator (if custom logic is required)
+import { compareUnorderedArrays } from "#functions/code-tester.js";
+runTests(fn, [{ input: [...], output: [...], compare: compareUnorderedArrays }]);
+
+// NOTE: smartCompare automatically handles 2D primitive arrays (Group Anagrams, 3Sum) out of the box.
 ```
 
 ---
