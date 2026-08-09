@@ -25,10 +25,10 @@ function listTsFilesInDir(dir: string): string[] {
 /** Detect template type from target file content or fallback to parsed cases. */
 export function detectFileTemplate(fileContent: string, fallbackCases: ParsedResult[]): string {
   if (fileContent.includes("runClassTests")) return "class-design";
-  if (fileContent.includes("createBinaryTree") || fileContent.includes("#functions/tree.js")) return "binary-tree";
+  if (fileContent.includes("createBinaryTree") || fileContent.includes("#ds/tree.js")) return "binary-tree";
   if (fileContent.includes("createCyclicLinkedList")) return "cyclic-linked-list";
-  if (fileContent.includes("createLinkedList") || fileContent.includes("#functions/linked-list.js")) return "linked-list";
-  if (fileContent.includes("createGraph") || fileContent.includes("#functions/graph.js")) return "graph";
+  if (fileContent.includes("createLinkedList") || fileContent.includes("#ds/linked-list.js")) return "linked-list";
+  if (fileContent.includes("createGraph") || fileContent.includes("#ds/graph.js")) return "graph";
   
   return detectTemplateType(fallbackCases);
 }

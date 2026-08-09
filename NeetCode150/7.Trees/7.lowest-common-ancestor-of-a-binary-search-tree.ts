@@ -1,5 +1,5 @@
 import { runTests } from "#functions/code-tester.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
+import { createBinaryTree, TreeNode } from "#ds/tree.js";
 
 // LeetCode 235: Lowest Common Ancestor of a Binary Search Tree
 

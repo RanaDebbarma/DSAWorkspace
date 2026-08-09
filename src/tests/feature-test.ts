@@ -16,9 +16,9 @@ import {
   compareGroupAnagrams,
   compare3Sum,
 } from "#functions/code-tester.js";
-import { createLinkedList, createCyclicLinkedList, ListNode } from "#functions/linked-list.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
-import { createGraph, cloneGraph } from "#functions/graph.js";
+import { createLinkedList, createCyclicLinkedList, ListNode } from "#ds/linked-list.js";
+import { createBinaryTree, TreeNode } from "#ds/tree.js";
+import { createGraph, cloneGraph } from "#ds/graph.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION HEADER UTILITY

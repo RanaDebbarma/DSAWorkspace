@@ -46,7 +46,7 @@ export function getLinkedListTemplate(
   const retVal = sig?.defaultReturn || "head";
 
   return `import { runTests } from "#functions/code-tester.js";
-import { createLinkedList, ListNode } from "#functions/linked-list.js";
+import { createLinkedList, ListNode } from "#ds/linked-list.js";
 
 function ${fnName}(${params}): ${retType} {
   return ${retVal};
@@ -62,7 +62,7 @@ ${cases}
 // 3. CYCLIC LINKED LIST TEMPLATE (e.g. LC 141 - Linked List Cycle)
 export function getCyclicLinkedListTemplate(fnName: string): string {
   return `import { runTests } from "#functions/code-tester.js";
-import { createCyclicLinkedList, ListNode } from "#functions/linked-list.js";
+import { createCyclicLinkedList, ListNode } from "#ds/linked-list.js";
 
 function ${fnName}(head: ListNode | null): boolean {
   return false;
@@ -96,7 +96,7 @@ export function getBinaryTreeTemplate(
   const retVal = sig?.defaultReturn || "root";
 
   return `import { runTests } from "#functions/code-tester.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
+import { createBinaryTree, TreeNode } from "#ds/tree.js";
 
 function ${fnName}(${params}): ${retType} {
   return ${retVal};
@@ -126,7 +126,7 @@ export function getGraphTemplate(
   const retVal = sig?.defaultReturn || "node";
 
   return `import { runTests } from "#functions/code-tester.js";
-import { createGraph, GraphNode } from "#functions/graph.js";
+import { createGraph, GraphNode } from "#ds/graph.js";
 
 function ${fnName}(${params}): ${retType} {
   return ${retVal};
@@ -171,7 +171,7 @@ ${cases}
 // 7. MULTI-PARAM TREE TEMPLATE (e.g. LCA, path problems)
 export function getMultiParamTreeTemplate(fnName: string): string {
   return `import { runTests } from "#functions/code-tester.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
+import { createBinaryTree, TreeNode } from "#ds/tree.js";
 
 function ${fnName}(
   root: TreeNode | null,

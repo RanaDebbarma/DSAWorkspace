@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import { ListNode, Node } from "#functions/linked-list.js";
-import { TreeNode } from "#functions/tree.js";
-import { GraphNode } from "#functions/graph.js";
+import { ListNode, Node } from "#ds/linked-list.js";
+import { TreeNode } from "#ds/tree.js";
+import { GraphNode } from "#ds/graph.js";
 import {
   smartCompare,
   compareUnorderedArrays,

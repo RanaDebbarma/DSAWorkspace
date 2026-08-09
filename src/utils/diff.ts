@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import { ListNode } from "#functions/linked-list.js";
-import { TreeNode } from "#functions/tree.js";
-import { GraphNode } from "#functions/graph.js";
+import { ListNode } from "#ds/linked-list.js";
+import { TreeNode } from "#ds/tree.js";
+import { GraphNode } from "#ds/graph.js";
 import { smartCompare } from "#utils/compare.js";
 import { serializeForDisplay, treeToString, graphToString } from "#utils/display.js";
 

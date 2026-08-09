@@ -5,9 +5,9 @@ import {
   Node,
   randomListHasNoSharedNodes,
   randomListToArray,
-} from "#functions/linked-list.js";
-import { TreeNode, compareBinaryTrees } from "#functions/tree.js";
-import { GraphNode, compareGraphs } from "#functions/graph.js";
+} from "#ds/linked-list.js";
+import { TreeNode, compareBinaryTrees } from "#ds/tree.js";
+import { GraphNode, compareGraphs } from "#ds/graph.js";
 
 /**
  * Smart recursively compares two values.

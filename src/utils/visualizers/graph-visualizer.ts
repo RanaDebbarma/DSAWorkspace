@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { GraphNode } from "#functions/graph.js";
+import { GraphNode } from "#ds/graph.js";
 
 export interface NormalizedGraphEdge {
   target: number;

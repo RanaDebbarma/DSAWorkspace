@@ -1,6 +1,6 @@
 import { runTests, runClassTests } from "#functions/code-tester.js";
-import { createBinaryTree, TreeNode } from "#functions/tree.js";
-import { createGraph, cloneGraph } from "#functions/graph.js";
+import { createBinaryTree, TreeNode } from "#ds/tree.js";
+import { createGraph, cloneGraph } from "#ds/graph.js";
 import { drawDivider } from "#utils/display.js";
 import chalk from "chalk";
 

@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { TreeNode } from "#functions/tree.js";
+import { TreeNode } from "#ds/tree.js";
 
 export type NodeHighlight = {
   label?: string;

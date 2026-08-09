@@ -1,5 +1,5 @@
 import { runTests } from "#functions/code-tester.js";
-import { createCyclicLinkedList, ListNode } from "#functions/linked-list.js";
+import { createCyclicLinkedList, ListNode } from "#ds/linked-list.js";
 
 // LeetCode 141
 

@@ -1,5 +1,5 @@
 import { runTests } from "#functions/code-tester.js";
-import { Node, createRandomList } from "#functions/linked-list.js";
+import { Node, createRandomList } from "#ds/linked-list.js";
 
 // LeetCode 138
 

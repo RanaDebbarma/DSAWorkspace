@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import { ListNode, linkedListToString, Node, randomListToArray } from "#functions/linked-list.js";
-import { TreeNode, binaryTreeToArray } from "#functions/tree.js";
-import { GraphNode, graphToAdjList } from "#functions/graph.js";
+import { ListNode, linkedListToString, Node, randomListToArray } from "#ds/linked-list.js";
+import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
+import { GraphNode, graphToAdjList } from "#ds/graph.js";
 
 import { treeToString } from "./visualizers/tree-visualizer.js";
 import { graphToString } from "./visualizers/graph-visualizer.js";

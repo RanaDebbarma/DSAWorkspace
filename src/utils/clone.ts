@@ -3,9 +3,9 @@ import {
   Node,
   cloneLinkedList,
   cloneRandomList,
-} from "#functions/linked-list.js";
-import { TreeNode, cloneBinaryTree } from "#functions/tree.js";
-import { GraphNode, cloneGraph } from "#functions/graph.js";
+} from "#ds/linked-list.js";
+import { TreeNode, cloneBinaryTree } from "#ds/tree.js";
+import { GraphNode, cloneGraph } from "#ds/graph.js";
 
 /**
  * Deep clones any value recursively.

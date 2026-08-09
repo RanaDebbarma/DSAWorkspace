@@ -10,18 +10,28 @@ Welcome to your local practice environment for solving and testing LeetCode/Neet
 NeetCode150/              # Contains categorized folders with solutions
 LeetCode/                 # Flat folder for standalone LeetCode problems
 src/                      # Core infrastructure files
-├── functions/
-│   ├── code-tester.ts    # Main test runner (runTests, runClassTests)
-│   ├── linked-list.ts    # ListNode definition, array-to-list parsers, and stringifiers
-│   ├── tree.ts           # TreeNode definition, BFS-level tree builders, and serializers
-│   └── graph.ts          # GraphNode definition, cycle-safe cloning, and adjList builders
+├── ds/                   # Data structure definitions (classes + builders + serializers)
+│   ├── linked-list.ts    # ListNode, Node, create/clone/compare/stringify helpers
+│   ├── tree.ts           # TreeNode, BFS tree builder, clone, compare, serializer
+│   └── graph.ts          # GraphNode, adjacency list builder, clone, compare
+├── functions/            # Test framework entry point
+│   └── code-tester.ts    # runTests, runClassTests, TestCase, ClassTestCase types
 ├── utils/                # Internal test runner & CLI helper utilities
-│   ├── clone.ts          # Input/Node structure cloning
-│   ├── compare.ts        # Comparison engine (smartCompare, unordered arrays, legacy aliases)
-│   ├── diff.ts           # Structured/Colored console diff rendering
-│   ├── display.ts        # Serialization, parameters parsing, and visual formatters
-│   └── title-helper.ts   # Kebab-case title formatting + camelCase derivation
-│   └── testcase-parser.ts # LeetCode testcase parser (clipboard transformer)
+│   ├── clone.ts          # Deep input cloning (arrays, ListNode, TreeNode, GraphNode)
+│   ├── compare.ts        # Comparison engine (smartCompare, unordered arrays, aliases)
+│   ├── console-capture.ts # Intercepts console.log calls during test execution
+│   ├── diff.ts           # Structured/colored console diff rendering
+│   ├── display.ts        # Serialization, parameter parsing, visual formatters (facade)
+│   ├── testcase-parser.ts # LeetCode testcase parser facade (re-exports parser/*)
+│   ├── title-helper.ts   # Kebab-case title formatting + camelCase derivation
+│   ├── parser/           # Modular testcase parser sub-modules
+│   │   ├── text-parser.ts     # Raw text/JSON parsing, clipboard I/O
+│   │   ├── signature-infer.ts # TypeScript type + function signature inference
+│   │   └── code-formatter.ts  # Testcase value stringification & TS code generation
+│   └── visualizers/      # Modular ASCII visualizer sub-modules
+│       ├── tree-visualizer.ts  # Binary tree top-down & sideways ASCII renderer
+│       ├── grid-visualizer.ts  # 2D matrix box-drawing table renderer
+│       └── graph-visualizer.ts # Graph spatial layout & adjacency-list renderer
 ├── templates/
 │   └── boilerplates.ts   # Exported boilerplate template functions (used by CLI)
 ├── tests/
@@ -29,10 +39,10 @@ src/                      # Core infrastructure files
 └── scripts/
     ├── new.ts            # CLI tool to scaffold new problem files interactively
     ├── populate.ts       # CLI tool to append parsed LeetCode testcases into existing files
-    └── copy-title.ts     # CLI tool to format problem titles and copy to clipboard
+    └── copy-title.ts     # Internal utility to format & clipboard-copy problem titles
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
 package.json              # Project scripts and dependency configuration
-tsconfig.json             # TypeScript path mappings (#functions/*, #utils/*, #templates/*)
+tsconfig.json             # TypeScript path mappings (#functions/*, #ds/*, #utils/*, #templates/*)
 ```
 
 ---
@@ -155,7 +165,6 @@ pnpm test
 | `pnpm new` | Interactively scaffold a new problem file or populate boilerplate template into a file |
 | `pnpm new practice.ts` | Target a specific file directly with boilerplate & pre-filled clipboard test cases |
 | `pnpm populate [file]` | Appends parsed LeetCode test cases from clipboard directly into an existing file's `runTests` block |
-| `pnpm title "My Problem Name"` | Formats a title to kebab-case and copies it to your clipboard |
 | `pnpm test` | Runs the full framework feature test suite |
 
 ---
