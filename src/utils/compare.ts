@@ -9,11 +9,20 @@ import {
 import { TreeNode, compareBinaryTrees } from "#ds/tree.js";
 import { GraphNode, compareGraphs } from "#ds/graph.js";
 
+export type CompareOptions = {
+  unordered?: boolean;
+};
+
 /**
  * Smart recursively compares two values.
  * Automatically selects specialized comparators for ListNodes, TreeNodes, and GraphNodes.
  */
-export function smartCompare(actual: any, expected: any, actualInput?: any[]): boolean {
+export function smartCompare(
+  actual: any,
+  expected: any,
+  actualInput?: any[],
+  options?: CompareOptions,
+): boolean {
   if (actual === expected) return true;
   if (actual === null || actual === undefined || expected === null || expected === undefined) {
     return actual === expected;
@@ -62,6 +71,15 @@ export function smartCompare(actual: any, expected: any, actualInput?: any[]): b
   if (Array.isArray(actual) && Array.isArray(expected)) {
     if (actual.length !== expected.length) return false;
 
+    if (options?.unordered) {
+      const is2D =
+        (actual.length > 0 && Array.isArray(actual[0])) ||
+        (expected.length > 0 && Array.isArray(expected[0]));
+      return is2D
+        ? compareUnordered2DArrays(actual, expected)
+        : compareUnorderedArrays(actual, expected);
+    }
+
     // Auto-detect 2D arrays of primitives (subsets / combinations / permutations).
     // Both outer order and inner order are treated as unordered.
     const is2DPrimitive = (arr: any[]): boolean =>
@@ -76,7 +94,7 @@ export function smartCompare(actual: any, expected: any, actualInput?: any[]): b
 
     // Default: ordered element-wise comparison
     for (let i = 0; i < actual.length; i++) {
-      if (!smartCompare(actual[i], expected[i])) return false;
+      if (!smartCompare(actual[i], expected[i], undefined, options)) return false;
     }
     return true;
   }

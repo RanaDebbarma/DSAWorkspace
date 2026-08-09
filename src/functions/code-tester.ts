@@ -49,6 +49,8 @@ export type TestCase<F extends (...args: any[]) => any> = {
     actualInput: Parameters<F>,
   ) => boolean;
   cloneInput?: (input: Parameters<F>) => Parameters<F>;
+  /** When true, treats array output order as insensitive for this test case. */
+  unordered?: boolean;
 };
 
 export type ClassTestCase = {
@@ -63,6 +65,8 @@ export type TestOptions = {
   visualizeInput?: boolean;
   /** When false, suppresses the plain `param = value` lines printed below visual input blocks. Defaults to true. */
   showStringInput?: boolean;
+  /** When true, treats array output order as insensitive across all test cases in this suite. */
+  unordered?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
@@ -278,6 +282,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
   const visualizeInput = typeof options === "boolean" ? true : (options?.visualizeInput ?? true);
   const showStringInput = typeof options === "boolean" ? true : (options?.showStringInput ?? true);
+  const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
 
   let passedCount = 0;
 
@@ -287,7 +292,7 @@ export function runTests<F extends (...args: any[]) => any>(
   }
 
   for (const [index, test] of tests.entries()) {
-    const { name, input, output, compare, cloneInput } = test;
+    const { name, input, output, compare, cloneInput, unordered } = test;
 
     const actualInput = cloneInput
       ? cloneInput(input)
@@ -298,11 +303,13 @@ export function runTests<F extends (...args: any[]) => any>(
     const end = performance.now();
     const result = execution.value as ReturnType<F>;
 
+    const isUnordered = unordered ?? suiteUnordered;
+
     const passed = execution.error
       ? false
       : compare
         ? compare(result, output, actualInput)
-        : smartCompare(result, output, actualInput);
+        : smartCompare(result, output, actualInput, { unordered: isUnordered });
 
     if (passed) passedCount++;
 
@@ -350,6 +357,7 @@ export function runClassTests<C extends new (...args: any[]) => any>(
   }
 
   const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
+  const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
 
   let passedCount = 0;
 
@@ -393,7 +401,7 @@ export function runClassTests<C extends new (...args: any[]) => any>(
       passed = false;
     } else {
       for (let i = 0; i < expected.length; i++) {
-        if (!smartCompare(actualOutputs[i], expected[i])) {
+        if (!smartCompare(actualOutputs[i], expected[i], undefined, { unordered: suiteUnordered })) {
           passed = false;
           failedIdx = i;
           break;
