@@ -64,34 +64,31 @@ async function main() {
 
     let action: Action;
 
-    // Most recently modified file — its folder is where the user is likely working
+    // Most recently modified file — its folder is likely where the user is working
     const recentFile = detectedFiles[0];
     const recentFolder = recentFile ? path.dirname(recentFile.absolutePath) : targetDir;
     const relRecentFolder = path.relative(wsRoot, recentFolder).replace(/\\/g, "/") || ".";
     const relTermDir = path.relative(wsRoot, targetDir).replace(/\\/g, "/") || ".";
     const recentIsSameAsTerminal = recentFolder.toLowerCase() === path.resolve(targetDir).toLowerCase();
 
-    const locationOptions: { label: string; value: string }[] = [];
-
-    // If recent file's folder is different from terminal dir, show it as the first (auto-detected) option
+    // Log context info above the prompt so the prompt itself stays clean
     if (recentFile && !recentIsSameAsTerminal) {
-      locationOptions.push({
-        label: `✦ Create here (${relRecentFolder})  (auto-detected)`,
-        value: "new_recent",
-      });
+      p.log.info(`Recent:   ${recentFile.relativePath}`);
+    }
+    p.log.info(`Terminal: ${relTermDir || "."}`);
+
+    const locationOptions: { label: string; value: string }[] = [];
+    if (recentFile && !recentIsSameAsTerminal) {
+      locationOptions.push({ label: `✦  ${relRecentFolder}`, value: "new_recent" });
     }
     locationOptions.push(
-      { label: `🆕 Create here (${relTermDir})  (terminal directory)`, value: "new_here" },
-      { label: "📂 Create in a different directory...", value: "new_choose" },
-      { label: "📝 Populate template into an existing file...", value: "existing" }
+      { label: `📁  ${relTermDir || "."}  (terminal dir)`, value: "new_here" },
+      { label: "📂  Choose a different directory...", value: "new_choose" },
+      { label: "📝  Populate template into an existing file", value: "existing" }
     );
 
-    if (recentFile && !recentIsSameAsTerminal) {
-      p.log.info(`Recent file: ${recentFile.relativePath}`);
-    }
-
     const choice = await p.select({
-      message: "Where would you like to create the new problem file?",
+      message: "Create new file in:",
       initialValue: recentFile && !recentIsSameAsTerminal ? "new_recent" : "new_here",
       options: locationOptions,
     });

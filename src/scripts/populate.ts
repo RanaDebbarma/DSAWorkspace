@@ -147,7 +147,7 @@ async function main() {
       ];
 
       const chosenFile = await p.select({
-        message: "Append testcases to which file?  (↵ to confirm auto-detected)",
+        message: "Append testcases to:",
         initialValue: recentFile.absolutePath,
         options: selectOptions,
       });

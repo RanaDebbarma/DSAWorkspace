@@ -38,6 +38,7 @@ src/                      # Core infrastructure files
 │   └── feature-test.ts   # Framework feature test suite (run with: pnpm test)
 └── scripts/
     ├── new.ts            # CLI tool to scaffold new problem files interactively
+    ├── template.ts       # CLI tool to write/replace boilerplate template into an existing file
     ├── populate.ts       # CLI tool to append parsed LeetCode testcases into existing files
     └── copy-title.ts     # Internal utility to format & clipboard-copy problem titles
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
@@ -49,29 +50,36 @@ tsconfig.json             # TypeScript path mappings (#functions/*, #ds/*, #util
 
 ## 🚀 Quick Start Guide
 
-### Step 1: Scaffold a New Problem File
+### Step 1: Scaffold a New Problem File (`pnpm new`)
 
-Run the interactive file generator from **inside the target directory**:
+Run the interactive file generator from anywhere in your workspace:
 
 ```bash
-# Navigate to the category first
-cd "NeetCode150/1.Array & Hashing"
-
-# Then run:
 pnpm new
 ```
 
-The CLI will guide you through three prompts:
+The CLI automatically detects your **most recently modified file** and offers its directory as the default location:
 
 ```
-✦ DSA File Generator
+◆  Recent:   NeetCode150/3.Stack/5.daily-temperatures.ts
+◆  Terminal: .
 
-◆ Problem number (auto-detected: 10)
+◆  Create new file in:
+   ✦  NeetCode150/3.Stack
+   📁  .  (terminal dir)
+   📂  Choose a different directory...
+   📝  Populate template into an existing file
+```
+
+After choosing a location, the CLI will prompt for problem details:
+
+```
+◆ Problem number (auto-detected: 6)
 │  Press Enter to accept, or type to override (e.g. an LC number like 1299)
 │  Leave blank for no number prefix.
 
 ◆ Problem name
-│  e.g. Valid Sudoku  (leave blank for 'untitled')
+│  e.g. Car Fleet  (leave blank for 'untitled')
 
 ◆ Select a template
 │  ❯ Standard          (arrays, strings, math)
@@ -82,23 +90,34 @@ The CLI will guide you through three prompts:
 │    Class Design      (MinStack, LRU Cache, etc.)
 │    Multi-Param Tree  (LCA, path problems)
 
-✔  Created & opened: 10.valid-sudoku.ts
+✔  Created & opened: NeetCode150/3.Stack/6.car-fleet.ts
 ```
 
-**How numbering works:**
-- If the directory already contains numbered files (`1.foo.ts`, `9.bar.ts`), the tool **auto-detects the next number** (e.g. `10`) as the default.
-- You can **type any number** to override — useful for LeetCode problem numbers like `1299`.
-- **Leave blank** to create a file with no number prefix (e.g. `valid-sudoku.ts`).
+> 💡 **Smart Numbering**: If the target directory contains numbered files (`1.foo.ts`, `5.bar.ts`), the tool **auto-detects the next number** (e.g. `6`) as default.
 
-The generated file will have your function already named correctly (e.g. `validSudoku`), opened in VS Code, and ready to run.
+> 💡 **Clipboard Auto-Fill**: If you copy LeetCode example test cases to your clipboard *before* running `pnpm new`, the CLI auto-detects the test cases and pre-fills them in your new file!
 
 ---
 
-### Step 2: Append Test Cases to an Existing File (`pnpm populate`)
+### Step 2: Write Template to an Existing File (`pnpm template`)
 
-You don't need to manually type test case objects or edit array syntax!
+To populate or overwrite an existing file (like `playground/practice/practice.ts` or any active file) with a fresh template:
 
-1. **Copy** any text block straight off LeetCode (supports single or multiple example blocks, explanations, raw lines, and `runClassTests` formats):
+```bash
+pnpm template
+# or specify target directly:
+pnpm template practice.ts
+```
+
+The CLI auto-detects your most recently modified file and lets you pick a template to write directly into it. If LeetCode test cases are in your clipboard, it auto-fills them into the template as well!
+
+---
+
+### Step 3: Append Test Cases to an Existing File (`pnpm populate`)
+
+Append test cases to any solution file without re-writing the code:
+
+1. **Copy** any example text block from LeetCode (supports single or multiple example blocks, explanations, raw lines, and `runClassTests` formats):
 
 ```text
 Example 1:
@@ -108,34 +127,33 @@ nums = [2,5,6,9]
 target = 9
 
 Output: [[2,2,5],[9]]
-
-Example 2:
-
-Input:
-nums = [3,4,5]
-target = 16
-
-Output: [[3,3,3,3,4],[3,3,5,5],[4,4,4,4],[3,4,4,5]]
 ```
 
 2. Run:
 ```bash
-# Append test cases to practice.ts (or pick an active file interactively)
+pnpm populate
+# or specify file directly:
 pnpm populate practice.ts
 ```
 
-3. The script automatically parses the clipboard test cases, detects the template data structure, and **appends** the clean TypeScript objects directly into `runTests(solve, [...])`:
-
-```typescript
-  { input: [[2, 5, 6, 9], 9], output: [[2, 2, 5], [9]] },
-  { input: [[3, 4, 5], 16], output: [[3, 3, 3, 3, 4], [3, 3, 5, 5], [4, 4, 4, 4], [3, 4, 4, 5]] },
-```
-
-> 💡 **Bonus**: If you copy LeetCode test cases *before* running `pnpm new`, `pnpm new` will detect them in your clipboard and automatically pre-fill your new file upon creation!
+3. The script pre-selects your most recently modified file and appends formatted test case objects into `runTests(solve, [...])`.
 
 ---
 
-### Step 3: Run the Code
+### Step 4: Copy Problem Titles (`pnpm title`)
+
+Need clean problem titles for file naming or documentation?
+
+```bash
+pnpm title "13. 3Sum Closest"
+# Copies formatted title to clipboard: 3.3sum-closest.ts
+```
+
+Or run `pnpm title` with no arguments to copy the formatted title of your most recently modified file.
+
+---
+
+### Step 5: Run the Code
 
 Run any solution file directly using `tsx` from the workspace root:
 
@@ -143,15 +161,14 @@ Run any solution file directly using `tsx` from the workspace root:
 pnpm exec tsx "NeetCode150/1.Array & Hashing/10.valid-sudoku.ts"
 ```
 
-Or for playground sandboxes:
+Or for playground practice:
 ```bash
-pnpm exec tsx playground/practice.ts
+pnpm exec tsx playground/practice/practice.ts
 ```
 
 ---
 
-### Step 4: Run the Framework Feature Tests
-To verify the test runner, visualizers, comparators, and all framework features are working correctly:
+### Step 6: Run Framework Feature Tests
 ```bash
 pnpm test
 ```
@@ -162,9 +179,11 @@ pnpm test
 
 | Command | Description |
 |---|---|
-| `pnpm new` | Interactively scaffold a new problem file or populate boilerplate template into a file |
-| `pnpm new practice.ts` | Target a specific file directly with boilerplate & pre-filled clipboard test cases |
-| `pnpm populate [file]` | Appends parsed LeetCode test cases from clipboard directly into an existing file's `runTests` block |
+| `pnpm new` | Scaffold a new problem file with smart directory auto-detection & template selection |
+| `pnpm new practice.ts` | Target a specific filename directly with boilerplate & pre-filled clipboard test cases |
+| `pnpm template [file]` | Write/replace boilerplate template directly into an existing file |
+| `pnpm populate [file]` | Appends parsed LeetCode test cases from clipboard directly into an existing file |
+| `pnpm title [input]` | Formats problem title & copies filename slug / title to clipboard |
 | `pnpm test` | Runs the full framework feature test suite |
 
 ---
