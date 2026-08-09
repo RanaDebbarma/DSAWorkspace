@@ -9,18 +9,7 @@ import {
   readClipboard,
   ParsedResult,
 } from "#utils/testcase-parser.js";
-
-/** Find all .ts files in target directory. */
-function listTsFilesInDir(dir: string): string[] {
-  if (!fs.existsSync(dir)) return [];
-  try {
-    return fs
-      .readdirSync(dir)
-      .filter((file) => file.endsWith(".ts") && !file.endsWith(".d.ts"));
-  } catch {
-    return [];
-  }
-}
+import { findWorkspaceTsFiles } from "#utils/file-detector.js";
 
 /** Detect template type from target file content or fallback to parsed cases. */
 export function detectFileTemplate(fileContent: string, fallbackCases: ParsedResult[]): string {
@@ -123,24 +112,44 @@ async function main() {
   if (argFile) {
     outputPath = path.resolve(targetDir, argFile);
   } else {
-    const existingTsFiles = listTsFilesInDir(targetDir);
-    if (existingTsFiles.length === 0) {
+    const detectedFiles = findWorkspaceTsFiles(targetDir, { includeSrc: true });
+
+    const promptCustomPath = async (): Promise<string> => {
       const customPath = await p.text({
-        message: "No .ts files found in current folder. Enter target file path:",
-        placeholder: "e.g. practice.ts",
+        message: "Enter target file path",
+        placeholder: "e.g. ./playground/practice/practice.ts",
       });
       if (p.isCancel(customPath) || !(customPath as string).trim()) {
         p.cancel("Cancelled.");
         process.exit(0);
       }
-      outputPath = path.resolve(targetDir, (customPath as string).trim());
+      return path.resolve(targetDir, (customPath as string).trim());
+    };
+
+    if (detectedFiles.length === 0) {
+      outputPath = await promptCustomPath();
     } else {
+      const recentFile = detectedFiles[0];
+      p.log.info(`Auto-detected: ${recentFile.relativePath}`);
+
+      const selectOptions = [
+        // Most recently modified file is always first and pre-selected
+        {
+          label: `✦ ${recentFile.relativePath}  (most recent)`,
+          value: recentFile.absolutePath,
+        },
+        // Remaining files by mtime
+        ...detectedFiles.slice(1, 7).map((f) => ({
+          label: `${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+          value: f.absolutePath,
+        })),
+        { label: "✏️  Enter custom file path...", value: "custom" },
+      ];
+
       const chosenFile = await p.select({
-        message: "Select target file to append testcases to",
-        options: [
-          ...existingTsFiles.map((f) => ({ label: f, value: f })),
-          { label: "✏️  Enter custom file path...", value: "custom" },
-        ],
+        message: "Append testcases to which file?  (↵ to confirm auto-detected)",
+        initialValue: recentFile.absolutePath,
+        options: selectOptions,
       });
 
       if (p.isCancel(chosenFile)) {
@@ -148,19 +157,7 @@ async function main() {
         process.exit(0);
       }
 
-      if (chosenFile === "custom") {
-        const customPath = await p.text({
-          message: "Enter target file path",
-          placeholder: "e.g. ./playground/practice/practice.ts",
-        });
-        if (p.isCancel(customPath) || !(customPath as string).trim()) {
-          p.cancel("Cancelled.");
-          process.exit(0);
-        }
-        outputPath = path.resolve(targetDir, (customPath as string).trim());
-      } else {
-        outputPath = path.resolve(targetDir, chosenFile as string);
-      }
+      outputPath = chosenFile === "custom" ? await promptCustomPath() : (chosenFile as string);
     }
   }
 
