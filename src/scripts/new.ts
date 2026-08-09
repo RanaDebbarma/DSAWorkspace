@@ -3,6 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { titleFormat, toCamelCase } from "#utils/title-helper.js";
 import { TEMPLATES } from "#templates/boilerplates.js";
+import {
+  readClipboard,
+  parseLeetCodeText,
+  formatParsedCasesForTs,
+  inferFunctionSignature,
+  detectTemplateType,
+  SignatureInfo,
+} from "#utils/testcase-parser.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -152,19 +160,11 @@ async function main() {
 
   // Check Clipboard for testcases & infer signature/template
   let clipboardCasesStr: string | undefined = undefined;
-  let sig: import("#utils/testcase-parser.js").SignatureInfo | undefined = undefined;
+  let sig: SignatureInfo | undefined = undefined;
   let inferredTemplateType: string | undefined = undefined;
 
-  try {
-    const { execSync } = await import("node:child_process");
-    const rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
-    const {
-      parseLeetCodeText,
-      formatParsedCasesForTs,
-      inferFunctionSignature,
-      detectTemplateType,
-    } = await import("#utils/testcase-parser.js");
-
+  const rawClipboard = readClipboard();
+  if (rawClipboard.trim()) {
     const parsed = parseLeetCodeText(rawClipboard);
     if (parsed.length > 0) {
       inferredTemplateType = detectTemplateType(parsed);
@@ -174,8 +174,6 @@ async function main() {
         `✔ Auto-filled ${parsed.length} testcase(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`
       );
     }
-  } catch {
-    // Ignore clipboard read errors
   }
 
   // Template selection
@@ -194,19 +192,10 @@ async function main() {
   }
 
   // Re-format clipboard cases if user picked a template different from auto-inferred
-  if (clipboardCasesStr && inferredTemplateType && templateChoice !== inferredTemplateType) {
-    try {
-      const { execSync } = await import("node:child_process");
-      const rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
-      const { parseLeetCodeText, formatParsedCasesForTs, inferFunctionSignature } = await import(
-        "#utils/testcase-parser.js"
-      );
-      const parsed = parseLeetCodeText(rawClipboard);
-      clipboardCasesStr = formatParsedCasesForTs(parsed, templateChoice as string);
-      sig = inferFunctionSignature(parsed, templateChoice as string);
-    } catch {
-      // Ignore
-    }
+  if (clipboardCasesStr && inferredTemplateType && templateChoice !== inferredTemplateType && rawClipboard.trim()) {
+    const parsed = parseLeetCodeText(rawClipboard);
+    clipboardCasesStr = formatParsedCasesForTs(parsed, templateChoice as string);
+    sig = inferFunctionSignature(parsed, templateChoice as string);
   }
 
   const chosen = TEMPLATES.find((t) => t.value === templateChoice)!;

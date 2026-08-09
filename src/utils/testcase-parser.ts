@@ -1,7 +1,15 @@
+import { execSync } from "node:child_process";
+
 /**
- * Parses raw text copied from LeetCode problem descriptions or testcase panels
- * into formatted TypeScript test objects for `runTests` or `runClassTests`.
+ * Reads text from system clipboard via PowerShell on Windows.
  */
+export function readClipboard(): string {
+  try {
+    return execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
+  } catch {
+    return "";
+  }
+}
 
 export interface ParamInfo {
   name: string;

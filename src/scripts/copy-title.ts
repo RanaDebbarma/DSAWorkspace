@@ -10,14 +10,3 @@ const formatted = titleFormat(title);
 execSync("clip", { input: formatted });
 
 console.log(formatted);
-
-
-// prev
-// const title = "Two Sum II Input Array Is Sorted";
-
-// const formatted = titleFormat(title);
-// // Safely doubles the single quotes so Windows PowerShell doesn't break
-// const safeString = formatted.replaceAll("'", "''");
-// execSync(`powershell -command "Set-Clipboard '${safeString}'"`);
-
-// console.log(formatted);

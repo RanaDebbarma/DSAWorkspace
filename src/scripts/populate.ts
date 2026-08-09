@@ -6,6 +6,7 @@ import {
   parseLeetCodeText,
   formatParsedCasesForTs,
   detectTemplateType,
+  readClipboard,
   ParsedResult,
 } from "#utils/testcase-parser.js";
 
@@ -101,13 +102,7 @@ async function main() {
   p.intro("  ✦ Appending Testcases to Problem File  ");
 
   // Read Clipboard
-  let rawClipboard = "";
-  try {
-    rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
-  } catch {
-    p.cancel("Could not read clipboard.");
-    process.exit(1);
-  }
+  const rawClipboard = readClipboard();
 
   if (!rawClipboard.trim()) {
     p.cancel("Clipboard is empty! Copy testcase text from LeetCode first.");
