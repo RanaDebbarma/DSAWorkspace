@@ -3,13 +3,15 @@
 import { runTests } from "#functions/code-tester.js";
 
 function twoSum(numbers: number[], target: number): number[] {
-  let [l, r] = [0, numbers.length - 1];
+  let l = 0;
+  let r = numbers.length - 1;
 
   while (l < r) {
     const sum = numbers[l] + numbers[r];
+
+    if (sum === target) return [l + 1, r + 1];
     if (sum < target) l++;
     if (sum > target) r--;
-    if (sum === target) return [l + 1, r + 1];
   }
 
   return [];
