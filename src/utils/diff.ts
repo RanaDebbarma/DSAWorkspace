@@ -1,9 +1,9 @@
 import chalk from "chalk";
 import { ListNode } from "#ds/linked-list.js";
-import { TreeNode } from "#ds/tree.js";
+import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode } from "#ds/graph.js";
 import { smartCompare } from "#utils/compare.js";
-import { serializeForDisplay, treeToString, graphToString } from "#utils/display.js";
+import { serializeForDisplay, treeToString, graphToString, TreeHighlightMap } from "#utils/display.js";
 
 /**
  * Helper to check if a value is an Array or TypedArray (e.g. Int32Array).
@@ -122,6 +122,74 @@ export function renderListDiff(
 }
 
 /**
+ * Helper to traverse actual and expected tree nodes in parallel
+ * and build highlight maps for diff rendering.
+ */
+function buildTreeDiffMaps(
+  actual: TreeNode | null,
+  expected: TreeNode | null,
+): {
+  actualHighlights: TreeHighlightMap;
+  expectedHighlights: TreeHighlightMap;
+} {
+  const actualHighlights: TreeHighlightMap = new Map();
+  const expectedHighlights: TreeHighlightMap = new Map();
+
+  function traverse(a: TreeNode | null, e: TreeNode | null) {
+    if (!a && !e) return;
+
+    if (a && e) {
+      const match = a.val === e.val;
+      actualHighlights.set(a, { color: match ? chalk.cyan : chalk.red.bold });
+      expectedHighlights.set(e, { color: match ? chalk.cyan : chalk.green.bold });
+      traverse(a.left, e.left);
+      traverse(a.right, e.right);
+    } else if (a) {
+      actualHighlights.set(a, { color: chalk.red.bold });
+      traverse(a.left, null);
+      traverse(a.right, null);
+    } else if (e) {
+      expectedHighlights.set(e, { color: chalk.green.bold });
+      traverse(null, e.left);
+      traverse(null, e.right);
+    }
+  }
+
+  traverse(actual, expected);
+  return { actualHighlights, expectedHighlights };
+}
+
+/**
+ * Renders two binary trees as node-by-node colored ASCII tree diagrams.
+ * Matching nodes are green, mismatched nodes are red (Received) / bold green (Expected).
+ */
+export function renderTreeDiff(
+  actual: TreeNode | null,
+  expected: TreeNode | null,
+): { expLine: string; gotLine: string; hint: string } {
+  const { actualHighlights, expectedHighlights } = buildTreeDiffMaps(actual, expected);
+
+  const expLine = treeToString(expected, true, expectedHighlights);
+  const gotLine = treeToString(actual, true, actualHighlights);
+
+  const actualArr = binaryTreeToArray(actual);
+  const expectedArr = binaryTreeToArray(expected);
+
+  let hint = "";
+  const maxLen = Math.max(actualArr.length, expectedArr.length);
+  for (let i = 0; i < maxLen; i++) {
+    const act = actualArr[i];
+    const exp = expectedArr[i];
+    if (act !== exp) {
+      hint = `tree node mismatch at index [${i}]: expected ${exp ?? "null"}, got ${act ?? "null"}`;
+      break;
+    }
+  }
+
+  return { expLine, gotLine, hint };
+}
+
+/**
  * Main diff renderer. Returns { expLine, gotLine, hint } for any value pair.
  * Falls back to plain serializeForDisplay when no structured diff is possible.
  */
@@ -144,11 +212,10 @@ export function renderDiff(
 
   // Tree diff
   if (actual instanceof TreeNode || expected instanceof TreeNode) {
-    return {
-      expLine: chalk.green(treeToString(expected instanceof TreeNode ? expected : null)),
-      gotLine: chalk.red(treeToString(actual instanceof TreeNode ? actual : null)),
-      hint: "",
-    };
+    return renderTreeDiff(
+      actual instanceof TreeNode ? actual : null,
+      expected instanceof TreeNode ? expected : null,
+    );
   }
 
   // Graph diff

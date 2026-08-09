@@ -207,13 +207,18 @@ function renderResultBlock(
     const { expLine, gotLine, hint } = renderDiff(result, output);
     if (expLine.includes("\n") || gotLine.includes("\n")) {
       console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
+      console.log();
       console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
+      if (showHint && hint) {
+        console.log();
+        console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+      }
     } else {
       console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
       console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
-    }
-    if (showHint && hint) {
-      console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+      if (showHint && hint) {
+        console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+      }
     }
   }
 }
@@ -461,12 +466,17 @@ export function runClassTests<C extends new (...args: any[]) => any>(
       );
       if (expLine.includes("\n") || gotLine.includes("\n")) {
         console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
+        console.log();
         console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
+        if (showHint && hint) {
+          console.log();
+          console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+        }
       } else {
         console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
         console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
+        if (showHint && hint) console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
       }
-      if (showHint && hint) console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
       console.log();
     }
   }
