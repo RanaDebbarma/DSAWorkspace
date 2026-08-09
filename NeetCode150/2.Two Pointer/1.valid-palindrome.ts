@@ -44,33 +44,29 @@ import { runTests } from "#functions/code-tester.js";
 // }
 
 // Readability optimization
-function isValidChar(char: string) {
-  const code = char.charCodeAt(0);
+function isAlphanumeric(ch: string): boolean {
+  const code = ch.charCodeAt(0);
   return (
-    (code >= 97 && code <= 122) ||
-    (code >= 65 && code <= 90) ||
-    (code >= 48 && code <= 57)
+    (code >= 48 && code <= 57) || // 0-9
+    (code >= 97 && code <= 122) || // a-z
+    (code >= 65 && code <= 90) // A-Z
   );
 }
+
 function isPalindrome(s: string) {
-  let [left, right] = [0, s.length - 1];
+  let l = 0;
+  let r = s.length - 1;
 
-  while (left < right) {
-    while (left < right && !isValidChar(s[left])) {
-      left++;
-    }
+  while (l < r) {
+    while (l < r && !isAlphanumeric(s[l])) l++;
+    while (l < r && !isAlphanumeric(s[r])) r--;
 
-    while (left < right && !isValidChar(s[right])) {
-      right--;
-    }
+    if (s[l].toLowerCase() !== s[r].toLowerCase()) return false;
 
-    const lChar = s[left].toLowerCase();
-    const rChar = s[right].toLowerCase();
-    if (lChar !== rChar) return false;
-
-    left++;
-    right--;
+    l++;
+    r--;
   }
+
   return true;
 }
 
