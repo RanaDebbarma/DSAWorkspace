@@ -15,12 +15,11 @@ import { runTests } from "#functions/code-tester.js";
 // Intended Leetcode solution
 class Solution {
   encode(strs: string[]): string {
-    let result: string = "";
-    for (const str of strs) {
-      result += `${str.length}#${str}`;
+    const result: string[] = [];
+    for (const word of strs) {
+      result.push(`${word.length}#${word}`);
     }
-    // console.log(result);
-    return result;
+    return result.join("");
   }
 
   // decode(str: string): string[] {
@@ -59,13 +58,13 @@ class Solution {
       const hashIndex = str.indexOf("#", i);
 
       // Extract the length and convert to number
-      const length = Number(str.substring(i, hashIndex));
+      const length = Number(str.slice(i, hashIndex));
 
       // Move pointer past the '#'
       i = hashIndex + 1;
 
       // Extract the word based on the length
-      const word = str.substring(i, i + length);
+      const word = str.slice(i, i + length);
       result.push(word);
 
       // Move pointer past the extracted word
