@@ -24,28 +24,26 @@ import { runTests } from "#functions/code-tester.js";
 
 // O(n * k) Optimization with constaint
 function groupAnagrams(strs: string[]): string[][] {
-  const groups = new Map<string, string[]>();
-  const a = "a".charCodeAt(0); // 97
+  const groupMap = new Map<string, string[]>();
 
   for (const word of strs) {
     const signature = convertKey(word);
-    const existing = groups.get(signature);
+    const group = groupMap.get(signature) ?? [];
 
-    if (existing) {
-      existing.push(word);
-    } else {
-      groups.set(signature, [word]);
-    }
+    group.push(word);
+    groupMap.set(signature, group);
   }
-  return [...groups.values()];
+  return Array.from(groupMap.values());
 
-  function convertKey(str: string): string {
-    const count = new Array(26).fill(0);
-    for (const s of str) {
-      const idx = s.charCodeAt(0) - a;
-      count[idx]++;
+  function convertKey(word: string): string {
+    const freq = new Int32Array(26);
+    const OFFSET = 97; // "a".charCodeAt(0)
+
+    for (let i = 0; i < word.length; i++) {
+      const idx = word.charCodeAt(i) - OFFSET;
+      freq[idx]++;
     }
-    return count.join("#");
+    return freq.join("#");
   }
 }
 
