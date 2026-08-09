@@ -45,11 +45,11 @@ export function captureConsoleOutput<T>(callback: () => T): CapturedExecution<T>
 export function printConsoleOutput(logs: string[]) {
   if (logs.length === 0) return;
 
-  console.log();
   console.log(`${chalk.grey("Console:")}`);
   for (const entry of logs) {
     for (const line of entry.split("\n")) {
       console.log(`  ${line}`);
     }
   }
+  console.log();
 }
