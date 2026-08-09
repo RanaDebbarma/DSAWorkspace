@@ -22,18 +22,18 @@
 import { runTests } from "#functions/code-tester.js";
 
 function productExceptSelf(nums: number[]): number[] {
-  const n = nums.length;
-  const result = new Array<number>(n).fill(1);
+  const result = new Array<number>(nums.length);
 
-  // Create a prefix product array
-  for (let i = 1; i < n; i++) {
-    result[i] = result[i - 1] * nums[i - 1];
+  let prefix = 1;
+  for (let i = 0; i < nums.length; i++) {
+    result[i] = prefix;
+    prefix *= nums[i];
   }
 
-  let suffixProd = 1;
-  for (let i = n - 1; i >= 0; i--) {
-    result[i] *= suffixProd;
-    suffixProd *= nums[i];
+  let suffix = 1;
+  for (let i = nums.length - 1; i >= 0; i--) {
+    result[i] *= suffix;
+    suffix *= nums[i];
   }
 
   return result;
