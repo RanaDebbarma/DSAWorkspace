@@ -6,44 +6,61 @@ import { smartCompare } from "#utils/compare.js";
 import { serializeForDisplay, treeToString, graphToString } from "#utils/display.js";
 
 /**
- * Renders two arrays as inline colored strings.
- * Matching elements are gray, first mismatch is red(got)/green(expected).
+ * Helper to check if a value is an Array or TypedArray (e.g. Int32Array).
+ */
+function isArrayLike(val: any): boolean {
+  return Array.isArray(val) || (ArrayBuffer.isView(val) && !(val instanceof DataView));
+}
+
+/**
+ * Renders two arrays/typed-arrays as inline colored strings.
+ * Matching elements are green, mismatched elements are red (Received) / green bold (Expected).
  * Returns { expLine, gotLine, hint } where hint is a short text label.
  */
 export function renderArrayDiff(
-  actual: unknown[],
-  expected: unknown[],
+  actualInput: unknown,
+  expectedInput: unknown,
 ): { expLine: string; gotLine: string; hint: string } {
-  const len = Math.max(actual.length, expected.length);
+  const actual = Array.from((actualInput ?? []) as any[]);
+  const expected = Array.from((expectedInput ?? []) as any[]);
+
   const expParts: string[] = [];
   const gotParts: string[] = [];
   let hint = "";
 
-  for (let i = 0; i < len; i++) {
+  const minLen = Math.min(actual.length, expected.length);
+
+  for (let i = 0; i < minLen; i++) {
     const a = actual[i];
     const e = expected[i];
-    const match = i < actual.length && i < expected.length && smartCompare(a, e);
+    const match = smartCompare(a, e);
 
     if (match) {
-      expParts.push(chalk.gray(JSON.stringify(e)));
-      gotParts.push(chalk.gray(JSON.stringify(a)));
+      expParts.push(chalk.green(JSON.stringify(e)));
+      gotParts.push(chalk.green(JSON.stringify(a)));
     } else {
       if (!hint) {
-        if (i >= actual.length) {
-          hint = `index [${i}]: expected ${JSON.stringify(e)}, got (missing)`;
-        } else if (i >= expected.length) {
-          hint = `index [${i}]: got extra element ${JSON.stringify(a)}`;
-        } else {
-          hint = `index [${i}]: expected ${JSON.stringify(e)}, got ${JSON.stringify(a)}`;
-        }
+        hint = `index [${i}]: expected ${JSON.stringify(e)}, got ${JSON.stringify(a)}`;
       }
-      expParts.push(chalk.green.bold(JSON.stringify(e ?? "(missing)")));
-      gotParts.push(chalk.red.bold(JSON.stringify(a ?? "(extra)")));
+      expParts.push(chalk.green.bold(JSON.stringify(e)));
+      gotParts.push(chalk.red.bold(JSON.stringify(a)));
     }
   }
 
-  if (actual.length !== expected.length && !hint) {
-    hint = `length mismatch — expected ${expected.length}, got ${actual.length}`;
+  // Handle remaining expected elements if actual is shorter
+  for (let i = minLen; i < expected.length; i++) {
+    expParts.push(chalk.green.bold(JSON.stringify(expected[i])));
+  }
+
+  // Handle remaining actual elements if actual is longer
+  for (let i = minLen; i < actual.length; i++) {
+    gotParts.push(chalk.red.bold(JSON.stringify(actual[i])));
+  }
+
+  if (actual.length !== expected.length) {
+    if (!hint) {
+      hint = `length mismatch — expected ${expected.length} elements, got ${actual.length}`;
+    }
   }
 
   return {
@@ -55,7 +72,7 @@ export function renderArrayDiff(
 
 /**
  * Renders two linked lists as inline colored strings.
- * Matching nodes are gray, first mismatch is red(got)/green(expected).
+ * Matching nodes are green, mismatched nodes are red(got)/green bold(expected).
  */
 export function renderListDiff(
   actual: ListNode | null,
@@ -79,16 +96,16 @@ export function renderListDiff(
 
     const match = a && e && a.val === e.val;
     if (match) {
-      expParts.push(chalk.gray(String(e!.val)));
-      gotParts.push(chalk.gray(String(a!.val)));
+      expParts.push(chalk.green(String(e!.val)));
+      gotParts.push(chalk.green(String(a!.val)));
     } else {
       if (!hint) {
         if (!a) hint = `node [${idx}]: expected ${e!.val}, got (end of list)`;
         else if (!e) hint = `node [${idx}]: expected (end of list), got ${a.val}`;
         else hint = `node [${idx}]: expected ${e.val}, got ${a.val}`;
       }
-      expParts.push(e ? chalk.green.bold(String(e.val)) : chalk.green.bold("(missing)"));
-      gotParts.push(a ? chalk.red.bold(String(a.val))   : chalk.red.bold("(extra)"));
+      if (e) expParts.push(chalk.green.bold(String(e.val)));
+      if (a) gotParts.push(chalk.red.bold(String(a.val)));
     }
 
     a = a?.next ?? null;
@@ -112,8 +129,8 @@ export function renderDiff(
   actual: unknown,
   expected: unknown,
 ): { expLine: string; gotLine: string; hint: string } {
-  // Array diff
-  if (Array.isArray(actual) && Array.isArray(expected)) {
+  // Array / TypedArray diff
+  if (isArrayLike(actual) && isArrayLike(expected)) {
     return renderArrayDiff(actual, expected);
   }
 
@@ -143,7 +160,7 @@ export function renderDiff(
     };
   }
 
-  // String: highlight first differing char
+  // String: highlight matching chars in green, first mismatch in red/bold green
   if (typeof actual === "string" && typeof expected === "string") {
     const len = Math.max(actual.length, expected.length);
     let hint = "";
@@ -152,8 +169,8 @@ export function renderDiff(
     for (let i = 0; i < len; i++) {
       const ec = expected[i], ac = actual[i];
       if (ec === ac) {
-        expLine += chalk.gray(ec ?? "");
-        gotLine += chalk.gray(ac ?? "");
+        expLine += chalk.green(ec ?? "");
+        gotLine += chalk.green(ac ?? "");
       } else {
         if (!hint) hint = `char [${i}]: expected ${ec !== undefined ? `'${ec}'` : "(end)"}, got ${ac !== undefined ? `'${ac}'` : "(end)"}`;
         expLine += ec !== undefined ? chalk.green.bold(ec) : "";

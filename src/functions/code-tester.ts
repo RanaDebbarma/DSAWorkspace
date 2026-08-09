@@ -67,6 +67,8 @@ export type TestOptions = {
   showStringInput?: boolean;
   /** When true, treats array output order as insensitive across all test cases in this suite. */
   unordered?: boolean;
+  /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
+  showHint?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
@@ -176,26 +178,43 @@ function renderResultBlock(
   result: any,
   output: any,
   executionError: unknown,
+  showHint: boolean = true,
 ): void {
   if (executionError) {
     const error =
       executionError instanceof Error
         ? `${executionError.name}: ${executionError.message}`
         : String(executionError);
+    const expStr = serializeForDisplay(output);
+    if (expStr.includes("\n")) {
+      console.log(`${chalk.green("- Expected:")}\n${indentAll(chalk.green(expStr), 2)}`);
+    } else {
+      console.log(`${chalk.green("- Expected:")}  ${padMultiline(chalk.green(expStr), 14)}`);
+    }
     console.log(
-      `${chalk.hex("#cc6e0f")("Expected")}    ${padMultiline(chalk.green(serializeForDisplay(output)), 12)}`,
-    );
-    console.log(
-      `${chalk.hex("#cc6e0f")("Got       ")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 12)}`,
+      `${chalk.red("+ Received:")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 14)}`,
     );
   } else if (passed) {
-    console.log(
-      `${chalk.grey("Output:   ")}  ${padMultiline(chalk.green(serializeForDisplay(result)), 12)}`,
-    );
+    const outStr = serializeForDisplay(result);
+    if (outStr.includes("\n")) {
+      console.log(`${chalk.grey("Output:")}\n${indentAll(chalk.green(outStr), 2)}`);
+    } else {
+      console.log(
+        `${chalk.grey("Output:   ")}  ${padMultiline(chalk.green(outStr), 14)}`,
+      );
+    }
   } else {
-    const { expLine, gotLine } = renderDiff(result, output);
-    console.log(`${chalk.hex("#cc6e0f")("Expected")}    ${padMultiline(expLine, 12)}`);
-    console.log(`${chalk.hex("#cc6e0f")("Got       ")}  ${padMultiline(gotLine, 12)}`);
+    const { expLine, gotLine, hint } = renderDiff(result, output);
+    if (expLine.includes("\n") || gotLine.includes("\n")) {
+      console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
+      console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
+    } else {
+      console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
+      console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
+    }
+    if (showHint && hint) {
+      console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+    }
   }
 }
 
@@ -283,6 +302,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const visualizeInput = typeof options === "boolean" ? true : (options?.visualizeInput ?? true);
   const showStringInput = typeof options === "boolean" ? true : (options?.showStringInput ?? true);
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
+  const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
 
   let passedCount = 0;
 
@@ -330,7 +350,7 @@ export function runTests<F extends (...args: any[]) => any>(
     showStringInput && console.log();
 
     printConsoleOutput(execution.logs);
-    renderResultBlock(passed, result, output, execution.error);
+    renderResultBlock(passed, result, output, execution.error, showHint);
     console.log();
   }
 
@@ -358,6 +378,7 @@ export function runClassTests<C extends new (...args: any[]) => any>(
 
   const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
+  const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
 
   let passedCount = 0;
 
@@ -438,9 +459,14 @@ export function runClassTests<C extends new (...args: any[]) => any>(
         chalk.red(`✗ Step #${failedIdx + 1}: `) +
           chalk.white(`${operations[failedIdx]}(${(args[failedIdx] ?? []).join(", ")})`),
       );
-      console.log(`${chalk.hex("#cc6e0f")("Expected")}  ${padMultiline(expLine, 12)}`);
-      console.log(`${chalk.hex("#cc6e0f")("Got     ")}  ${padMultiline(gotLine, 12)}`);
-      if (hint) console.log(`  ${chalk.red("↳")} ${chalk.gray(hint)}`);
+      if (expLine.includes("\n") || gotLine.includes("\n")) {
+        console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
+        console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
+      } else {
+        console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
+        console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
+      }
+      if (showHint && hint) console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
       console.log();
     }
   }
