@@ -28,7 +28,7 @@ src/                      # Core infrastructure files
 │   └── feature-test.ts   # Framework feature test suite (run with: pnpm test)
 └── scripts/
     ├── new.ts            # CLI tool to scaffold new problem files interactively
-    ├── add-tests.ts      # CLI tool to parse copied LeetCode testcases from clipboard
+    ├── populate.ts       # CLI tool to append parsed LeetCode testcases into existing files
     └── copy-title.ts     # CLI tool to format problem titles and copy to clipboard
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
 package.json              # Project scripts and dependency configuration
@@ -84,9 +84,9 @@ The generated file will have your function already named correctly (e.g. `validS
 
 ---
 
-### Step 2: Auto-Fill Test Cases (`pnpm add-tests`)
+### Step 2: Append Test Cases to an Existing File (`pnpm populate`)
 
-You don't need to manually type test case objects!
+You don't need to manually type test case objects or edit array syntax!
 
 1. **Copy** any text block straight off LeetCode (supports single or multiple example blocks, explanations, raw lines, and `runClassTests` formats):
 
@@ -98,9 +98,6 @@ nums = [2,5,6,9]
 target = 9
 
 Output: [[2,2,5],[9]]
-Explanation:
-2 + 2 + 5 = 9. We use 2 twice, and 5 once.
-9 = 9. We use 9 once.
 
 Example 2:
 
@@ -113,17 +110,18 @@ Output: [[3,3,3,3,4],[3,3,5,5],[4,4,4,4],[3,4,4,5]]
 
 2. Run:
 ```bash
-pnpm add-tests
+# Append test cases to practice.ts (or pick an active file interactively)
+pnpm populate practice.ts
 ```
 
-3. Press **`Ctrl + V`** inside `runTests(solve, [...])` in your file! The clipboard is transformed into clean TypeScript objects:
+3. The script automatically parses the clipboard test cases, detects the template data structure, and **appends** the clean TypeScript objects directly into `runTests(solve, [...])`:
 
 ```typescript
   { input: [[2, 5, 6, 9], 9], output: [[2, 2, 5], [9]] },
   { input: [[3, 4, 5], 16], output: [[3, 3, 3, 3, 4], [3, 3, 5, 5], [4, 4, 4, 4], [3, 4, 4, 5]] },
 ```
 
-> 💡 **Bonus**: If you copy LeetCode test cases *before* running `pnpm new`, `pnpm new` will detect them in your clipboard and automatically pre-fill your new file!
+> 💡 **Bonus**: If you copy LeetCode test cases *before* running `pnpm new`, `pnpm new` will detect them in your clipboard and automatically pre-fill your new file upon creation!
 
 ---
 
@@ -147,7 +145,6 @@ To verify the test runner, visualizers, comparators, and all framework features 
 ```bash
 pnpm test
 ```
-This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises every feature of the framework across all data structure types.
 
 ---
 
@@ -155,10 +152,9 @@ This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises e
 
 | Command | Description |
 |---|---|
-| `pnpm new` | Interactively scaffold a new numbered problem file or populate an existing file |
-| `pnpm template [file]` | Populate boilerplate template into an existing file (e.g. `pnpm template practice.ts`) |
-| `pnpm new practice.ts` | Target a specific file directly with boilerplate & clipboard testcases |
-| `pnpm add-tests` | Parses copied LeetCode testcases from clipboard into TS objects ready to paste (`Ctrl+V`) |
+| `pnpm new` | Interactively scaffold a new problem file or populate boilerplate template into a file |
+| `pnpm new practice.ts` | Target a specific file directly with boilerplate & pre-filled clipboard test cases |
+| `pnpm populate [file]` | Appends parsed LeetCode test cases from clipboard directly into an existing file's `runTests` block |
 | `pnpm title "My Problem Name"` | Formats a title to kebab-case and copies it to your clipboard |
 | `pnpm test` | Runs the full framework feature test suite |
 

@@ -31,7 +31,7 @@ export interface SignatureInfo {
 }
 
 // Safe JS/JSON evaluator for types
-function parseValue(str: string): any {
+export function parseValue(str: string): any {
   const trimmed = str.trim();
   if (!trimmed) return undefined;
 
@@ -41,12 +41,75 @@ function parseValue(str: string): any {
     try {
       const jsonCompatible = trimmed
         .replace(/'/g, '"')
-        .replace(/undefined/g, "null");
+        .replace(/\bNone\b/g, "null")
+        .replace(/\bTrue\b/g, "true")
+        .replace(/\bFalse\b/g, "false")
+        .replace(/\bundefined\b/g, "null");
       return JSON.parse(jsonCompatible);
     } catch {
       return trimmed;
     }
   }
+}
+
+/**
+ * Extracts top-level JSON arrays from text by tracking bracket depth and string escaping.
+ */
+export function extractTopLevelJsonArrays(text: string): any[] {
+  const results: any[] = [];
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === "[") {
+      let depth = 0;
+      let inString = false;
+      let stringChar = "";
+      let escaped = false;
+      let j = i;
+
+      for (; j < text.length; j++) {
+        const char = text[j];
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+        if (inString) {
+          if (char === stringChar) {
+            inString = false;
+          }
+          continue;
+        }
+        if (char === '"' || char === "'") {
+          inString = true;
+          stringChar = char;
+          continue;
+        }
+        if (char === "[") {
+          depth++;
+        } else if (char === "]") {
+          depth--;
+          if (depth === 0) {
+            const candidate = text.slice(i, j + 1);
+            const val = parseValue(candidate);
+            if (Array.isArray(val)) {
+              results.push(val);
+              i = j + 1;
+              break;
+            }
+          }
+        }
+      }
+      if (j >= text.length) {
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  return results;
 }
 
 /**
@@ -59,8 +122,8 @@ export function detectTemplateType(cases: ParsedResult[]): string {
   const first = cases[0] as StandardTestCase;
   if (first.params && first.params.length > 0) {
     const p0Name = first.params[0].name.toLowerCase();
-    if (p0Name === "root") return "binary-tree";
-    if (p0Name === "head") return "linked-list";
+    if (p0Name.startsWith("root") || p0Name === "tree") return "binary-tree";
+    if (p0Name.startsWith("head") || p0Name === "list") return "linked-list";
     if (p0Name === "node" || p0Name === "graph" || p0Name === "adjlist") return "graph";
   }
   return "standard";
@@ -84,25 +147,29 @@ export function parseLeetCodeText(text: string): ParsedResult[] {
  * Parses Class Design testcases (e.g. MinStack, LRUCache)
  */
 function tryParseClassDesign(text: string): ClassTestCase | null {
-  const arrayMatches: string[] = [];
-  const regex = /\[[\s\S]*?\](?=\s*(?:\[|$|\n))/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(text)) !== null) {
-    const str = match[0].trim();
-    if (str) arrayMatches.push(str);
+  // If the text contains explicit parameter assignments like `strs =`, `nums =`, etc.,
+  // it is a standard function testcase, not a class design problem.
+  if (/(?:^|\s|,|\n)[a-zA-Z_$][a-zA-Z0-9_$]*\s*=/g.test(text)) {
+    return null;
   }
 
-  if (arrayMatches.length >= 3) {
-    const ops = parseValue(arrayMatches[0]);
-    const args = parseValue(arrayMatches[1]);
-    const expected = parseValue(arrayMatches[2]);
+  const topArrays = extractTopLevelJsonArrays(text);
+  if (topArrays.length < 3) return null;
+
+  for (let i = 0; i <= topArrays.length - 3; i++) {
+    const ops = topArrays[i];
+    const args = topArrays[i + 1];
+    const expected = topArrays[i + 2];
 
     if (
       Array.isArray(ops) &&
+      ops.length > 0 &&
+      ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
       Array.isArray(args) &&
+      args.length === ops.length &&
+      args.every((arg) => Array.isArray(arg)) &&
       Array.isArray(expected) &&
-      typeof ops[0] === "string"
+      expected.length === ops.length
     ) {
       return {
         type: "class",
@@ -167,6 +234,47 @@ function extractParamsAndInputs(inputSegment: string): { params: ParamInfo[]; in
   return { params, input };
 }
 
+function parseOutputSegment(outputSegment: string): any {
+  const trimmed = outputSegment.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {}
+
+  try {
+    const jsonCompatible = trimmed
+      .replace(/'/g, '"')
+      .replace(/\bNone\b/g, "null")
+      .replace(/\bTrue\b/g, "true")
+      .replace(/\bFalse\b/g, "false")
+      .replace(/\bundefined\b/g, "null");
+    return JSON.parse(jsonCompatible);
+  } catch {}
+
+  const firstLine = trimmed.split("\n")[0].trim();
+  try {
+    return JSON.parse(firstLine);
+  } catch {}
+
+  try {
+    const jsonCompatible = firstLine
+      .replace(/'/g, '"')
+      .replace(/\bNone\b/g, "null")
+      .replace(/\bTrue\b/g, "true")
+      .replace(/\bFalse\b/g, "false")
+      .replace(/\bundefined\b/g, "null");
+    return JSON.parse(jsonCompatible);
+  } catch {}
+
+  const topArrays = extractTopLevelJsonArrays(trimmed);
+  if (topArrays.length > 0) {
+    return topArrays[0];
+  }
+
+  return parseValue(firstLine) ?? parseValue(trimmed);
+}
+
 /**
  * Parses standard problem testcases across multiple `Example N:` blocks
  */
@@ -177,23 +285,22 @@ function parseStandardTestCases(text: string): StandardTestCase[] {
   const blocksToProcess = exampleBlocks.length > 0 ? exampleBlocks : [text];
 
   for (const block of blocksToProcess) {
-    const inputIndex = block.search(/Input\s*:/i);
-    const outputIndex = block.search(/Output\s*:/i);
+    const inputIndex = block.search(/Input\s*:?/i);
+    const outputIndex = block.search(/Output\s*:?/i);
 
     if (inputIndex === -1 || outputIndex === -1) continue;
 
-    const inputSegment = block.slice(inputIndex, outputIndex).replace(/Input\s*:/i, "").trim();
+    const inputSegment = block.slice(inputIndex, outputIndex).replace(/Input\s*:?/i, "").trim();
 
-    let outputSegment = block.slice(outputIndex).replace(/Output\s*:/i, "");
-    const explanationIndex = outputSegment.search(/Explanation\s*:/i);
+    let outputSegment = block.slice(outputIndex).replace(/Output\s*:?/i, "");
+    const explanationIndex = outputSegment.search(/Explanation\s*:?/i);
     if (explanationIndex !== -1) {
       outputSegment = outputSegment.slice(0, explanationIndex);
     }
     outputSegment = outputSegment.trim();
 
     const { params, input } = extractParamsAndInputs(inputSegment);
-    const firstOutputLine = outputSegment.split("\n")[0].trim();
-    const outputVal = parseValue(firstOutputLine);
+    const outputVal = parseOutputSegment(outputSegment);
 
     if (input.length > 0) {
       results.push({

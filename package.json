@@ -7,9 +7,7 @@
     "title": "tsx src/scripts/copy-title.ts",
     "test": "tsx src/tests/feature-test.ts",
     "new": "tsx src/scripts/new.ts",
-    "template": "tsx src/scripts/new.ts",
-    "populate": "tsx src/scripts/new.ts",
-    "add-tests": "tsx src/scripts/add-tests.ts"
+    "populate": "tsx src/scripts/populate.ts"
   },
   "keywords": [],
   "author": "",
@@ -30,7 +28,8 @@
   "imports": {
     "#utils/*": "./src/utils/*",
     "#templates/*": "./src/templates/*",
-    "#functions/*": "./src/functions/*"
+    "#functions/*": "./src/functions/*",
+    "#scripts/*": "./src/scripts/*"
   },
   "dependencies": {
     "chalk": "^5.6.2",
