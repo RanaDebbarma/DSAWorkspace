@@ -155,7 +155,9 @@ This runs [src/tests/feature-test.ts] — a comprehensive suite that exercises e
 
 | Command | Description |
 |---|---|
-| `pnpm new` | Interactively scaffold a new problem file with numbering, boilerplate, and auto-opens in VS Code |
+| `pnpm new` | Interactively scaffold a new numbered problem file or populate an existing file |
+| `pnpm template [file]` | Populate boilerplate template into an existing file (e.g. `pnpm template practice.ts`) |
+| `pnpm new practice.ts` | Target a specific file directly with boilerplate & clipboard testcases |
 | `pnpm add-tests` | Parses copied LeetCode testcases from clipboard into TS objects ready to paste (`Ctrl+V`) |
 | `pnpm title "My Problem Name"` | Formats a title to kebab-case and copies it to your clipboard |
 | `pnpm test` | Runs the full framework feature test suite |

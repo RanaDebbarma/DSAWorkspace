@@ -50,6 +50,23 @@ function parseValue(str: string): any {
 }
 
 /**
+ * Detects the recommended template type from parsed testcases.
+ */
+export function detectTemplateType(cases: ParsedResult[]): string {
+  if (cases.length === 0) return "standard";
+  if (cases[0].type === "class") return "class-design";
+
+  const first = cases[0] as StandardTestCase;
+  if (first.params && first.params.length > 0) {
+    const p0Name = first.params[0].name.toLowerCase();
+    if (p0Name === "root") return "binary-tree";
+    if (p0Name === "head") return "linked-list";
+    if (p0Name === "node" || p0Name === "graph" || p0Name === "adjlist") return "graph";
+  }
+  return "standard";
+}
+
+/**
  * Main parser function handling both Standard problems and Class Design problems.
  */
 export function parseLeetCodeText(text: string): ParsedResult[] {

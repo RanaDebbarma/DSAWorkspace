@@ -28,48 +28,160 @@ function buildFilename(number: string, slug: string): string {
   return num ? `${num}.${name}.ts` : `${name}.ts`;
 }
 
+/** Find all .ts files in target directory. */
+function listTsFilesInDir(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  try {
+    return fs
+      .readdirSync(dir)
+      .filter((file) => file.endsWith(".ts") && !file.endsWith(".d.ts"));
+  } catch {
+    return [];
+  }
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  // Use INIT_CWD set by pnpm/npm when invoked from a subfolder, fallback to process.cwd()
   const targetDir = process.env.INIT_CWD || process.cwd();
+  const argFile = process.argv[2]; // e.g. `pnpm new practice.ts` or `pnpm template practice.ts`
 
-  p.intro("  ✦ DSA File Generator  ");
+  p.intro("  ✦ DSA Template & File Generator  ");
 
-  // ── Step 1: Number ──────────────────────────────────────────────────────
-  const detected = detectNextNumber(targetDir);
-  const detectedHint = detected !== null ? `(auto-detected: ${detected})` : "(none found)";
+  let outputPath = "";
+  let rawName = "";
 
-  const numberInput = await p.text({
-    message: `Problem number ${detectedHint}`,
-    placeholder: detected !== null ? String(detected) : "e.g. 42 (leave blank for no prefix)",
-    initialValue: detected !== null ? String(detected) : "",
-  });
+  if (argFile) {
+    // Direct file argument provided: e.g. `pnpm new practice.ts` or `pnpm template practice.ts`
+    outputPath = path.resolve(targetDir, argFile);
+    const basename = path.basename(outputPath);
+    rawName = basename.replace(/\.ts$/i, "").replace(/^\d+\./, "");
+    p.log.info(`Target file: ${path.relative(process.cwd(), outputPath)}`);
+  } else {
+    // No CLI argument provided. Ask whether to create a new file or populate an existing file.
+    const existingTsFiles = listTsFilesInDir(targetDir);
+    let mode: "new" | "existing" = "new";
 
-  if (p.isCancel(numberInput)) {
-    p.cancel("Cancelled.");
-    process.exit(0);
+    if (existingTsFiles.length > 0) {
+      const modeChoice = await p.select({
+        message: "What would you like to do?",
+        options: [
+          { label: "🆕 Create a new problem file (e.g. 13.my-problem.ts)", value: "new" },
+          { label: "📝 Populate template into an existing file", value: "existing" },
+        ],
+      });
+
+      if (p.isCancel(modeChoice)) {
+        p.cancel("Cancelled.");
+        process.exit(0);
+      }
+      mode = modeChoice as "new" | "existing";
+    }
+
+    if (mode === "existing") {
+      const fileOptions = [
+        ...existingTsFiles.map((f) => ({ label: f, value: f })),
+        { label: "✏️  Enter a custom file path...", value: "custom" },
+      ];
+
+      const chosenFile = await p.select({
+        message: "Select target file to populate template into",
+        options: fileOptions,
+      });
+
+      if (p.isCancel(chosenFile)) {
+        p.cancel("Cancelled.");
+        process.exit(0);
+      }
+
+      if (chosenFile === "custom") {
+        const customPath = await p.text({
+          message: "Enter target file path",
+          placeholder: "e.g. ./playground/practice/practice.ts",
+          initialValue: "",
+        });
+
+        if (p.isCancel(customPath) || !(customPath as string).trim()) {
+          p.cancel("Cancelled.");
+          process.exit(0);
+        }
+
+        outputPath = path.resolve(targetDir, (customPath as string).trim());
+      } else {
+        outputPath = path.resolve(targetDir, chosenFile as string);
+      }
+
+      const basename = path.basename(outputPath);
+      rawName = basename.replace(/\.ts$/i, "").replace(/^\d+\./, "");
+    } else {
+      // Create new problem file workflow
+      const detected = detectNextNumber(targetDir);
+      const detectedHint = detected !== null ? `(auto-detected: ${detected})` : "(none found)";
+
+      const numberInput = await p.text({
+        message: `Problem number ${detectedHint}`,
+        placeholder: detected !== null ? String(detected) : "e.g. 42 (leave blank for no prefix)",
+        initialValue: detected !== null ? String(detected) : "",
+      });
+
+      if (p.isCancel(numberInput)) {
+        p.cancel("Cancelled.");
+        process.exit(0);
+      }
+
+      const nameInput = await p.text({
+        message: "Problem name",
+        placeholder: "e.g. Valid Sudoku (leave blank for 'untitled')",
+        initialValue: "",
+      });
+
+      if (p.isCancel(nameInput)) {
+        p.cancel("Cancelled.");
+        process.exit(0);
+      }
+
+      rawName = (nameInput as string).trim() || "untitled";
+      const slug = titleFormat(rawName);
+      const filename = buildFilename(numberInput as string, slug);
+      outputPath = path.join(targetDir, filename);
+    }
   }
 
-  // ── Step 2: Name ─────────────────────────────────────────────────────────
-  const nameInput = await p.text({
-    message: "Problem name",
-    placeholder: "e.g. Valid Sudoku (leave blank for 'untitled')",
-    initialValue: "",
-  });
+  // Derive function name
+  const fnName = toCamelCase(rawName) || "solution";
 
-  if (p.isCancel(nameInput)) {
-    p.cancel("Cancelled.");
-    process.exit(0);
+  // Check Clipboard for testcases & infer signature/template
+  let clipboardCasesStr: string | undefined = undefined;
+  let sig: import("#utils/testcase-parser.js").SignatureInfo | undefined = undefined;
+  let inferredTemplateType: string | undefined = undefined;
+
+  try {
+    const { execSync } = await import("node:child_process");
+    const rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
+    const {
+      parseLeetCodeText,
+      formatParsedCasesForTs,
+      inferFunctionSignature,
+      detectTemplateType,
+    } = await import("#utils/testcase-parser.js");
+
+    const parsed = parseLeetCodeText(rawClipboard);
+    if (parsed.length > 0) {
+      inferredTemplateType = detectTemplateType(parsed);
+      clipboardCasesStr = formatParsedCasesForTs(parsed, inferredTemplateType);
+      sig = inferFunctionSignature(parsed, inferredTemplateType);
+      p.log.info(
+        `✔ Auto-filled ${parsed.length} testcase(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`
+      );
+    }
+  } catch {
+    // Ignore clipboard read errors
   }
 
-  const rawName = (nameInput as string).trim() || "untitled";
-  const slug = titleFormat(rawName);       // "valid-sudoku"
-  const fnName = toCamelCase(rawName);     // "validSudoku"
-
-  // ── Step 3: Template ─────────────────────────────────────────────────────
+  // Template selection
   const templateChoice = await p.select({
-    message: "Select a template",
+    message: "Select boilerplate template",
+    initialValue: inferredTemplateType || "standard",
     options: TEMPLATES.map((t) => ({
       label: t.label,
       value: t.value,
@@ -81,39 +193,46 @@ async function main() {
     process.exit(0);
   }
 
-  // ── Generate ─────────────────────────────────────────────────────────────
-  let clipboardCasesStr: string | undefined = undefined;
-  let sig: import("#utils/testcase-parser.js").SignatureInfo | undefined = undefined;
-
-  try {
-    const { execSync } = await import("node:child_process");
-    const rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
-    const { parseLeetCodeText, formatParsedCasesForTs, inferFunctionSignature } = await import("#utils/testcase-parser.js");
-    const parsed = parseLeetCodeText(rawClipboard);
-    if (parsed.length > 0) {
+  // Re-format clipboard cases if user picked a template different from auto-inferred
+  if (clipboardCasesStr && inferredTemplateType && templateChoice !== inferredTemplateType) {
+    try {
+      const { execSync } = await import("node:child_process");
+      const rawClipboard = execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
+      const { parseLeetCodeText, formatParsedCasesForTs, inferFunctionSignature } = await import(
+        "#utils/testcase-parser.js"
+      );
+      const parsed = parseLeetCodeText(rawClipboard);
       clipboardCasesStr = formatParsedCasesForTs(parsed, templateChoice as string);
       sig = inferFunctionSignature(parsed, templateChoice as string);
-      p.log.info(`✔ Auto-filled ${parsed.length} test case(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`);
+    } catch {
+      // Ignore
     }
-  } catch {
-    // Ignore clipboard read errors
   }
 
   const chosen = TEMPLATES.find((t) => t.value === templateChoice)!;
   const content = chosen.fn(fnName, clipboardCasesStr, sig);
 
-  const filename = buildFilename(numberInput as string, slug);
-  const outputPath = path.join(targetDir, filename);
-
+  // If target file exists and is non-empty, prompt for confirmation
   if (fs.existsSync(outputPath)) {
-    p.log.warn(`File already exists: ${filename}`);
-    const overwrite = await p.confirm({
-      message: "Overwrite it?",
-      initialValue: false,
-    });
-    if (!overwrite || p.isCancel(overwrite)) {
-      p.cancel("Aborted — file was not overwritten.");
-      process.exit(0);
+    const stat = fs.statSync(outputPath);
+    if (stat.size > 0) {
+      p.log.warn(
+        `File already exists (${stat.size} bytes): ${path.relative(process.cwd(), outputPath)}`
+      );
+      const overwrite = await p.confirm({
+        message: "Populate template and overwrite current file contents?",
+        initialValue: true,
+      });
+      if (!overwrite || p.isCancel(overwrite)) {
+        p.cancel("Aborted — file was not modified.");
+        process.exit(0);
+      }
+    }
+  } else {
+    // Create parent directory if it doesn't exist
+    const dir = path.dirname(outputPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
   }
 
@@ -128,7 +247,7 @@ async function main() {
   }
 
   const relativeOutput = path.relative(process.cwd(), outputPath);
-  p.outro(`  ✔ Created & opened: ${relativeOutput}`);
+  p.outro(`  ✔ Populated & opened: ${relativeOutput}`);
 }
 
 main().catch((err) => {
