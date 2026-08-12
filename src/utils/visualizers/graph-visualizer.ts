@@ -24,8 +24,20 @@ export function graphToNormalized(node: GraphNode | null): NormalizedGraph | nul
 
   const visited = new Set<GraphNode>();
   const nodesMap = new Map<number, NormalizedGraphNode>();
-  const queue: GraphNode[] = [node];
-  visited.add(node);
+
+  // If _allNodes is present (set by createGraph from an adjacency map), seed
+  // the BFS from every node so disconnected components are fully discovered.
+  const seedNodes: GraphNode[] = node._allNodes
+    ? Array.from(node._allNodes.values())
+    : [node];
+
+  const queue: GraphNode[] = [];
+  for (const seed of seedNodes) {
+    if (!visited.has(seed)) {
+      visited.add(seed);
+      queue.push(seed);
+    }
+  }
 
   let rawEdgeCount = 0;
 
