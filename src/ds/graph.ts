@@ -65,11 +65,16 @@ export function createGraph(
     for (const key of keys) {
       const node = nodesMap.get(key)!;
       node.neighbors = input[key].map((neighborVal) => {
+        // Coerce to number: callers may pass string values (e.g. "8" instead of 8).
+        // Without this, GraphNode.val would be a string, breaking back-edge checks
+        // in the visualizer (e.target === uVal compares string vs number → always false),
+        // which causes every undirected graph to be misdetected as directed.
+        const numVal = Number(neighborVal);
         // Auto-create neighbor node if it wasn't listed as a key
-        if (!nodesMap.has(neighborVal)) {
-          nodesMap.set(neighborVal, new GraphNode(neighborVal));
+        if (!nodesMap.has(numVal)) {
+          nodesMap.set(numVal, new GraphNode(numVal));
         }
-        return nodesMap.get(neighborVal)!;
+        return nodesMap.get(numVal)!;
       });
     }
 
