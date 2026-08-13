@@ -19,7 +19,7 @@ export interface NormalizedGraph {
   components: number[][];
 }
 
-export function graphToNormalized(node: GraphNode | null): NormalizedGraph | null {
+export function graphToNormalized(node: GraphNode | null, isDirectedOverride?: boolean): NormalizedGraph | null {
   if (!node) return null;
 
   const visited = new Set<GraphNode>();
@@ -58,16 +58,20 @@ export function graphToNormalized(node: GraphNode | null): NormalizedGraph | nul
   }
 
   let isDirected = false;
-  for (const [uVal, uNode] of nodesMap) {
-    for (const edge of uNode.neighbors) {
-      const vNode = nodesMap.get(edge.target);
-      const hasBack = vNode?.neighbors.some(e => e.target === uVal);
-      if (!hasBack) {
-        isDirected = true;
-        break;
+  if (typeof isDirectedOverride === "boolean") {
+    isDirected = isDirectedOverride;
+  } else {
+    for (const [uVal, uNode] of nodesMap) {
+      for (const edge of uNode.neighbors) {
+        const vNode = nodesMap.get(edge.target);
+        const hasBack = vNode?.neighbors.some(e => e.target === uVal);
+        if (!hasBack) {
+          isDirected = true;
+          break;
+        }
       }
+      if (isDirected) break;
     }
-    if (isDirected) break;
   }
 
   const components = getGraphComponents(nodesMap);
@@ -81,7 +85,11 @@ export function graphToNormalized(node: GraphNode | null): NormalizedGraph | nul
   };
 }
 
-export function edgeListToNormalizedGraph(edges: number[][], numNodes?: number): NormalizedGraph | null {
+export function edgeListToNormalizedGraph(
+  edges: number[][],
+  numNodes?: number,
+  isDirectedOverride?: boolean,
+): NormalizedGraph | null {
   if (!Array.isArray(edges)) return null;
 
   const nodesMap = new Map<number, NormalizedGraphNode>();
@@ -94,6 +102,8 @@ export function edgeListToNormalizedGraph(edges: number[][], numNodes?: number):
     }
     return nodesMap.get(val)!;
   };
+
+  const isDirected = typeof isDirectedOverride === "boolean" ? isDirectedOverride : false;
 
   for (const row of edges) {
     if (!Array.isArray(row) || row.length < 2) continue;
@@ -108,7 +118,16 @@ export function edgeListToNormalizedGraph(edges: number[][], numNodes?: number):
     ensureNode(v);
 
     const uNode = nodesMap.get(u)!;
-    uNode.neighbors.push({ target: v, weight: w });
+    if (!uNode.neighbors.some(e => e.target === v)) {
+      uNode.neighbors.push({ target: v, weight: w });
+    }
+
+    if (!isDirected) {
+      const vNode = nodesMap.get(v)!;
+      if (!vNode.neighbors.some(e => e.target === u)) {
+        vNode.neighbors.push({ target: u, weight: w });
+      }
+    }
     rawEdgeCount++;
   }
 
@@ -120,26 +139,13 @@ export function edgeListToNormalizedGraph(edges: number[][], numNodes?: number):
 
   if (nodesMap.size === 0) return null;
 
-  let isDirected = false;
-  for (const [uVal, uNode] of nodesMap) {
-    for (const edge of uNode.neighbors) {
-      const vNode = nodesMap.get(edge.target);
-      const hasBack = vNode?.neighbors.some(e => e.target === uVal);
-      if (!hasBack) {
-        isDirected = true;
-        break;
-      }
-    }
-    if (isDirected) break;
-  }
-
   const components = getGraphComponents(nodesMap);
 
   return {
     nodes: nodesMap,
     isDirected,
     isWeighted,
-    edgeCount: isDirected ? rawEdgeCount : Math.floor(rawEdgeCount / 2),
+    edgeCount: rawEdgeCount,
     components,
   };
 }
@@ -289,15 +295,15 @@ export function normalizedGraphToString(graph: NormalizedGraph, name = "graph"):
   return `${header}\n${lines.map(l => "  " + l).join("\n")}`;
 }
 
-export function graphToString(node: GraphNode | null): string {
+export function graphToString(node: GraphNode | null, name = "graph", isDirectedOverride?: boolean): string {
   if (!node) return chalk.gray("empty graph");
-  const normalized = graphToNormalized(node);
+  const normalized = graphToNormalized(node, isDirectedOverride);
   if (!normalized) return chalk.gray("empty graph");
-  return normalizedGraphToString(normalized, "graph");
+  return normalizedGraphToString(normalized, name);
 }
 
-export function edgeListGraphToString(edges: number[][], name = "edges", numNodes?: number): string {
-  const normalized = edgeListToNormalizedGraph(edges, numNodes);
+export function edgeListGraphToString(edges: number[][], name = "edges", numNodes?: number, isDirectedOverride?: boolean): string {
+  const normalized = edgeListToNormalizedGraph(edges, numNodes, isDirectedOverride);
   if (!normalized) return JSON.stringify(edges);
   return normalizedGraphToString(normalized, name);
 }
@@ -319,7 +325,7 @@ export interface NormalizedStringGraph {
   components: string[][];
 }
 
-export function edgeListStringToNormalizedGraph(edges: string[][]): NormalizedStringGraph | null {
+export function edgeListStringToNormalizedGraph(edges: string[][], isDirectedOverride?: boolean): NormalizedStringGraph | null {
   if (!Array.isArray(edges) || edges.length === 0) return null;
 
   const nodesMap = new Map<string, NormalizedStringGraphNode>();
@@ -330,27 +336,30 @@ export function edgeListStringToNormalizedGraph(edges: string[][]): NormalizedSt
     return nodesMap.get(val)!;
   };
 
+  const isDirected = typeof isDirectedOverride === "boolean" ? isDirectedOverride : false;
+
   for (const row of edges) {
     if (!Array.isArray(row) || row.length < 2) continue;
     const u = String(row[0]);
     const v = String(row[1]);
     ensureNode(u);
     ensureNode(v);
-    nodesMap.get(u)!.neighbors.push(v);
+
+    const uNode = nodesMap.get(u)!;
+    if (!uNode.neighbors.includes(v)) {
+      uNode.neighbors.push(v);
+    }
+
+    if (!isDirected) {
+      const vNode = nodesMap.get(v)!;
+      if (!vNode.neighbors.includes(u)) {
+        vNode.neighbors.push(u);
+      }
+    }
     rawEdgeCount++;
   }
 
   if (nodesMap.size === 0) return null;
-
-  // Detect directed: if any edge u->v lacks back-edge v->u
-  let isDirected = false;
-  for (const [uVal, uNode] of nodesMap) {
-    for (const vVal of uNode.neighbors) {
-      const hasBack = nodesMap.get(vVal)?.neighbors.includes(uVal);
-      if (!hasBack) { isDirected = true; break; }
-    }
-    if (isDirected) break;
-  }
 
   // BFS for components
   const visited = new Set<string>();
@@ -375,13 +384,13 @@ export function edgeListStringToNormalizedGraph(edges: string[][]): NormalizedSt
   return {
     nodes: nodesMap,
     isDirected,
-    edgeCount: isDirected ? rawEdgeCount : Math.floor(rawEdgeCount / 2),
+    edgeCount: rawEdgeCount,
     components,
   };
 }
 
-export function edgeListStringGraphToString(edges: string[][], name = "edges"): string {
-  const graph = edgeListStringToNormalizedGraph(edges);
+export function edgeListStringGraphToString(edges: string[][], name = "edges", isDirectedOverride?: boolean): string {
+  const graph = edgeListStringToNormalizedGraph(edges, isDirectedOverride);
   if (!graph) return JSON.stringify(edges);
 
   const vCount = graph.nodes.size;
@@ -441,7 +450,7 @@ export function isAdjacencyMap(value: unknown): value is Record<string, (string 
  * Renders an adjacency map (Record<string, string[]>) as a graph visualization.
  * Normalizes all keys and neighbor values to strings for the string graph pipeline.
  */
-export function adjMapToString(map: Record<string, (string | number)[]>, name = "graph"): string {
+export function adjMapToString(map: Record<string, (string | number)[]>, name = "graph", isDirectedOverride?: boolean): string {
   // Convert to string[][] edge list (one entry per directed edge in the map)
   // Then feed into the string graph normalizer which handles directed detection & components.
   const nodesMap = new Map<string, NormalizedStringGraphNode>();
@@ -456,19 +465,38 @@ export function adjMapToString(map: Record<string, (string | number)[]>, name = 
     for (const nbr of neighbors) {
       const nbrStr = String(nbr);
       ensureNode(nbrStr);
-      nodesMap.get(key)!.neighbors.push(nbrStr);
+      const uNode = nodesMap.get(key)!;
+      if (!uNode.neighbors.includes(nbrStr)) {
+        uNode.neighbors.push(nbrStr);
+      }
     }
   }
 
   if (nodesMap.size === 0) return chalk.gray(`${name}: (empty)`);
 
-  let isDirected = false;
+  let isDirected: boolean;
   let rawEdgeCount = 0;
-  for (const [uVal, uNode] of nodesMap) {
-    for (const vVal of uNode.neighbors) {
-      rawEdgeCount++;
-      const hasBack = nodesMap.get(vVal)?.neighbors.includes(uVal);
-      if (!hasBack) { isDirected = true; }
+  if (typeof isDirectedOverride === "boolean") {
+    isDirected = isDirectedOverride;
+  } else {
+    isDirected = false;
+    for (const [uVal, uNode] of nodesMap) {
+      for (const vVal of uNode.neighbors) {
+        rawEdgeCount++;
+        const hasBack = nodesMap.get(vVal)?.neighbors.includes(uVal);
+        if (!hasBack) { isDirected = true; }
+      }
+    }
+  }
+
+  if (!isDirected) {
+    for (const [uVal, uNode] of Array.from(nodesMap.entries())) {
+      for (const vVal of uNode.neighbors) {
+        const vNode = nodesMap.get(vVal);
+        if (vNode && !vNode.neighbors.includes(uVal)) {
+          vNode.neighbors.push(uVal);
+        }
+      }
     }
   }
 
@@ -483,7 +511,6 @@ export function adjMapToString(map: Record<string, (string | number)[]>, name = 
     while (queue.length) {
       const curr = queue.shift()!;
       comp.push(curr);
-      // traverse both explicit neighbors AND back-edges for undirected traversal
       for (const nbr of nodesMap.get(curr)?.neighbors ?? []) {
         if (!visited.has(nbr)) { visited.add(nbr); queue.push(nbr); }
       }

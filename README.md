@@ -226,7 +226,12 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 5. **Cycle-Safe & Standalone Graph Visualizations**:
    - **`GraphNode` Objects**: Cyclic graph structures are serialized into stable, sorted adjacency lists without stack overflows.
    - **Raw Adjacency Maps**: Objects like `{ 0: ["8", "1"], 1: ["0"] }` or `{ a: ["b", "c"] }` automatically visualize as clean graph component layouts without requiring `createGraph()`.
-   - **Edge Lists (String & Numeric)**: Tuples like `[["w", "x"], ["x", "y"]]` or `[[0, 1], [1, 2]]` auto-render as graph layouts with automatic directed/undirected detection and component grouping.
+   - **Edge Lists (String & Numeric)**: Tuples like `[["w", "x"], ["x", "y"]]` or `[[0, 1], [1, 2]]` auto-render as graph layouts with configurable directed (`──►`) or undirected (`──`) edge rendering and component grouping.
+   - **Graph Direction Resolution (`isDirected`)**:
+     By default, raw edge lists default to **undirected** (`isDirected: false`), automatically building bidirectional adjacency and grouping components accurately. Direction is resolved via:
+     1. **Per-Test Case Override**: `{ input: [...], output: ..., isDirected: true }`
+     2. **Suite-Level Option**: `runTests(fn, tests, { isDirected: true })`
+     3. **Parameter Name Heuristic**: Parameters matching `/directed|prereq|flight|dag|order|dependency/i` (e.g. `prerequisites`, `directedEdges`) default to directed (`isDirected: true`).
 
 6. **Class Design Testing (`runClassTests`)**:
    Interactive / OOP problems (MinStack, LRU Cache, MedianFinder, Trie) execute step-by-step with a formatted execution trace table showing step index, operation name + arguments, expected vs actual values, and pass/fail indicators.
@@ -251,6 +256,7 @@ runTests(solve, tests, {
   showStringInput?: boolean;  // Show `param = value` lines below visuals. Default: true
   unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
   showHint?: boolean;         // Show index failure hint (↳ index [i]: expected X, got Y). Default: true
+  isDirected?: boolean;       // Explicitly set graph direction (true/false) across suite. Default: auto
 });
 ```
 
@@ -263,6 +269,9 @@ runTests(solve, tests, {
 | `showStringInput` | `true` | Prints plain `param = value` lines (can suppress when using visuals only) |
 | `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
 | `showHint` | `true` | Shows detailed index mismatch hint on test failure |
+| `isDirected` | `auto` | Suite-level default for graph direction (`true` for directed, `false` for undirected). Overridden by per-test `isDirected`. |
+
+> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered?: boolean` and `isDirected?: boolean` for granular per-test control.
 
 ### Visualizer Output by Type
 
@@ -273,7 +282,7 @@ When `visualizeInput: true` (the default), each input is rendered before every t
 | **Binary Tree** | Top-down ASCII tree with branch connectors |
 | **2D Grid / Matrix** | Box-drawing table with row/column borders (`9x9` Sudoku, `3x4` matrices) |
 | **Linked List** | `1 → 2 → 3 → null` arrow chain |
-| **Graph (`GraphNode` / Adj Map / Edge List)** | Node adjacency list with directed (`──►`) / undirected (`──`) edge detection & component grouping |
+| **Graph (`GraphNode` / Adj Map / Edge List)** | Node adjacency list with directed (`──►`) / undirected (`──`) edge rendering & component grouping |
 | **Multi-param Trees (LCA, etc.)** | Single unified tree diagram with `p [green]` and `q [yellow]` node labels |
 
 > 💡 **Smart 2D Array Disambiguation**:

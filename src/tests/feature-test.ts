@@ -248,6 +248,24 @@ runTests(canFinish, [
   },
 ]);
 
+function shortestPath(edges: string[][], nodeA: string, nodeB: string): number {
+  return 2;
+}
+
+runTests(shortestPath, [
+  {
+    name: "Shortest Path — Undirected Edge List (Default)",
+    input: [[["w", "x"], ["x", "y"], ["z", "y"], ["z", "v"], ["w", "v"]], "w", "z"],
+    output: 2,
+  },
+  {
+    name: "Shortest Path — Per-Test Directed Override",
+    input: [[["w", "x"], ["x", "y"], ["z", "y"], ["z", "v"], ["w", "v"]], "w", "z"],
+    output: 2,
+    isDirected: true,
+  },
+]);
+
 function countComponents(n: number, edges: number[][]): number {
   return 3;
 }
@@ -271,6 +289,7 @@ runTests(networkDelayTime, [
     output: 2,
   },
 ]);
+
 
 
 // =============================================================================

@@ -53,6 +53,8 @@ export type TestCase<F extends (...args: any[]) => any> = {
   cloneInput?: (input: Parameters<F>) => Parameters<F>;
   /** When true, treats array output order as insensitive for this test case. */
   unordered?: boolean;
+  /** Explicitly set graph direction for this test case (true for directed, false for undirected). */
+  isDirected?: boolean;
 };
 
 export type ClassTestCase = {
@@ -71,9 +73,30 @@ export type TestOptions = {
   unordered?: boolean;
   /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
   showHint?: boolean;
+  /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
+  isDirected?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
+
+const DIRECTED_PARAM_REGEX = /directed|prereq|flight|dag|order|dependency|dependencies/i;
+
+function resolveIsDirected(
+  paramName: string,
+  testIsDirected?: boolean,
+  suiteIsDirected?: boolean,
+): boolean {
+  if (typeof testIsDirected === "boolean") {
+    return testIsDirected;
+  }
+  if (typeof suiteIsDirected === "boolean") {
+    return suiteIsDirected;
+  }
+  if (DIRECTED_PARAM_REGEX.test(paramName)) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Renders the visual and text input block for a single test case.
@@ -84,6 +107,8 @@ function renderInputBlock(
   input: any[],
   visualizeInput: boolean,
   showStringInput: boolean,
+  testIsDirected?: boolean,
+  suiteIsDirected?: boolean,
 ): void {
   const paramNames = getParamNames(fn);
   const formattedInputs = input.map(formatValue);
@@ -96,6 +121,8 @@ function renderInputBlock(
   for (let i = 0; i < input.length; i++) {
     const rawVal = input[i];
     const formattedVal = formattedInputs[i];
+    const pName = paramNames[i] || `param${i + 1}`;
+    const resolvedDirected = resolveIsDirected(pName, testIsDirected, suiteIsDirected);
 
     if (visualizeInput) {
       // Tree visualizer — detect subnodes on first param pass
@@ -138,12 +165,11 @@ function renderInputBlock(
 
       // 2D matrix / edge list visualizer
       if (Array.isArray(rawVal) && rawVal.length > 0 && Array.isArray(rawVal[0])) {
-        const pName = paramNames[i] || "grid";
         if (isEdgeListParam(pName, rawVal)) {
           if (isStringEdgeList(rawVal)) {
-            console.log(edgeListStringGraphToString(rawVal, pName));
+            console.log(edgeListStringGraphToString(rawVal, pName, resolvedDirected));
           } else {
-            console.log(edgeListGraphToString(rawVal, pName));
+            console.log(edgeListGraphToString(rawVal, pName, undefined, resolvedDirected));
           }
           console.log();
         } else {
@@ -152,7 +178,7 @@ function renderInputBlock(
           console.log();
         }
       } else if (rawVal instanceof GraphNode) {
-        console.log(graphToString(rawVal));
+        console.log(graphToString(rawVal, pName, resolvedDirected));
         console.log();
       }
     }
@@ -317,6 +343,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const showStringInput = typeof options === "boolean" ? true : (options?.showStringInput ?? true);
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
   const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
+  const suiteIsDirected = typeof options === "object" ? options?.isDirected : undefined;
 
   let passedCount = 0;
 
@@ -357,7 +384,7 @@ export function runTests<F extends (...args: any[]) => any>(
     // Input + Result blocks
     console.log();
     try {
-      renderInputBlock(fn, Array.from(input), visualizeInput, showStringInput);
+      renderInputBlock(fn, Array.from(input), visualizeInput, showStringInput, test.isDirected, suiteIsDirected);
     } catch {
       console.dir(input.map(formatValue), { depth: null });
     }
