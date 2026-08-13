@@ -253,7 +253,7 @@ export function normalizedGraphToString(graph: NormalizedGraph, name = "graph"):
   const spatial2D = render2DGraphLayout(graph);
 
   if (spatial2D) {
-    return `${chalk.gray(`${name}:`)}\n${spatial2D}`;
+    return `${chalk.gray(`${name}:`)}\n${spatial2D.split("\n").map(l => "  " + l).join("\n")}`;
   }
 
   const badges: string[] = [`${vCount} nodes`];
@@ -286,7 +286,7 @@ export function normalizedGraphToString(graph: NormalizedGraph, name = "graph"):
     }
   }
 
-  return `${header}\n${lines.join("\n")}`;
+  return `${header}\n${lines.map(l => "  " + l).join("\n")}`;
 }
 
 export function graphToString(node: GraphNode | null): string {
@@ -405,7 +405,7 @@ export function edgeListStringGraphToString(edges: string[][], name = "edges"): 
     }
   }
 
-  return `${header}\n${lines.join("\n")}`;
+  return `${header}\n${lines.map(l => "  " + l).join("\n")}`;
 }
 
 /**
@@ -520,7 +520,7 @@ export function adjMapToString(map: Record<string, (string | number)[]>, name = 
     }
   }
 
-  return `${header}\n${lines.join("\n")}`;
+  return `${header}\n${lines.map(l => "  " + l).join("\n")}`;
 }
 
 export function isEdgeListParam(pName: string, matrix: any[][]): boolean {

@@ -141,9 +141,9 @@ function renderInputBlock(
         const pName = paramNames[i] || "grid";
         if (isEdgeListParam(pName, rawVal)) {
           if (isStringEdgeList(rawVal)) {
-            console.log(indentAll(edgeListStringGraphToString(rawVal, pName), 2));
+            console.log(edgeListStringGraphToString(rawVal, pName));
           } else {
-            console.log(indentAll(edgeListGraphToString(rawVal, pName), 2));
+            console.log(edgeListGraphToString(rawVal, pName));
           }
           console.log();
         } else {
@@ -152,7 +152,7 @@ function renderInputBlock(
           console.log();
         }
       } else if (rawVal instanceof GraphNode) {
-        console.log(indentAll(graphToString(rawVal), 2));
+        console.log(graphToString(rawVal));
         console.log();
       }
     }
@@ -166,7 +166,7 @@ function renderInputBlock(
         serialized = JSON.stringify(formattedVal);
       } else if (typeof rawVal === "string") {
         serialized = `"${rawVal}"`;
-      } else if (Array.isArray(rawVal) && isStringEdgeList(rawVal)) {
+      } else if (visualizeInput && Array.isArray(rawVal) && (isStringEdgeList(rawVal) || isEdgeListParam(paramNames[i] || "", rawVal))) {
         // Already visualized above — skip the redundant JSON dump
         continue;
       } else if (Array.isArray(rawVal)) {
