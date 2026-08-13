@@ -223,10 +223,15 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 4. **Input Preservation**:
    The test runner deep-clones all arguments before running your function, so in-place mutations (reversing a list, sorting an array) never corrupt subsequent test cases.
 
-5. **Cycle-Safe Graph Testing**:
-   Cyclic graph structures are serialized into stable, sorted adjacency lists without causing stack overflows.
+5. **Cycle-Safe & Standalone Graph Visualizations**:
+   - **`GraphNode` Objects**: Cyclic graph structures are serialized into stable, sorted adjacency lists without stack overflows.
+   - **Raw Adjacency Maps**: Objects like `{ 0: ["8", "1"], 1: ["0"] }` or `{ a: ["b", "c"] }` automatically visualize as clean graph component layouts without requiring `createGraph()`.
+   - **Edge Lists (String & Numeric)**: Tuples like `[["w", "x"], ["x", "y"]]` or `[[0, 1], [1, 2]]` auto-render as graph layouts with automatic directed/undirected detection and component grouping.
 
-6. **`TreeNode.find(val)` — Node Reference Lookup**:
+6. **Class Design Testing (`runClassTests`)**:
+   Interactive / OOP problems (MinStack, LRU Cache, MedianFinder, Trie) execute step-by-step with a formatted execution trace table showing step index, operation name + arguments, expected vs actual values, and pass/fail indicators.
+
+7. **`TreeNode.find(val)` — Node Reference Lookup**:
    For problems that take multiple tree node refs (e.g. `p`, `q` in LCA), locate a node within an existing tree:
    ```typescript
    const tree = createBinaryTree([6, 2, 8, 0, 4])!;
@@ -245,6 +250,7 @@ runTests(solve, tests, {
   visualizeInput?: boolean;   // Render rich visual inputs per test. Default: true
   showStringInput?: boolean;  // Show `param = value` lines below visuals. Default: true
   unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
+  showHint?: boolean;         // Show index failure hint (↳ index [i]: expected X, got Y). Default: true
 });
 ```
 
@@ -256,6 +262,7 @@ runTests(solve, tests, {
 | `visualizeInput` | **`true`** | Renders structured visual diagrams before each test case |
 | `showStringInput` | `true` | Prints plain `param = value` lines (can suppress when using visuals only) |
 | `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
+| `showHint` | `true` | Shows detailed index mismatch hint on test failure |
 
 ### Visualizer Output by Type
 
@@ -264,10 +271,15 @@ When `visualizeInput: true` (the default), each input is rendered before every t
 | Input Type | Visual Output |
 |---|---|
 | **Binary Tree** | Top-down ASCII tree with branch connectors |
-| **2D Grid / Matrix** | Box-drawing table with row/column borders |
+| **2D Grid / Matrix** | Box-drawing table with row/column borders (`9x9` Sudoku, `3x4` matrices) |
 | **Linked List** | `1 → 2 → 3 → null` arrow chain |
-| **Graph** | Adjacency-list representation |
+| **Graph (`GraphNode` / Adj Map / Edge List)** | Node adjacency list with directed (`──►`) / undirected (`──`) edge detection & component grouping |
 | **Multi-param Trees (LCA, etc.)** | Single unified tree diagram with `p [green]` and `q [yellow]` node labels |
+
+> 💡 **Smart 2D Array Disambiguation**:
+> For 2D arrays (`any[][]`), the visualizer automatically distinguishes 2D Grids from Graph Edge Lists:
+> - **Parameter Name Precedence**: Parameters named `grid`, `board`, `matrix`, or `table` are **always** rendered as 2D Grids. Parameters named `edges`, `prereqs`, `flights`, `connections`, `times`, or `adj` are **always** rendered as Graph Edge Lists.
+> - **Structural Fallback**: For generic parameter names (e.g. `arr`), 2-tuple or 3-tuple rows (`[u, v]` or `[u, v, weight]`) default to Graph Edge Lists, while other dimensions (e.g. `9x9` Sudoku, `3x4` matrix) default to 2D Grids.
 
 ### Examples
 
@@ -285,6 +297,18 @@ runTests(solve, tests, { visualizeInput: false, showStringInput: false });
 
 // Tree problems with highlighted sub-nodes for LCA
 runTests(lowestCommonAncestor, tests, { visualizeInput: true });
+
+// Class design testing (interactive data structures)
+import { runClassTests } from "#functions/code-tester.js";
+import { MinStack } from "./min-stack.js";
+
+runClassTests(MinStack, [
+  {
+    operations: ["MinStack", "push", "push", "push", "getMin", "pop", "top", "getMin"],
+    args: [[], [-2], [0], [-3], [], [], [], []],
+    expected: [null, null, null, null, -3, null, 0, -2],
+  },
+]);
 ```
 
 ### Unordered Comparison Helpers

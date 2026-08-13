@@ -4,7 +4,7 @@ import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode, graphToAdjList } from "#ds/graph.js";
 
 import { treeToString } from "./visualizers/tree-visualizer.js";
-import { graphToString } from "./visualizers/graph-visualizer.js";
+import { graphToString, edgeListStringGraphToString, isStringEdgeList, isAdjacencyMap, adjMapToString } from "./visualizers/graph-visualizer.js";
 
 export * from "./visualizers/tree-visualizer.js";
 export * from "./visualizers/grid-visualizer.js";
@@ -101,6 +101,11 @@ export function serializeForDisplay(value: unknown): string {
   if (value instanceof TreeNode)  return treeToString(value, true);
   if (value instanceof GraphNode) return graphToString(value);
 
+  // Render string edge lists (e.g. [["w","x"],["x","y"]]) as a graph visualization
+  if (isStringEdgeList(value)) return edgeListStringGraphToString(value);
+
+  // Render adjacency maps (e.g. { 0: ["8","1"], a: ["b","c"] }) as a graph visualization
+  if (isAdjacencyMap(value)) return adjMapToString(value);
   if (typeof value === "string") return `"${value}"`;
 
   return JSON.stringify(formatValue(value)) ?? String(value);

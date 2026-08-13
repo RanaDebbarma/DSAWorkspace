@@ -302,6 +302,227 @@ export function edgeListGraphToString(edges: number[][], name = "edges", numNode
   return normalizedGraphToString(normalized, name);
 }
 
+// ---------------------------------------------------------------------------
+// String-keyed edge list support
+// For graphs like [["w","x"],["x","y"]] where node labels are strings.
+// ---------------------------------------------------------------------------
+
+export interface NormalizedStringGraphNode {
+  val: string;
+  neighbors: string[];
+}
+
+export interface NormalizedStringGraph {
+  nodes: Map<string, NormalizedStringGraphNode>;
+  isDirected: boolean;
+  edgeCount: number;
+  components: string[][];
+}
+
+export function edgeListStringToNormalizedGraph(edges: string[][]): NormalizedStringGraph | null {
+  if (!Array.isArray(edges) || edges.length === 0) return null;
+
+  const nodesMap = new Map<string, NormalizedStringGraphNode>();
+  let rawEdgeCount = 0;
+
+  const ensureNode = (val: string) => {
+    if (!nodesMap.has(val)) nodesMap.set(val, { val, neighbors: [] });
+    return nodesMap.get(val)!;
+  };
+
+  for (const row of edges) {
+    if (!Array.isArray(row) || row.length < 2) continue;
+    const u = String(row[0]);
+    const v = String(row[1]);
+    ensureNode(u);
+    ensureNode(v);
+    nodesMap.get(u)!.neighbors.push(v);
+    rawEdgeCount++;
+  }
+
+  if (nodesMap.size === 0) return null;
+
+  // Detect directed: if any edge u->v lacks back-edge v->u
+  let isDirected = false;
+  for (const [uVal, uNode] of nodesMap) {
+    for (const vVal of uNode.neighbors) {
+      const hasBack = nodesMap.get(vVal)?.neighbors.includes(uVal);
+      if (!hasBack) { isDirected = true; break; }
+    }
+    if (isDirected) break;
+  }
+
+  // BFS for components
+  const visited = new Set<string>();
+  const components: string[][] = [];
+  const sortedKeys = Array.from(nodesMap.keys()).sort();
+  for (const start of sortedKeys) {
+    if (visited.has(start)) continue;
+    const comp: string[] = [];
+    const queue = [start];
+    visited.add(start);
+    while (queue.length) {
+      const curr = queue.shift()!;
+      comp.push(curr);
+      for (const nbr of nodesMap.get(curr)?.neighbors ?? []) {
+        if (!visited.has(nbr)) { visited.add(nbr); queue.push(nbr); }
+      }
+    }
+    comp.sort();
+    components.push(comp);
+  }
+
+  return {
+    nodes: nodesMap,
+    isDirected,
+    edgeCount: isDirected ? rawEdgeCount : Math.floor(rawEdgeCount / 2),
+    components,
+  };
+}
+
+export function edgeListStringGraphToString(edges: string[][], name = "edges"): string {
+  const graph = edgeListStringToNormalizedGraph(edges);
+  if (!graph) return JSON.stringify(edges);
+
+  const vCount = graph.nodes.size;
+  const badges: string[] = [`${vCount} nodes`];
+  if (graph.components.length > 1) badges.push(`${graph.components.length} components`);
+  const header = chalk.gray(`${name} (${badges.join(", ")}):`); 
+
+  const connector = graph.isDirected ? chalk.gray(" ──► ") : chalk.gray(" ── ");
+  const showCompHeader = graph.components.length > 1;
+  const lines: string[] = [];
+
+  for (let cIdx = 0; cIdx < graph.components.length; cIdx++) {
+    const compVals = graph.components[cIdx];
+    if (showCompHeader) lines.push(chalk.gray(`Component #${cIdx + 1}:`));
+    for (const val of compVals) {
+      const node = graph.nodes.get(val);
+      if (!node) continue;
+      const indent = showCompHeader ? "  " : "";
+      const nbrStrs = node.neighbors.map(n => chalk.yellow(n)).join(", ");
+      lines.push(`${indent}${chalk.cyan(node.val)}${connector}${chalk.gray("[")}${nbrStrs}${chalk.gray("]")}`); 
+    }
+  }
+
+  return `${header}\n${lines.join("\n")}`;
+}
+
+/**
+ * Returns true if the value looks like a string edge list: string[][].
+ */
+export function isStringEdgeList(value: unknown): value is string[][] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      row =>
+        Array.isArray(row) &&
+        (row.length === 2 || row.length === 3) &&
+        typeof row[0] === "string" &&
+        typeof row[1] === "string"
+    )
+  );
+}
+
+/**
+ * Returns true if the value looks like an adjacency map: Record<string|number, (string|number)[]>.
+ * Heuristic: plain object (not array, not class instance) whose every value is an array.
+ */
+export function isAdjacencyMap(value: unknown): value is Record<string, (string | number)[]> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (Object.getPrototypeOf(value) !== Object.prototype) return false; // reject class instances
+  const vals = Object.values(value as object);
+  if (vals.length === 0) return false; // empty object — ambiguous, skip
+  return vals.every(v => Array.isArray(v));
+}
+
+/**
+ * Renders an adjacency map (Record<string, string[]>) as a graph visualization.
+ * Normalizes all keys and neighbor values to strings for the string graph pipeline.
+ */
+export function adjMapToString(map: Record<string, (string | number)[]>, name = "graph"): string {
+  // Convert to string[][] edge list (one entry per directed edge in the map)
+  // Then feed into the string graph normalizer which handles directed detection & components.
+  const nodesMap = new Map<string, NormalizedStringGraphNode>();
+
+  const ensureNode = (val: string) => {
+    if (!nodesMap.has(val)) nodesMap.set(val, { val, neighbors: [] });
+    return nodesMap.get(val)!;
+  };
+
+  for (const [key, neighbors] of Object.entries(map)) {
+    ensureNode(key);
+    for (const nbr of neighbors) {
+      const nbrStr = String(nbr);
+      ensureNode(nbrStr);
+      nodesMap.get(key)!.neighbors.push(nbrStr);
+    }
+  }
+
+  if (nodesMap.size === 0) return chalk.gray(`${name}: (empty)`);
+
+  let isDirected = false;
+  let rawEdgeCount = 0;
+  for (const [uVal, uNode] of nodesMap) {
+    for (const vVal of uNode.neighbors) {
+      rawEdgeCount++;
+      const hasBack = nodesMap.get(vVal)?.neighbors.includes(uVal);
+      if (!hasBack) { isDirected = true; }
+    }
+  }
+
+  const visited = new Set<string>();
+  const components: string[][] = [];
+  const sortedKeys = Array.from(nodesMap.keys()).sort();
+  for (const start of sortedKeys) {
+    if (visited.has(start)) continue;
+    const comp: string[] = [];
+    const queue = [start];
+    visited.add(start);
+    while (queue.length) {
+      const curr = queue.shift()!;
+      comp.push(curr);
+      // traverse both explicit neighbors AND back-edges for undirected traversal
+      for (const nbr of nodesMap.get(curr)?.neighbors ?? []) {
+        if (!visited.has(nbr)) { visited.add(nbr); queue.push(nbr); }
+      }
+    }
+    comp.sort();
+    components.push(comp);
+  }
+
+  const graph: NormalizedStringGraph = {
+    nodes: nodesMap,
+    isDirected,
+    edgeCount: isDirected ? rawEdgeCount : Math.floor(rawEdgeCount / 2),
+    components,
+  };
+
+  const vCount = graph.nodes.size;
+  const badges: string[] = [`${vCount} nodes`];
+  if (graph.components.length > 1) badges.push(`${graph.components.length} components`);
+  const header = chalk.gray(`${name} (${badges.join(", ")}):`); 
+
+  const connector = graph.isDirected ? chalk.gray(" ──► ") : chalk.gray(" ── ");
+  const showCompHeader = graph.components.length > 1;
+  const lines: string[] = [];
+
+  for (let cIdx = 0; cIdx < graph.components.length; cIdx++) {
+    const compVals = graph.components[cIdx];
+    if (showCompHeader) lines.push(chalk.gray(`Component #${cIdx + 1}:`));
+    for (const val of compVals) {
+      const node = graph.nodes.get(val);
+      if (!node) continue;
+      const indent = showCompHeader ? "  " : "";
+      const nbrStrs = node.neighbors.map(n => chalk.yellow(n)).join(", ");
+      lines.push(`${indent}${chalk.cyan(node.val)}${connector}${chalk.gray("[")}${nbrStrs}${chalk.gray("]")}`); 
+    }
+  }
+
+  return `${header}\n${lines.join("\n")}`;
+}
+
 export function isEdgeListParam(pName: string, matrix: any[][]): boolean {
   if (!Array.isArray(matrix) || matrix.length === 0) return false;
 
@@ -312,7 +533,11 @@ export function isEdgeListParam(pName: string, matrix: any[][]): boolean {
   if (edgeParamRegex.test(pName)) return true;
 
   const allRowsAreEdges = matrix.every(
-    row => Array.isArray(row) && (row.length === 2 || row.length === 3) && typeof row[0] === "number" && typeof row[1] === "number"
+    row =>
+      Array.isArray(row) &&
+      (row.length === 2 || row.length === 3) &&
+      ((typeof row[0] === "number" && typeof row[1] === "number") ||
+       (typeof row[0] === "string" && typeof row[1] === "string"))
   );
 
   return allRowsAreEdges;

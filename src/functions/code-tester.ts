@@ -22,7 +22,9 @@ import {
   matrixToString,
   graphToString,
   edgeListGraphToString,
+  edgeListStringGraphToString,
   isEdgeListParam,
+  isStringEdgeList,
   containsTreeNode,
   TreeHighlightMap,
 } from "#utils/display.js";
@@ -138,7 +140,11 @@ function renderInputBlock(
       if (Array.isArray(rawVal) && rawVal.length > 0 && Array.isArray(rawVal[0])) {
         const pName = paramNames[i] || "grid";
         if (isEdgeListParam(pName, rawVal)) {
-          console.log(indentAll(edgeListGraphToString(rawVal, pName), 2));
+          if (isStringEdgeList(rawVal)) {
+            console.log(indentAll(edgeListStringGraphToString(rawVal, pName), 2));
+          } else {
+            console.log(indentAll(edgeListGraphToString(rawVal, pName), 2));
+          }
           console.log();
         } else {
           console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
@@ -160,6 +166,9 @@ function renderInputBlock(
         serialized = JSON.stringify(formattedVal);
       } else if (typeof rawVal === "string") {
         serialized = `"${rawVal}"`;
+      } else if (Array.isArray(rawVal) && isStringEdgeList(rawVal)) {
+        // Already visualized above — skip the redundant JSON dump
+        continue;
       } else if (Array.isArray(rawVal)) {
         serialized = JSON.stringify(formattedVal);
       } else {
