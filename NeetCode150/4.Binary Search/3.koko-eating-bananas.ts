@@ -1,6 +1,7 @@
 import { runTests } from "#functions/code-tester.js";
 
 // Leetcode 875
+
 // const myFunc = function minEatingSpeed(piles: number[], h: number): number {
 //   let l = 1;
 //   let r =  Math.max(...piles);
@@ -54,7 +55,33 @@ function canEatAll(piles: number[], speed: number, h: number) {
   return hours <= h;
 }
 
-runTests(myFunc, [
+function minEatingSpeed(piles: number[], h: number): number {
+  let low = 1;
+  let high = Math.max(...piles);
+
+  while (low < high) {
+    const mid = low + ((high - low) >> 1);
+    const time = timeTaken(mid);
+
+    if (time > h) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+
+  return high;
+
+  function timeTaken(speed: number): number {
+    let time = 0;
+    for (const pile of piles) {
+      time += Math.ceil(pile / speed);
+    }
+    return time;
+  }
+}
+
+runTests(minEatingSpeed, [
   // Leetcode
   { input: [[3, 6, 7, 11], 8], output: 4 },
   { input: [[30, 11, 23, 4, 20], 5], output: 30 },
