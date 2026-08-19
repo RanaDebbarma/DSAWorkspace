@@ -4,11 +4,13 @@ import { runTests, TestCase } from "#functions/code-tester.js";
 
 function evalRPN(tokens: string[]): number {
   const stack: number[] = [];
+  const operators = new Set(["+", "-", "*", "/"]);
 
   for (const token of tokens) {
-    const num = Number(token);
-
-    if (Number.isNaN(num)) {
+    // const num = Number(token);
+    
+    // if (Number.isNaN(num)) {
+    if (operators.has(token)) {
       const right = stack.pop()!;
       const left = stack.pop()!;
 
@@ -27,7 +29,7 @@ function evalRPN(tokens: string[]): number {
           break;
       }
     } else {
-      stack.push(num);
+      stack.push(Number(token));
     }
   }
   return stack.pop()!;
