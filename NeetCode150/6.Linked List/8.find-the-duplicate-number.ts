@@ -1,10 +1,29 @@
 import { runTests } from "#functions/code-tester.js";
-import { createLinkedList, ListNode } from "#ds/linked-list.js";
 
 // LeetCode 287
 
+// o(n) time and o(1) space
+// Floyd's Tortoise and Hare algorithm
 const solve = function findDuplicate(nums: number[]): number {
-  return nums[0];
+  let slow = nums[0];
+  let fast = nums[0];
+
+  // Find a meeting point inside the cycle
+  do {
+    slow = nums[slow];
+    fast = nums[nums[fast]];
+  } while (slow !== fast);
+
+  // Find the entrance of the cycle
+  slow = nums[0];
+
+  while (slow !== fast) {
+    slow = nums[slow];
+    fast = nums[fast];
+  }
+
+  // Cycle entrance = duplicate number
+  return slow;
 };
 
 runTests(solve, [
@@ -21,17 +40,3 @@ runTests(solve, [
     output: 3,
   },
 ]);
-
-/*
-Example 1:
-Input: nums = [1,3,4,2,2]
-Output: 2
-
-Example 2:
-Input: nums = [3,1,3,4,2]
-Output: 3
-
-Example 3:
-Input: nums = [3,3,3,3,3]
-Output: 3
-*/
