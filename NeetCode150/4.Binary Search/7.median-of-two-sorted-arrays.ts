@@ -2,53 +2,65 @@ import { runTests } from "#functions/code-tester.js";
 
 // LeetCode 4
 
-const solve = function findMedianSortedArrays(
-  nums1: number[],
-  nums2: number[],
-): number {
-  const mergedArr = merge(nums1, nums2);
-  const len = mergedArr.length;
-  
-  if (len === 0) return 0;
-
-  const mid = len >> 1;
-
-  if (len % 2 === 0) {
-    return (mergedArr[mid] + mergedArr[mid - 1]) / 2;
+function findMedianSortedArrays(nums1: number[], nums2: number[]): number {
+  // Always binary search the smaller array.
+  if (nums1.length > nums2.length) {
+    return findMedianSortedArrays(nums2, nums1);
   }
-  
-  return mergedArr[mid];
 
-  // o(m + n) time and space
-  function merge(arr1: number[], arr2: number[]) {
-    let p1 = 0;
-    let p2 = 0;
-    const len1 = arr1.length;
-    const len2 = arr2.length;
-    const result: number[] = new Array(len1 + len2);
-    let k = 0;
+  const firstLength = nums1.length; // smaller
+  const secondLength = nums2.length;
+  const totalLength = firstLength + secondLength;
 
-    while (p1 < len1 && p2 < len2) {
-      if (arr1[p1] < arr2[p2]) {
-        result[k++] = arr1[p1++];
-      } else {
-        result[k++] = arr2[p2++];
+  // Number of elements that should be on the left side.
+  const leftSize = Math.floor((totalLength + 1) / 2);
+
+  let low = 0;
+  let high = firstLength;
+
+  while (low <= high) {
+    // partition1 = elements taken from nums1 for the left side
+    const partition1 = Math.floor((low + high) / 2);
+
+    // The remaining left-side elements come from nums2.
+    const partition2 = leftSize - partition1;
+
+    const left1 = partition1 > 0 ? nums1[partition1 - 1] : -Infinity;
+    const right1 = partition1 < firstLength ? nums1[partition1] : Infinity;
+
+    const left2 = partition2 > 0 ? nums2[partition2 - 1] : -Infinity;
+    const right2 = partition2 < secondLength ? nums2[partition2] : Infinity;
+
+    // Too many elements taken from nums1.
+    if (left1 > right2) {
+      high = partition1 - 1;
+    }
+
+    // Too few elements taken from nums1.
+    else if (left2 > right1) {
+      low = partition1 + 1;
+    }
+
+    // Both partitions are correctly positioned.
+    else {
+      const leftMax = Math.max(left1, left2);
+
+      // Odd length → median is the largest value on the left.
+      if (totalLength % 2 === 1) {
+        return leftMax;
       }
-    }
 
-    while (p1 < len1) {
-      result[k++] = arr1[p1++];
-    }
+      // Even length → average the two middle values.
+      const rightMin = Math.min(right1, right2);
 
-    while (p2 < len2) {
-      result[k++] = arr2[p2++];
+      return (leftMax + rightMin) / 2;
     }
-
-    return result;
   }
-};
 
-runTests(solve, [
+  return 0; // Unreachable for valid input.
+}
+
+runTests(findMedianSortedArrays, [
   // LeetCode
   { input: [[1, 3], [2]], output: 2 },
   {
