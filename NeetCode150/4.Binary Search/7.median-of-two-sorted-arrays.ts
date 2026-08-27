@@ -57,7 +57,8 @@ function findMedianSortedArrays(nums1: number[], nums2: number[]): number {
     }
   }
 
-  return 0; // Unreachable for valid input.
+  // Unreachable for valid input.
+  throw new Error("Something went wrong");
 }
 
 runTests(findMedianSortedArrays, [
