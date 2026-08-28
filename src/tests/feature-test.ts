@@ -387,6 +387,7 @@ function lowestCommonAncestor(
   return null;
 }
 
+
 const lcaTree = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
 
 runTests(lowestCommonAncestor, [
@@ -396,4 +397,33 @@ runTests(lowestCommonAncestor, [
     output: 6,
   }
 ], { visualizeInput: true });
+
+// =============================================================================
+// § 11 — NEETCODE INTERLEAVED CLASS DESIGN PARSER
+// =============================================================================
+section(11, "NeetCode Interleaved Class Design Parser Test");
+
+import { parseLeetCodeText } from "#utils/testcase-parser.js";
+
+const neetcodeClipboard = `
+Input:
+["Trie", "insert", "dog", "search", "dog", "search", "do", "startsWith", "do", "insert", "do", "search", "do"]
+
+Output:
+[null, null, true, false, true, null, true]
+`;
+
+const parsedNeetcode = parseLeetCodeText(neetcodeClipboard);
+if (
+  parsedNeetcode.length === 1 &&
+  parsedNeetcode[0].type === "class" &&
+  parsedNeetcode[0].operations.length === 7 &&
+  parsedNeetcode[0].operations[0] === "Trie" &&
+  parsedNeetcode[0].args[1][0] === "dog"
+) {
+  console.log(chalk.green("✔ NeetCode interleaved class input successfully parsed into ClassTestCase!"));
+} else {
+  console.log(chalk.red("❌ Failed to parse NeetCode interleaved class input:"), parsedNeetcode);
+}
+
 

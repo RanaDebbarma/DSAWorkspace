@@ -129,7 +129,7 @@ export function parseLeetCodeText(text: string): ParsedResult[] {
 }
 
 /**
- * Parses Class Design testcases (e.g. MinStack, LRUCache)
+ * Parses Class Design testcases (e.g. MinStack, LRUCache, Trie)
  */
 export function tryParseClassDesign(text: string): ClassTestCase | null {
   if (/(?:^|\s|,|\n)[a-zA-Z_$][a-zA-Z0-9_$]*\s*=/g.test(text)) {
@@ -137,33 +137,216 @@ export function tryParseClassDesign(text: string): ClassTestCase | null {
   }
 
   const topArrays = extractTopLevelJsonArrays(text);
-  if (topArrays.length < 3) return null;
+  if (topArrays.length < 2) return null;
 
-  for (let i = 0; i <= topArrays.length - 3; i++) {
-    const ops = topArrays[i];
-    const args = topArrays[i + 1];
-    const expected = topArrays[i + 2];
+  // 1. Standard 3-array format: [ops, args, expected]
+  if (topArrays.length >= 3) {
+    for (let i = 0; i <= topArrays.length - 3; i++) {
+      const ops = topArrays[i];
+      const args = topArrays[i + 1];
+      const expected = topArrays[i + 2];
+
+      if (
+        Array.isArray(ops) &&
+        ops.length > 0 &&
+        ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
+        Array.isArray(args) &&
+        args.length === ops.length &&
+        args.every((arg) => Array.isArray(arg)) &&
+        Array.isArray(expected) &&
+        expected.length === ops.length
+      ) {
+        return {
+          type: "class",
+          operations: ops,
+          args: args,
+          expected: expected,
+        };
+      }
+    }
+  }
+
+  // 2. Interleaved / single-input array format (NeetCode format): [flatInput, expected]
+  for (let i = 0; i <= topArrays.length - 2; i++) {
+    const flatInput = topArrays[i];
+    const expected = topArrays[i + 1];
 
     if (
-      Array.isArray(ops) &&
-      ops.length > 0 &&
-      ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
-      Array.isArray(args) &&
-      args.length === ops.length &&
-      args.every((arg) => Array.isArray(arg)) &&
+      Array.isArray(flatInput) &&
       Array.isArray(expected) &&
-      expected.length === ops.length
+      expected.length > 0 &&
+      (expected[0] === null || expected[0] === undefined)
     ) {
-      return {
-        type: "class",
-        operations: ops,
-        args: args,
-        expected: expected,
-      };
+      const parsed = parseInterleavedClassDesign(flatInput, expected);
+      if (parsed) return parsed;
     }
   }
 
   return null;
+}
+
+/**
+ * Parses interleaved / flat Class Design input arrays (e.g. NeetCode clipboard format)
+ * where operations and arguments are combined in a single array.
+ */
+export function parseInterleavedClassDesign(flatInput: any[], expected: any[]): ClassTestCase | null {
+  const N = expected.length;
+  if (!Array.isArray(flatInput) || flatInput.length < N || N === 0) return null;
+
+  // First item MUST be a valid string identifier (Class constructor name)
+  if (typeof flatInput[0] !== "string" || !/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(flatInput[0].trim())) {
+    return null;
+  }
+
+  // Collect candidate string identifier indices
+  const validIndices: number[] = [];
+  for (let idx = 0; idx < flatInput.length; idx++) {
+    if (typeof flatInput[idx] === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(flatInput[idx].trim())) {
+      validIndices.push(idx);
+    }
+  }
+
+  if (validIndices.length < N || validIndices[0] !== 0) return null;
+
+  let bestIndices: number[] | null = null;
+
+  if (validIndices.length === N) {
+    bestIndices = validIndices;
+  } else {
+    let bestScore = -Infinity;
+
+    function evaluateCombination(indices: number[]) {
+      const opArgsByName = new Map<string, any[][]>();
+      const opExpectedTypesByName = new Map<string, Set<string>>();
+      const selectedOpNames = new Set(indices.map((idx) => flatInput[idx].trim()));
+
+      function getValType(val: any): string {
+        if (val === null || val === undefined) return "void";
+        if (typeof val === "boolean") return "boolean";
+        if (typeof val === "number") return "number";
+        if (typeof val === "string") return "string";
+        if (Array.isArray(val)) return "array";
+        return "object";
+      }
+
+      let score = 0;
+
+      for (let k = 0; k < N; k++) {
+        const idx = indices[k];
+        const opName = flatInput[idx].trim();
+
+        const nextIdx = k + 1 < N ? indices[k + 1] : flatInput.length;
+        const rawArgs = flatInput.slice(idx + 1, nextIdx);
+
+        // Penalize if rawArgs contains strings that are selected as operation names elsewhere
+        for (const argItem of rawArgs) {
+          if (typeof argItem === "string" && selectedOpNames.has(argItem.trim())) {
+            score -= 2000;
+          }
+        }
+
+        let finalArgs: any[];
+        if (rawArgs.length === 1 && Array.isArray(rawArgs[0])) {
+          finalArgs = rawArgs[0];
+        } else {
+          finalArgs = rawArgs;
+        }
+
+        if (!opArgsByName.has(opName)) {
+          opArgsByName.set(opName, []);
+          opExpectedTypesByName.set(opName, new Set());
+        }
+        opArgsByName.get(opName)!.push(finalArgs);
+        opExpectedTypesByName.get(opName)!.add(getValType(expected[k]));
+      }
+
+      for (const [opName, callArgsList] of opArgsByName.entries()) {
+        const occurrences = callArgsList.length;
+        const argCounts = new Set(callArgsList.map((a) => a.length));
+        const expTypes = opExpectedTypesByName.get(opName)!;
+
+        // Check if return value types in expected array match across calls
+        if (expTypes.size === 1) {
+          score += 200 * occurrences;
+        } else {
+          score -= 800; // Inconsistent return types for the same method name!
+        }
+
+        if (occurrences >= 2) {
+          if (argCounts.size === 1) {
+            score += 300 * occurrences; // High reward for repeated method name with consistent arg count
+          } else {
+            score -= 1000; // Heavy penalty for inconsistent arg counts across calls
+          }
+        } else {
+          // Single occurrence (e.g. constructor or single-use method)
+          if (opName === flatInput[indices[0]].trim()) {
+            score += 100; // Constructor
+          } else {
+            const argCount = callArgsList[0].length;
+            if (argCount <= 4) {
+              score += 20;
+            } else {
+              score -= 200; // Too many leftover arguments for a single method call
+            }
+          }
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndices = [...indices];
+      }
+    }
+
+    function searchCombos(curr: number[], startValidIdx: number) {
+      if (curr.length === N) {
+        evaluateCombination(curr);
+        return;
+      }
+      const needed = N - curr.length;
+      const available = validIndices.length - startValidIdx;
+      if (available < needed) return;
+
+      for (let i = startValidIdx; i < validIndices.length; i++) {
+        curr.push(validIndices[i]);
+        searchCombos(curr, i + 1);
+        curr.pop();
+        if (bestScore >= 400 && validIndices.length > 30) {
+          break;
+        }
+      }
+    }
+
+    searchCombos([0], 1);
+  }
+
+  if (!bestIndices) return null;
+
+  const operations: string[] = [];
+  const args: any[][] = [];
+
+  for (let k = 0; k < N; k++) {
+    const idx = (bestIndices as number[])[k];
+    const opName = flatInput[idx].trim();
+    operations.push(opName);
+
+    const nextIdx = k + 1 < N ? (bestIndices as number[])[k + 1] : flatInput.length;
+    const rawArgs = flatInput.slice(idx + 1, nextIdx);
+
+    if (rawArgs.length === 1 && Array.isArray(rawArgs[0])) {
+      args.push(rawArgs[0]);
+    } else {
+      args.push(rawArgs);
+    }
+  }
+
+  return {
+    type: "class",
+    operations,
+    args,
+    expected,
+  };
 }
 
 /**
