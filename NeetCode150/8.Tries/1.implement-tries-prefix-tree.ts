@@ -1,17 +1,59 @@
 import { runClassTests } from "#functions/code-tester.js";
 
 // LeetCode 208
+class TrieNode {
+  children = new Array(26).fill(null);
+  isWord = false;
+}
 
 class PrefixTree {
-  constructor() {}
+  private root: TrieNode;
 
-  insert(word: string): void {}
+  constructor() {
+    this.root = new TrieNode();
+  }
+
+  insert(word: string): void {
+    let node = this.root;
+
+    for (let i = 0; i < word.length; i++) {
+      const idx = word.charCodeAt(i) - 97;
+
+      if(!node.children[idx]) {
+        node.children[idx] = new TrieNode()
+      }
+
+      node = node.children[idx];
+    }
+
+    node.isWord = true;
+  }
 
   search(word: string): boolean {
-    return true;
+    let node = this.root;
+
+    for(let i = 0; i < word.length; i++) {
+      const idx = word.charCodeAt(i) - 97;
+
+      if (!node.children[idx]) return false;
+
+      node = node.children[idx];
+    }
+
+    return node.isWord;
   }
 
   startsWith(prefix: string): boolean {
+    let node = this.root;
+
+    for(let i = 0; i < prefix.length; i++) {
+      const idx = prefix.charCodeAt(i) - 97;
+
+      if (!node.children[idx]) return false;
+
+      node = node.children[idx];
+    }
+
     return true;
   }
 }
