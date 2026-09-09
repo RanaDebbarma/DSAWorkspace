@@ -1,11 +1,33 @@
 import { runTests } from "#functions/code-tester.js";
 import { createBinaryTree, TreeNode } from "#ds/tree.js";
 
+// LeetCode 124
+
 function maxPathSum(root: TreeNode | null): number {
-  return 0;
+  let maxSum = -Infinity;
+
+  dfs(root);
+
+  return maxSum;
+
+  function dfs(node: TreeNode | null): number {
+    if (!node) return 0;
+
+    // Ignore negative child contributions.
+    const leftGain = Math.max(0, dfs(node.left));
+    const rightGain = Math.max(0, dfs(node.right));
+
+    // Path through this node can use both children.
+    const currentPath = node.val + leftGain + rightGain;
+
+    // Track the best path found anywhere.
+    maxSum = Math.max(maxSum, currentPath);
+
+    // Parent can only extend through one child.
+    return node.val + Math.max(leftGain, rightGain);
+  }
 }
 
-// Note: smartCompare automatically compares Binary Trees recursively!
 runTests(maxPathSum, [
   { input: [createBinaryTree([1, 2, 3])], output: 6 },
   {
