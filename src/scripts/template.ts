@@ -75,7 +75,39 @@ async function main() {
 
   const basename = path.basename(outputPath);
   const rawName = basename.replace(/\.ts$/i, "").replace(/^\d+\./, "");
-  const fnName = toCamelCase(rawName) || "solution";
+  const defaultFnName = toCamelCase(rawName) || "solution";
+
+  // Check if existing file already has a LeetCode comment like // LeetCode 297
+  let existingLcNumber = "";
+  if (fs.existsSync(outputPath)) {
+    try {
+      const existing = fs.readFileSync(outputPath, "utf-8");
+      const lcMatch = existing.match(/\/\/\s*LeetCode\s*(\d+)/i);
+      if (lcMatch) {
+        existingLcNumber = lcMatch[1];
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // ── Derive function name & prompt for custom override ───────────────────
+  const fnNameInput = await p.text({
+    message: "Function name (optional)",
+    placeholder: defaultFnName,
+    initialValue: "",
+  });
+  if (p.isCancel(fnNameInput)) { p.cancel("Cancelled."); process.exit(0); }
+  const fnName = (fnNameInput as string).trim() || defaultFnName;
+
+  // ── Optional LeetCode problem number ────────────────────────────────────
+  const lcNumberInput = await p.text({
+    message: "LeetCode question number (optional)",
+    placeholder: existingLcNumber ? `current: ${existingLcNumber}` : "e.g. 297 (leave blank for none)",
+    initialValue: existingLcNumber,
+  });
+  if (p.isCancel(lcNumberInput)) { p.cancel("Cancelled."); process.exit(0); }
+  const lcNumber = (lcNumberInput as string).trim();
 
   // ── Check Clipboard for testcases & infer signature ──────────────────────
   let clipboardCasesStr: string | undefined = undefined;
@@ -124,7 +156,7 @@ async function main() {
   }
 
   const chosen = TEMPLATES.find((t) => t.value === templateChoice)!;
-  const content = chosen.fn(fnName, clipboardCasesStr, sig);
+  const content = chosen.fn(fnName, clipboardCasesStr, sig, lcNumber);
   fs.writeFileSync(outputPath, content, "utf-8");
 
   // ── Open in VS Code ──────────────────────────────────────────────────────

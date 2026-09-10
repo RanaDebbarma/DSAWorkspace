@@ -1,25 +1,33 @@
 import { SignatureInfo } from "#utils/testcase-parser.js";
 
+function formatLcComment(lcNumber?: string | number): string {
+  if (!lcNumber) return "";
+  const numStr = String(lcNumber).trim().replace(/^(?:LC|LeetCode)\s*/i, "");
+  return numStr ? `// LeetCode ${numStr}\n\n` : "";
+}
+
 // ============================================================================
 // Exported boilerplate template functions.
 // Each accepts `fnName` (camelCase), optional `initialCases` code string,
-// and optional `sig` (inferred SignatureInfo).
+// optional `sig` (inferred SignatureInfo), and optional `lcNumber`.
 // ============================================================================
 
 // 1. STANDARD SOLUTION TEMPLATE (Arrays, Strings, Math, etc.)
 export function getStandardTemplate(
   fnName: string,
   initialCases?: string,
-  sig?: SignatureInfo
+  sig?: SignatureInfo,
+  lcNumber?: string | number
 ): string {
   const cases = initialCases || "  { input: [[1, 2, 3]], output: 0 },";
   const params = sig?.paramsCode || "nums: number[]";
   const retType = sig?.returnType || "number";
   const retVal = sig?.defaultReturn || "0";
+  const comment = formatLcComment(lcNumber);
 
   return `import { runTests } from "#functions/code-tester.js";
 
-function ${fnName}(${params}): ${retType} {
+${comment}function ${fnName}(${params}): ${retType} {
   return ${retVal};
 }
 
@@ -33,7 +41,8 @@ ${cases}
 export function getLinkedListTemplate(
   fnName: string,
   initialCases?: string,
-  sig?: SignatureInfo
+  sig?: SignatureInfo,
+  lcNumber?: string | number
 ): string {
   const cases =
     initialCases ||
@@ -44,11 +53,12 @@ export function getLinkedListTemplate(
   const params = sig?.paramsCode || "head: ListNode | null";
   const retType = sig?.returnType || "ListNode | null";
   const retVal = sig?.defaultReturn || "head";
+  const comment = formatLcComment(lcNumber);
 
   return `import { runTests } from "#functions/code-tester.js";
 import { createLinkedList, ListNode } from "#ds/linked-list.js";
 
-function ${fnName}(${params}): ${retType} {
+${comment}function ${fnName}(${params}): ${retType} {
   return ${retVal};
 }
 
@@ -60,11 +70,18 @@ ${cases}
 }
 
 // 3. CYCLIC LINKED LIST TEMPLATE (e.g. LC 141 - Linked List Cycle)
-export function getCyclicLinkedListTemplate(fnName: string): string {
+export function getCyclicLinkedListTemplate(
+  fnName: string,
+  _initialCases?: string,
+  _sig?: SignatureInfo,
+  lcNumber?: string | number
+): string {
+  const comment = formatLcComment(lcNumber);
+
   return `import { runTests } from "#functions/code-tester.js";
 import { createCyclicLinkedList, ListNode } from "#ds/linked-list.js";
 
-function ${fnName}(head: ListNode | null): boolean {
+${comment}function ${fnName}(head: ListNode | null): boolean {
   return false;
 }
 
@@ -83,7 +100,8 @@ runTests(${fnName}, [
 export function getBinaryTreeTemplate(
   fnName: string,
   initialCases?: string,
-  sig?: SignatureInfo
+  sig?: SignatureInfo,
+  lcNumber?: string | number
 ): string {
   const cases =
     initialCases ||
@@ -94,11 +112,12 @@ export function getBinaryTreeTemplate(
   const params = sig?.paramsCode || "root: TreeNode | null";
   const retType = sig?.returnType || "TreeNode | null";
   const retVal = sig?.defaultReturn || "root";
+  const comment = formatLcComment(lcNumber);
 
   return `import { runTests } from "#functions/code-tester.js";
 import { createBinaryTree, TreeNode } from "#ds/tree.js";
 
-function ${fnName}(${params}): ${retType} {
+${comment}function ${fnName}(${params}): ${retType} {
   return ${retVal};
 }
 
@@ -113,7 +132,8 @@ ${cases}
 export function getGraphTemplate(
   fnName: string,
   initialCases?: string,
-  sig?: SignatureInfo
+  sig?: SignatureInfo,
+  lcNumber?: string | number
 ): string {
   const cases =
     initialCases ||
@@ -126,11 +146,12 @@ export function getGraphTemplate(
   const params = sig?.paramsCode || "node: GraphNode | null";
   const retType = sig?.returnType || "GraphNode | null";
   const retVal = sig?.defaultReturn || "node";
+  const comment = formatLcComment(lcNumber);
 
   return `import { runTests } from "#functions/code-tester.js";
 import { createGraph, GraphNode } from "#ds/graph.js";
 
-function ${fnName}(${params}): ${retType} {
+${comment}function ${fnName}(${params}): ${retType} {
   return ${retVal};
 }
 
@@ -144,7 +165,9 @@ ${cases}
 // 6. CLASS DESIGN / SYSTEM DESIGN TEMPLATE
 export function getClassDesignTemplate(
   fnName: string,
-  initialCases?: string
+  initialCases?: string,
+  _sig?: SignatureInfo,
+  lcNumber?: string | number
 ): string {
   const className = fnName.charAt(0).toUpperCase() + fnName.slice(1);
   const cases =
@@ -154,9 +177,11 @@ export function getClassDesignTemplate(
     args: [[], [-2], [0], [], [], [], []],
     expected: [null, null, null, -2, null, -2, -2],
   },`;
+  const comment = formatLcComment(lcNumber);
+
   return `import { runClassTests } from "#functions/code-tester.js";
 
-class ${className} {
+${comment}class ${className} {
   // Implement class here...
   push(val: number): void {}
   pop(): void {}
@@ -171,11 +196,18 @@ ${cases}
 }
 
 // 7. MULTI-PARAM TREE TEMPLATE (e.g. LCA, path problems)
-export function getMultiParamTreeTemplate(fnName: string): string {
+export function getMultiParamTreeTemplate(
+  fnName: string,
+  _initialCases?: string,
+  _sig?: SignatureInfo,
+  lcNumber?: string | number
+): string {
+  const comment = formatLcComment(lcNumber);
+
   return `import { runTests } from "#functions/code-tester.js";
 import { createBinaryTree, TreeNode } from "#ds/tree.js";
 
-function ${fnName}(
+${comment}function ${fnName}(
   root: TreeNode | null,
   p: TreeNode | null,
   q: TreeNode | null,
@@ -200,40 +232,53 @@ runTests(${fnName}, [
 // ============================================================================
 // Template registry for use in the CLI
 // ============================================================================
-export const TEMPLATES = [
+export type TemplateFn = (
+  fnName: string,
+  initialCases?: string,
+  sig?: SignatureInfo,
+  lcNumber?: string | number
+) => string;
+
+export interface TemplateDefinition {
+  label: string;
+  value: string;
+  fn: TemplateFn;
+}
+
+export const TEMPLATES: readonly TemplateDefinition[] = [
   {
     label: "Standard          (arrays, strings, math)",
-    value: "standard" as const,
+    value: "standard",
     fn: getStandardTemplate,
   },
   {
     label: "Linked List",
-    value: "linked-list" as const,
+    value: "linked-list",
     fn: getLinkedListTemplate,
   },
   {
     label: "Cyclic Linked List",
-    value: "cyclic-linked-list" as const,
+    value: "cyclic-linked-list",
     fn: getCyclicLinkedListTemplate,
   },
   {
     label: "Binary Tree",
-    value: "binary-tree" as const,
+    value: "binary-tree",
     fn: getBinaryTreeTemplate,
   },
   {
     label: "Graph",
-    value: "graph" as const,
+    value: "graph",
     fn: getGraphTemplate,
   },
   {
     label: "Class Design      (MinStack, LRU Cache, etc.)",
-    value: "class-design" as const,
+    value: "class-design",
     fn: getClassDesignTemplate,
   },
   {
     label: "Multi-Param Tree  (LCA, path problems)",
-    value: "multi-param-tree" as const,
+    value: "multi-param-tree",
     fn: getMultiParamTreeTemplate,
   },
 ] as const;

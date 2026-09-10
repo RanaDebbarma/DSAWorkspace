@@ -179,8 +179,24 @@ async function main() {
     }
   }
 
-  // ── Derive function name ─────────────────────────────────────────────────
-  const fnName = toCamelCase(rawName) || "solution";
+  // ── Derive function name & prompt for custom override ───────────────────
+  const defaultFnName = toCamelCase(rawName) || "solution";
+  const fnNameInput = await p.text({
+    message: "Function name (optional)",
+    placeholder: defaultFnName,
+    initialValue: "",
+  });
+  if (p.isCancel(fnNameInput)) { p.cancel("Cancelled."); process.exit(0); }
+  const fnName = (fnNameInput as string).trim() || defaultFnName;
+
+  // ── Optional LeetCode problem number ────────────────────────────────────
+  const lcNumberInput = await p.text({
+    message: "LeetCode question number (optional)",
+    placeholder: "e.g. 297 (leave blank for none)",
+    initialValue: "",
+  });
+  if (p.isCancel(lcNumberInput)) { p.cancel("Cancelled."); process.exit(0); }
+  const lcNumber = (lcNumberInput as string).trim();
 
   // ── Check Clipboard for testcases & infer signature/template ────────────
   let clipboardCasesStr: string | undefined = undefined;
@@ -219,7 +235,7 @@ async function main() {
   }
 
   const chosen = TEMPLATES.find((t) => t.value === templateChoice)!;
-  const content = chosen.fn(fnName, clipboardCasesStr, sig);
+  const content = chosen.fn(fnName, clipboardCasesStr, sig, lcNumber);
 
   // ── Overwrite confirmation if file exists ────────────────────────────────
   if (fs.existsSync(outputPath)) {
