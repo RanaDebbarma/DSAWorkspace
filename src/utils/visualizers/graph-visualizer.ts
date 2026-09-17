@@ -554,9 +554,9 @@ export function isEdgeListParam(pName: string, matrix: any[][]): boolean {
   if (!Array.isArray(matrix) || matrix.length === 0) return false;
 
   const edgeParamRegex = /edge|prereq|flight|time|connection|adj/i;
-  const gridParamRegex = /grid|board|matrix|table/i;
+  const nonEdgeParamRegex = /grid|board|matrix|table|interval|point|range|pair|coord/i;
 
-  if (gridParamRegex.test(pName)) return false;
+  if (nonEdgeParamRegex.test(pName)) return false;
   if (edgeParamRegex.test(pName)) return true;
 
   const allRowsAreEdges = matrix.every(

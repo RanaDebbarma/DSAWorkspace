@@ -27,6 +27,7 @@ import {
   isStringEdgeList,
   containsTreeNode,
   TreeHighlightMap,
+  GridMode,
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
 import {
@@ -55,6 +56,8 @@ export type TestCase<F extends (...args: any[]) => any> = {
   unordered?: boolean;
   /** Explicitly set graph direction for this test case (true for directed, false for undirected). */
   isDirected?: boolean;
+  /** Explicitly set grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric'). */
+  gridMode?: GridMode;
 };
 
 export type ClassTestCase = {
@@ -75,6 +78,8 @@ export type TestOptions = {
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
   isDirected?: boolean;
+  /** Suite-level default for grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric'). Overridden by per-test case `gridMode`. */
+  gridMode?: GridMode;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
@@ -109,6 +114,8 @@ function renderInputBlock(
   showStringInput: boolean,
   testIsDirected?: boolean,
   suiteIsDirected?: boolean,
+  testGridMode?: GridMode,
+  suiteGridMode?: GridMode,
 ): void {
   const paramNames = getParamNames(fn);
   const formattedInputs = input.map(formatValue);
@@ -173,8 +180,9 @@ function renderInputBlock(
           }
           console.log();
         } else {
+          const resolvedGridMode = testGridMode ?? suiteGridMode ?? "auto";
           console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
-          console.log(indentAll(matrixToString(rawVal), 2));
+          console.log(indentAll(matrixToString(rawVal, { mode: resolvedGridMode }), 2));
           console.log();
         }
       } else if (rawVal instanceof GraphNode) {
@@ -344,6 +352,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
   const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
   const suiteIsDirected = typeof options === "object" ? options?.isDirected : undefined;
+  const suiteGridMode = typeof options === "object" ? options?.gridMode : undefined;
 
   let passedCount = 0;
 
@@ -384,7 +393,16 @@ export function runTests<F extends (...args: any[]) => any>(
     // Input + Result blocks
     console.log();
     try {
-      renderInputBlock(fn, Array.from(input), visualizeInput, showStringInput, test.isDirected, suiteIsDirected);
+      renderInputBlock(
+        fn,
+        Array.from(input),
+        visualizeInput,
+        showStringInput,
+        test.isDirected,
+        suiteIsDirected,
+        test.gridMode,
+        suiteGridMode,
+      );
     } catch {
       console.dir(input.map(formatValue), { depth: null });
     }
