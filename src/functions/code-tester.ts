@@ -28,6 +28,7 @@ import {
   containsTreeNode,
   TreeHighlightMap,
   GridMode,
+  detectGridMode,
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
 import {
@@ -181,7 +182,19 @@ function renderInputBlock(
           console.log();
         } else {
           const resolvedGridMode = testGridMode ?? suiteGridMode ?? "auto";
-          console.log(chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length}):`));
+          const effectiveMode = resolvedGridMode === "auto" ? detectGridMode(rawVal) : resolvedGridMode;
+          const modeColor =
+            effectiveMode === "board" ? chalk.hex("#ffeaa7") :
+            effectiveMode === "maze" ? chalk.hex("#00cec9") :
+            effectiveMode === "binary" ? chalk.hex("#55efc4") :
+            effectiveMode === "sudoku" ? chalk.hex("#fdcb6e") :
+            chalk.cyan;
+
+          const modeLabel = resolvedGridMode === "auto"
+            ? `${chalk.gray("auto: ")}${modeColor(effectiveMode)}`
+            : `${chalk.gray("mode: ")}${modeColor(resolvedGridMode)}`;
+
+          console.log(`${chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length} · `)}${modeLabel}${chalk.gray("):")}`);
           console.log(indentAll(matrixToString(rawVal, { mode: resolvedGridMode }), 2));
           console.log();
         }
