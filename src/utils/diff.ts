@@ -3,7 +3,16 @@ import { ListNode } from "#ds/linked-list.js";
 import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode } from "#ds/graph.js";
 import { smartCompare } from "#utils/compare.js";
-import { serializeForDisplay, treeToString, graphToString, TreeHighlightMap } from "#utils/display.js";
+import {
+  serializeForDisplay,
+  treeToString,
+  graphToString,
+  TreeHighlightMap,
+  isChessBoard,
+  isChessBoardList,
+  chessBoardsToString,
+  matrixToString,
+} from "#utils/display.js";
 
 /**
  * Helper to check if a value is an Array or TypedArray (e.g. Int32Array).
@@ -197,6 +206,32 @@ export function renderDiff(
   actual: unknown,
   expected: unknown,
 ): { expLine: string; gotLine: string; hint: string } {
+  // Chessboard list diff (e.g. N-Queens solution sets)
+  if (isChessBoardList(expected) || isChessBoardList(actual)) {
+    const expLine = isChessBoardList(expected)
+      ? chessBoardsToString(expected)
+      : serializeForDisplay(expected);
+    const gotLine = isChessBoardList(actual)
+      ? chessBoardsToString(actual)
+      : serializeForDisplay(actual);
+    let hint = "";
+    if (Array.isArray(actual) && Array.isArray(expected) && actual.length !== expected.length) {
+      hint = `expected ${expected.length} solution(s), got ${actual.length}`;
+    }
+    return { expLine, gotLine, hint };
+  }
+
+  // Single chessboard diff
+  if (isChessBoard(expected) || isChessBoard(actual)) {
+    const expLine = isChessBoard(expected)
+      ? matrixToString(expected, { mode: "chess" })
+      : serializeForDisplay(expected);
+    const gotLine = isChessBoard(actual)
+      ? matrixToString(actual, { mode: "chess" })
+      : serializeForDisplay(actual);
+    return { expLine, gotLine, hint: "" };
+  }
+
   // Array / TypedArray diff
   if (isArrayLike(actual) && isArrayLike(expected)) {
     return renderArrayDiff(actual, expected);

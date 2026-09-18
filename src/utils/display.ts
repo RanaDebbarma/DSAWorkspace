@@ -4,6 +4,7 @@ import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode, graphToAdjList } from "#ds/graph.js";
 
 import { treeToString } from "./visualizers/tree-visualizer.js";
+import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString } from "./visualizers/grid-visualizer.js";
 import { graphToString, edgeListStringGraphToString, isStringEdgeList, isAdjacencyMap, adjMapToString } from "./visualizers/graph-visualizer.js";
 
 export * from "./visualizers/tree-visualizer.js";
@@ -106,6 +107,11 @@ export function serializeForDisplay(value: unknown): string {
 
   // Render adjacency maps (e.g. { 0: ["8","1"], a: ["b","c"] }) as a graph visualization
   if (isAdjacencyMap(value)) return adjMapToString(value);
+
+  // Render chessboard or list of chessboards (e.g. N-Queens solutions)
+  if (isChessBoard(value)) return matrixToString(value, { mode: "chess" });
+  if (isChessBoardList(value)) return chessBoardsToString(value);
+
   if (typeof value === "string") return `"${value}"`;
 
   return JSON.stringify(formatValue(value)) ?? String(value);

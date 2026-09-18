@@ -426,4 +426,23 @@ if (
   console.log(chalk.red("❌ Failed to parse NeetCode interleaved class input:"), parsedNeetcode);
 }
 
+// =============================================================================
+// § 12 — CHESSBOARD MATRIX VISUALIZATION (string[] & "chess" mode)
+// =============================================================================
+section(12, "Chessboard Matrix Visualization (string[] & chess mode)");
+
+import { matrixToString } from "#functions/code-tester.js";
+
+const nQueensBoard = [
+  ".Q..",
+  "...Q",
+  "Q...",
+  "..Q.",
+];
+
+console.log(chalk.gray("Rendered N-Queens Board (4x4 string[]):"));
+console.log(matrixToString(nQueensBoard));
+console.log();
+
+
 

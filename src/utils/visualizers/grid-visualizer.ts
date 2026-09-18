@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-export type GridMode = "auto" | "board" | "maze" | "binary" | "sudoku" | "numeric";
+export type GridMode = "auto" | "board" | "maze" | "binary" | "sudoku" | "numeric" | "chess";
 
 export type MatrixToStringOptions = {
   mode?: GridMode;
@@ -13,11 +13,12 @@ export function detectGridMode(matrix: any[][]): Exclude<GridMode, "auto"> {
   let stringCount = 0;
   let numberCount = 0;
 
-  let generalLetterCount = 0; // letters other than S, E, X
+  let generalLetterCount = 0; // letters other than S, E, X, Q
   let hasMazeMarkers = false; // '#', '*', or isolated 'S'/'E' with maze context
   let hasDigit2Through9 = false;
   let hasBinaryString = false; // '0' or '1'
   let hasSOrE = false;
+  let hasChessQueen = false; // 'Q' or 'q'
   let hasNegativeNumbers = false;
   let hasNumberGreaterThanOne = false;
 
@@ -43,6 +44,8 @@ export function detectGridMode(matrix: any[][]): Exclude<GridMode, "auto"> {
           const upper = s.toUpperCase();
           if (upper === "S" || upper === "E") {
             hasSOrE = true;
+          } else if (upper === "Q") {
+            hasChessQueen = true;
           } else if (upper !== "X") {
             generalLetterCount++;
           }
@@ -64,17 +67,22 @@ export function detectGridMode(matrix: any[][]): Exclude<GridMode, "auto"> {
     return "board";
   }
 
-  // 3. If contains digits 2-9 or dots without general letters (e.g., Sudoku)
+  // 3. If contains chess queen and dots/empty squares without other alphabet letters
+  if (hasChessQueen && generalLetterCount === 0 && !hasMazeMarkers && !hasDigit2Through9 && numberCount === 0) {
+    return "chess";
+  }
+
+  // 4. If contains digits 2-9 or dots without general letters (e.g., Sudoku)
   if (hasDigit2Through9) {
     return "sudoku";
   }
 
-  // 4. If maze markers like '#' or '*' are present, or S/E with pathfinding context
+  // 5. If maze markers like '#' or '*' are present, or S/E with pathfinding context
   if (hasMazeMarkers || hasSOrE) {
     return "maze";
   }
 
-  // 5. If primarily binary strings '0' and '1'
+  // 6. If primarily binary strings '0' and '1'
   if (hasBinaryString) {
     return "binary";
   }
@@ -107,6 +115,18 @@ export function colorMatrixCell(val: any, str: string, mode: Exclude<GridMode, "
   }
 
   if (typeof val === "string") {
+    // Mode: "chess" (N-Queens, chessboards)
+    if (mode === "chess") {
+      const upper = val.toUpperCase();
+      if (upper === "Q") {
+        return chalk.bold.hex("#f1c40f")(str.replace(/q/gi, "♛"));
+      }
+      if (val === ".") {
+        return chalk.hex("#555f6e")(str.replace(/\./g, "·"));
+      }
+      return chalk.white(str);
+    }
+
     // Mode: "board" (Word Search, letters, Boggle)
     // S, E, X are regular characters! Only explicit traversal markers remain styled.
     if (mode === "board") {
@@ -166,14 +186,20 @@ export function colorMatrixCell(val: any, str: string, mode: Exclude<GridMode, "
 }
 
 /**
- * Visualizes a 2D array / matrix grid as an aligned ASCII table.
+ * Visualizes a 2D array / matrix grid or 1D string array (as rows) as an aligned ASCII table.
  */
 export function matrixToString(
-  matrix: any[][],
+  rawMatrix: any[][] | string[],
   options?: MatrixToStringOptions | GridMode,
 ): string {
-  if (!Array.isArray(matrix) || matrix.length === 0) return "[]";
-  if (!Array.isArray(matrix[0])) return JSON.stringify(matrix);
+  if (!Array.isArray(rawMatrix) || rawMatrix.length === 0) return "[]";
+
+  // Normalize string[] into char[][]
+  const matrix: any[][] = typeof rawMatrix[0] === "string"
+    ? (rawMatrix as string[]).map((row) => (typeof row === "string" ? row.split("") : row))
+    : (rawMatrix as any[][]);
+
+  if (!Array.isArray(matrix[0])) return JSON.stringify(rawMatrix);
 
   const rawMode: GridMode = typeof options === "string" ? options : (options?.mode ?? "auto");
   const resolvedMode: Exclude<GridMode, "auto"> =
@@ -212,4 +238,102 @@ export function matrixToString(
 
   lines.push(chalk.gray(botBorder));
   return lines.join("\n");
+}
+
+/**
+ * Checks if a value is a single NxN chessboard represented as string[].
+ */
+export function isChessBoard(val: unknown): val is string[] {
+  if (!Array.isArray(val) || val.length === 0) return false;
+  if (typeof val[0] !== "string") return false;
+  const n = val.length;
+  let hasQueen = false;
+  for (const row of val) {
+    if (typeof row !== "string" || row.length !== n) return false;
+    for (let i = 0; i < row.length; i++) {
+      const c = row[i];
+      if (c === "Q" || c === "q") hasQueen = true;
+      else if (c !== ".") return false;
+    }
+  }
+  return hasQueen;
+}
+
+/**
+ * Checks if a value is a collection of NxN chessboards (string[][]).
+ */
+export function isChessBoardList(val: unknown): val is string[][] {
+  if (!Array.isArray(val) || val.length === 0) return false;
+  return val.every(isChessBoard);
+}
+
+/**
+ * Strips ANSI escape codes from a string to measure visible length.
+ */
+function stripAnsi(str: string): string {
+  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+}
+
+/**
+ * Visualizes multiple chessboard configurations side-by-side (if terminal width allows) or stacked.
+ */
+export function chessBoardsToString(boards: string[][], maxBoards = 4): string {
+  if (!Array.isArray(boards) || boards.length === 0) return "[]";
+  const displayCount = Math.min(boards.length, maxBoards);
+  const termWidth = process.stdout.columns || 80;
+
+  const boardBlocks: { header: string; lines: string[]; width: number }[] = [];
+
+  for (let i = 0; i < displayCount; i++) {
+    const rawHeader = `Solution ${i + 1} of ${boards.length}:`;
+    const header = chalk.gray(rawHeader);
+    const rendered = matrixToString(boards[i], { mode: "chess" });
+    const lines = rendered.split("\n");
+    const boardWidth = Math.max(...lines.map((l) => stripAnsi(l).length));
+    const colWidth = Math.max(rawHeader.length, boardWidth);
+    boardBlocks.push({ header, lines, width: colWidth });
+  }
+
+  const GAP = 4;
+  const totalWidth = boardBlocks.reduce((acc, b) => acc + b.width, 0) + (boardBlocks.length - 1) * GAP;
+
+  const resultLines: string[] = [];
+
+  if (totalWidth <= termWidth) {
+    // Render side-by-side
+    const headerLine = boardBlocks
+      .map((b) => b.header + " ".repeat(Math.max(0, b.width - stripAnsi(b.header).length)))
+      .join(" ".repeat(GAP));
+    resultLines.push(headerLine);
+
+    const maxLines = Math.max(...boardBlocks.map((b) => b.lines.length));
+    for (let r = 0; r < maxLines; r++) {
+      const rowLine = boardBlocks
+        .map((b) => {
+          const l = b.lines[r] ?? "";
+          const visibleLen = stripAnsi(l).length;
+          const padLen = Math.max(0, b.width - visibleLen);
+          return l + " ".repeat(padLen);
+        })
+        .join(" ".repeat(GAP));
+      resultLines.push(rowLine);
+    }
+  } else {
+    // Stack vertically
+    for (let i = 0; i < boardBlocks.length; i++) {
+      const b = boardBlocks[i];
+      resultLines.push(b.header);
+      resultLines.push(...b.lines);
+      if (i < boardBlocks.length - 1) {
+        resultLines.push("");
+      }
+    }
+  }
+
+  if (boards.length > displayCount) {
+    resultLines.push("");
+    resultLines.push(chalk.gray(`... and ${boards.length - displayCount} more solution(s)`));
+  }
+
+  return resultLines.join("\n");
 }

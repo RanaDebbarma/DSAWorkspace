@@ -188,6 +188,7 @@ function renderInputBlock(
             effectiveMode === "maze" ? chalk.hex("#00cec9") :
             effectiveMode === "binary" ? chalk.hex("#55efc4") :
             effectiveMode === "sudoku" ? chalk.hex("#fdcb6e") :
+            effectiveMode === "chess" ? chalk.hex("#f1c40f") :
             chalk.cyan;
 
           const modeLabel = resolvedGridMode === "auto"
@@ -252,11 +253,12 @@ function renderResultBlock(
     );
   } else if (passed) {
     const outStr = serializeForDisplay(result);
+    const coloredOut = outStr.includes("\u001b") ? outStr : chalk.green(outStr);
     if (outStr.includes("\n")) {
-      console.log(`${chalk.grey("Output:")}\n${indentAll(chalk.green(outStr), 2)}`);
+      console.log(`${chalk.grey("Output:")}\n${indentAll(coloredOut, 2)}`);
     } else {
       console.log(
-        `${chalk.grey("Output:   ")}  ${padMultiline(chalk.green(outStr), 14)}`,
+        `${chalk.grey("Output:   ")}  ${padMultiline(coloredOut, 14)}`,
       );
     }
   } else {
@@ -566,4 +568,5 @@ export {
   compareUnordered2DArrays,
   compareGroupAnagrams,
   compare3Sum,
+  matrixToString,
 };
