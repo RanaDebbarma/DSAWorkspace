@@ -13,7 +13,8 @@ src/                      # Core infrastructure files
 ├── ds/                   # Data structure definitions (classes + builders + serializers)
 │   ├── linked-list.ts    # ListNode, Node, create/clone/compare/stringify helpers
 │   ├── tree.ts           # TreeNode, BFS tree builder, clone, compare, serializer
-│   └── graph.ts          # GraphNode, adjacency list builder, clone, compare
+│   ├── graph.ts          # GraphNode, adjacency list builder, clone, compare
+│   └── heap.ts           # MinPriorityQueue, MaxPriorityQueue, PriorityQueue, MinHeap, MaxHeap
 ├── functions/            # Test framework entry point
 │   └── code-tester.ts    # runTests, runClassTests, TestCase, ClassTestCase types
 ├── utils/                # Internal test runner & CLI helper utilities
@@ -44,6 +45,7 @@ src/                      # Core infrastructure files
 playground/               # Sandbox directory for practice, testing, or quick scratchpads
 package.json              # Project scripts and dependency configuration
 tsconfig.json             # TypeScript path mappings (#functions/*, #ds/*, #utils/*, #templates/*)
+AGENTS.md                 # Framework instructions and configuration for AI agents
 ```
 
 ---
@@ -242,6 +244,23 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
    const tree = createBinaryTree([6, 2, 8, 0, 4])!;
    tree.find(2)  // returns the TreeNode with val=2 inside tree
    ```
+
+8. **Heaps & Priority Queues (`#ds/heap.js`)**:
+   Full LeetCode `@datastructures-js/priority-queue` compatibility with zero runtime dependencies:
+   - **LeetCode Classes**: `MinPriorityQueue`, `MaxPriorityQueue`, and `PriorityQueue`.
+   - **Supported Methods**: `.enqueue(val)`, `.dequeue()`, `.front()`, `.size()`, `.isEmpty()`, plus standard DSA aliases (`.push()`, `.pop()`, `.peek()`).
+   - **Custom Comparators & Priority Callbacks**:
+     ```typescript
+     import { MinPriorityQueue, MaxPriorityQueue, PriorityQueue } from "#ds/heap.js";
+
+     // Min/Max numbers
+     const minQ = new MinPriorityQueue();
+     const maxQ = new MaxPriorityQueue();
+
+     // Objects with custom priority callback (LeetCode style)
+     const pq = new MinPriorityQueue<{ val: number }>({ priority: (x) => x.val });
+     ```
+   - **NeetCode.io Compatibility**: Includes a compact copy-paste snippet in comments for environments without built-in priority queue support.
 
 ---
 

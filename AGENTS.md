@@ -34,6 +34,7 @@ import { runTests, runClassTests } from "#functions/code-tester.js";
 import { TreeNode, createBinaryTree } from "#ds/tree.js";
 import { ListNode, createLinkedList, createCyclicLinkedList } from "#ds/linked-list.js";
 import { GraphNode, createGraph } from "#ds/graph.js";
+import { MinPriorityQueue, MaxPriorityQueue, PriorityQueue, MinHeap, MaxHeap } from "#ds/heap.js";
 import { smartCompare, compareUnorderedArrays } from "#utils/compare.js";
 ```
 
@@ -87,14 +88,19 @@ runClassTests(MyClass, [
    * Floating-point tolerance: Automatically allows `1e-5` difference.
    * Unordered comparisons: Handles 1D and 2D arrays order-insensitively when `{ unordered: true }` or for recognized problems (3Sum, Group Anagrams, Subsets).
 
-2. **Automatic Input Isolation**:
+2. **Heap & PriorityQueue (`#ds/heap.js`)**:
+   * Fully matches LeetCode `@datastructures-js/priority-queue` (`MinPriorityQueue`, `MaxPriorityQueue`, `PriorityQueue`) with `.enqueue()`, `.dequeue()`, `.front()`, `.size()`, and `.isEmpty()`.
+   * Also supports standard DSA aliases (`.push()`, `.pop()`, `.peek()`).
+   * Includes a compact 20-line copy-paste snippet in comments for NeetCode.io submissions.
+
+3. **Automatic Input Isolation**:
    * All inputs are deep-cloned with `cloneValue()` before running each test case so in-place mutations (e.g., sorting `nums`, reversing linked list) do not corrupt subsequent test runs.
 
-3. **Rich Input Visualizers (on by default)**:
+4. **Rich Input Visualizers (on by default)**:
    * **Binary Trees**: Renders top-down ASCII tree with branch connectors. Supports subnode highlighting for LCA problems (`tree.find(val)`).
    * **2D Grids**: Box-drawing table visualizer (auto-detects Sudoku, chess, maze, binary grid, numeric matrix).
    * **Graphs**: Visualizes adjacency lists, raw adjacency maps, and edge lists with automatic directed/undirected detection.
    * **Linked Lists**: Arrow-linked chains (`1 → 2 → 3 → null`).
 
-4. **Console Output Capture**:
+5. **Console Output Capture**:
    * `console.log()` inside solution code is intercepted and formatted cleanly between the input visualizer and test results.
