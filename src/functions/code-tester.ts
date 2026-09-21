@@ -281,6 +281,48 @@ function renderResultBlock(
   }
 }
 
+function formatCompactArg(val: any, maxLen = 14): string {
+  if (val === undefined) return "undefined";
+  if (val === null) return "null";
+  if (typeof val === "string") {
+    const s = JSON.stringify(val);
+    return s.length > maxLen ? `${s.slice(0, maxLen - 1)}…"` : s;
+  }
+  if (Array.isArray(val)) {
+    if (val.length === 0) return "[]";
+    if (val.length > 3) return `[${val.length} items]`;
+    const inner = val.map((item) => (typeof item === "object" && item !== null ? "{…}" : JSON.stringify(item))).join(", ");
+    const full = `[${inner}]`;
+    return full.length > maxLen ? `[${val.length} items]` : full;
+  }
+  if (typeof val === "object") {
+    return "{…}";
+  }
+  return String(val);
+}
+
+function formatArgList(args: any[], maxTotalLen = 20): string {
+  if (!args || args.length === 0) return "";
+  const parts = args.map((a) => formatCompactArg(a, 10));
+  const joined = parts.join(", ");
+  if (joined.length <= maxTotalLen) return joined;
+  return joined.slice(0, maxTotalLen - 1) + "…";
+}
+
+function formatFullArgs(args: any[]): string {
+  if (!args || args.length === 0) return "";
+  return args
+    .map((a) => {
+      if (Array.isArray(a)) {
+        if (a.length <= 8) return `[${a.map((v) => JSON.stringify(v)).join(", ")}]`;
+        const preview = a.slice(0, 6).map((v) => JSON.stringify(v)).join(", ");
+        return `[${preview}, ... +${a.length - 6} more]`;
+      }
+      return JSON.stringify(a);
+    })
+    .join(", ");
+}
+
 /**
  * Renders the per-step trace table for a class design test case.
  */
@@ -290,33 +332,58 @@ function renderStepTable(
   expected: any[],
   actualOutputs: any[],
 ): void {
+  const ctorArgs = args[0] ?? [];
+  const ctorArgStr = formatFullArgs(ctorArgs);
+  const isCtorComplex = ctorArgs.some((a) => Array.isArray(a) || typeof a === "object") || ctorArgStr.length > 12;
+
+  if (isCtorComplex) {
+    console.log();
+    console.log(`  ${chalk.gray("Instance:")}  ${chalk.magenta(`new ${operations[0]}(${ctorArgStr})`)}`);
+  }
+
+  const MAX_COL_OP = 24;
+  const MAX_COL_VAL = 12;
   const COL_STEP = 5;
-  const COL_OP = Math.max(
-    16,
-    ...operations.map((op, i) => {
-      const argStr = args[i]?.length ? JSON.stringify(args[i]).slice(1, -1) : "";
-      return `${op}(${argStr})`.length + 2;
-    }),
+
+  const rawOpLabels = operations.map((op, i) => {
+    const isCtor = i === 0;
+    const opArgs = args[i] ?? [];
+    if (isCtor) {
+      if (isCtorComplex) {
+        return `${op}(…)`;
+      }
+      const argStr = formatArgList(opArgs, 14);
+      return `${op}(${argStr})`;
+    }
+    const argStr = formatArgList(opArgs, 14);
+    return `${op}(${argStr})`;
+  });
+
+  const COL_OP = Math.min(
+    MAX_COL_OP,
+    Math.max(14, ...rawOpLabels.map((l) => l.length + 2)),
   );
-  const COL_VAL = Math.max(
-    10,
-    ...expected.map((v) => (JSON.stringify(v) ?? "null").length + 2),
+  const COL_VAL = Math.min(
+    MAX_COL_VAL,
+    Math.max(8, ...expected.map((v) => (JSON.stringify(v) ?? "null").length + 2)),
   );
 
-  const pad = (s: string, n: number) => s.slice(0, n).padEnd(n);
-  const hr = chalk.gray("─".repeat(COL_STEP + COL_OP + COL_VAL + COL_VAL + 17));
+  const pad = (s: string, n: number) => {
+    if (s.length > n) return s.slice(0, n - 1) + "…";
+    return s.padEnd(n);
+  };
+  // Header: "  "(2) + Step(COL_STEP) + "  "(2) + Op(COL_OP) + "  "(2) + Exp(COL_VAL) + "  "(2) + Got(COL_VAL) + "  Status  "(2+6+2) symmetric trailing gap
+  const hr = chalk.gray("─".repeat(2 + COL_STEP + 2 + COL_OP + 2 + COL_VAL + 2 + COL_VAL + 2 + 6 + 2));
 
   console.log();
+  console.log(hr);
   console.log(
     "  " + chalk.gray(`${pad("Step", COL_STEP)}  ${pad("Operation", COL_OP)}  ${pad("Expected", COL_VAL)}  ${pad("Got", COL_VAL)}  Status`),
   );
   console.log(hr);
 
   for (let i = 0; i < operations.length; i++) {
-    const op = operations[i];
-    const opArgs = args[i] ?? [];
-    const argStr = opArgs.length ? JSON.stringify(opArgs).slice(1, -1) : "";
-    const opLabel = `${op}(${argStr})`;
+    const opLabel = rawOpLabels[i];
 
     const expVal = i < expected.length ? expected[i] : undefined;
     const gotVal = i < actualOutputs.length ? actualOutputs[i] : undefined;
@@ -328,7 +395,7 @@ function renderStepTable(
     const stepMatch = smartCompare(gotVal, expVal);
     const isFail = !isConstructor && !stepMatch;
 
-    const stepLabel = chalk.gray(`#${String(i + 1).padStart(2, "0")}  `);
+    const stepLabel = chalk.gray(`#${String(i + 1).padStart(2, "0")}`);
     const opColor = isConstructor ? chalk.magenta : chalk.white;
     const expColor = chalk.gray;
     const gotColor = isFail ? chalk.red : chalk.green;
@@ -338,8 +405,9 @@ function renderStepTable(
         ? chalk.red("✗ FAIL")
         : chalk.green("✓");
 
+    const stepPad = " ".repeat(Math.max(0, COL_STEP - 3)); // COL_STEP - len("#01")
     console.log(
-      `  ${stepLabel}${opColor(pad(opLabel, COL_OP))}  ${expColor(pad(expStr, COL_VAL))}  ${gotColor(pad(gotStr, COL_VAL))}  ${status}`,
+      `  ${stepLabel}${stepPad}  ${opColor(pad(opLabel, COL_OP))}  ${expColor(pad(expStr, COL_VAL))}  ${gotColor(pad(gotStr, COL_VAL))}  ${status}`,
     );
   }
 
