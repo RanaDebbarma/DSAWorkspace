@@ -7,6 +7,10 @@
  *
  * Provides both LeetCode methods (`enqueue`, `dequeue`, `front`, `size()`, `isEmpty()`)
  * and standard DSA aliases (`push`, `pop`, `peek`).
+ *
+ * Supports instantiation with an array / iterable in O(N) linear time (Floyd's algorithm):
+ *   - `new MinHeap([5, 3, 8, 1, 2])`
+ *   - `MinPriorityQueue.fromArray([5, 3, 8, 1, 2])`
  */
 
 export type PriorityQueueComparator<T> = (a: T, b: T) => number;
@@ -42,12 +46,64 @@ function resolveCompare<T>(
     : (a: any, b: any) => (a > b ? -1 : a < b ? 1 : 0);
 }
 
+function isIterable<T>(val: unknown): val is Iterable<T> {
+  return (
+    val != null &&
+    typeof (val as Record<string | symbol, unknown>)[Symbol.iterator] === "function"
+  );
+}
+
+function parseArgs<T>(
+  arg1?: PriorityQueueOptions<T> | Iterable<T>,
+  arg2?: PriorityQueueOptions<T> | Iterable<T>,
+): { options?: PriorityQueueOptions<T>; initialValues?: Iterable<T> } {
+  if (isIterable<T>(arg1)) {
+    return {
+      initialValues: arg1,
+      options: isIterable<T>(arg2)
+        ? undefined
+        : (arg2 as PriorityQueueOptions<T> | undefined),
+    };
+  }
+  return {
+    options: arg1 as PriorityQueueOptions<T> | undefined,
+    initialValues: isIterable<T>(arg2) ? (arg2 as Iterable<T>) : undefined,
+  };
+}
+
 export class PriorityQueue<T = number> {
   protected heap: T[] = [];
   protected compare: PriorityQueueComparator<T>;
 
-  constructor(options?: PriorityQueueOptions<T>) {
-    this.compare = resolveCompare(options, true);
+  constructor(options?: PriorityQueueOptions<T>, initialValues?: Iterable<T>);
+  constructor(initialValues?: Iterable<T>, options?: PriorityQueueOptions<T>);
+  /** @internal Subclass delegation overload */
+  constructor(
+    arg1?: PriorityQueueOptions<T> | Iterable<T>,
+    arg2?: PriorityQueueOptions<T> | Iterable<T>,
+    isMin?: boolean,
+  );
+  constructor(
+    arg1?: PriorityQueueOptions<T> | Iterable<T>,
+    arg2?: PriorityQueueOptions<T> | Iterable<T>,
+    isMin: boolean = true,
+  ) {
+    const { options, initialValues } = parseArgs<T>(arg1, arg2);
+    this.compare = resolveCompare(options, isMin);
+    if (initialValues) {
+      this.heap = Array.from(initialValues);
+      this.heapify();
+    }
+  }
+
+  /**
+   * Builds a PriorityQueue in O(N) linear time from an array or iterable.
+   */
+  static fromArray<T = number>(
+    values: Iterable<T>,
+    options?: PriorityQueueOptions<T>,
+  ): PriorityQueue<T> {
+    return new PriorityQueue<T>(values, options);
   }
 
   /** Number of elements in the queue. Supports both `size()` method and `.size` getter. */
@@ -108,7 +164,16 @@ export class PriorityQueue<T = number> {
     return [...this.heap];
   }
 
-  private bubbleUp(idx: number): void {
+  /**
+   * Reorganizes internal array into a valid heap in O(N) using Floyd's algorithm.
+   */
+  protected heapify(): void {
+    for (let i = (this.heap.length >> 1) - 1; i >= 0; i--) {
+      this.bubbleDown(i);
+    }
+  }
+
+  protected bubbleUp(idx: number): void {
     while (idx > 0) {
       const parent = (idx - 1) >> 1;
       if (this.compare(this.heap[idx], this.heap[parent]) < 0) {
@@ -123,7 +188,7 @@ export class PriorityQueue<T = number> {
     }
   }
 
-  private bubbleDown(idx: number): void {
+  protected bubbleDown(idx: number): void {
     const len = this.heap.length;
     while ((idx << 1) + 1 < len) {
       let best = (idx << 1) + 1;
@@ -148,9 +213,23 @@ export class PriorityQueue<T = number> {
  * Smaller values take priority.
  */
 export class MinPriorityQueue<T = number> extends PriorityQueue<T> {
-  constructor(options?: PriorityQueueOptions<T>) {
-    super();
-    this.compare = resolveCompare(options, true);
+  constructor(options?: PriorityQueueOptions<T>, initialValues?: Iterable<T>);
+  constructor(initialValues?: Iterable<T>, options?: PriorityQueueOptions<T>);
+  constructor(
+    arg1?: PriorityQueueOptions<T> | Iterable<T>,
+    arg2?: PriorityQueueOptions<T> | Iterable<T>,
+  ) {
+    super(arg1 as any, arg2 as any, true);
+  }
+
+  /**
+   * Builds a MinPriorityQueue in O(N) linear time from an array or iterable.
+   */
+  static override fromArray<T = number>(
+    values: Iterable<T>,
+    options?: PriorityQueueOptions<T>,
+  ): MinPriorityQueue<T> {
+    return new MinPriorityQueue<T>(values, options);
   }
 }
 
@@ -159,9 +238,23 @@ export class MinPriorityQueue<T = number> extends PriorityQueue<T> {
  * Larger values take priority.
  */
 export class MaxPriorityQueue<T = number> extends PriorityQueue<T> {
-  constructor(options?: PriorityQueueOptions<T>) {
-    super();
-    this.compare = resolveCompare(options, false);
+  constructor(options?: PriorityQueueOptions<T>, initialValues?: Iterable<T>);
+  constructor(initialValues?: Iterable<T>, options?: PriorityQueueOptions<T>);
+  constructor(
+    arg1?: PriorityQueueOptions<T> | Iterable<T>,
+    arg2?: PriorityQueueOptions<T> | Iterable<T>,
+  ) {
+    super(arg1 as any, arg2 as any, false);
+  }
+
+  /**
+   * Builds a MaxPriorityQueue in O(N) linear time from an array or iterable.
+   */
+  static override fromArray<T = number>(
+    values: Iterable<T>,
+    options?: PriorityQueueOptions<T>,
+  ): MaxPriorityQueue<T> {
+    return new MaxPriorityQueue<T>(values, options);
   }
 }
 
@@ -177,7 +270,9 @@ export const MaxHeap = MaxPriorityQueue;
 /*
 class Heap<T = number> {
   private h: T[] = [];
-  constructor(private c: (a: T, b: T) => number = (a: any, b: any) => a - b) {}
+  constructor(private c: (a: T, b: T) => number = (a: any, b: any) => a - b, init?: T[]) {
+    if (init) { this.h = [...init]; for (let i = (this.h.length >> 1) - 1; i >= 0; i--) this.down(i); }
+  }
   push(v: T) { this.h.push(v); this.up(this.h.length - 1); }
   pop(): T | undefined {
     if (!this.h.length) return undefined;
@@ -207,6 +302,6 @@ class Heap<T = number> {
 }
 
 // Optional
-// class MinHeap<T = number> extends Heap<T> { constructor() { super((a: any, b: any) => a - b); } }
-// class MaxHeap<T = number> extends Heap<T> { constructor() { super((a: any, b: any) => b - a); } }
+// class MinHeap<T = number> extends Heap<T> { constructor(init?: T[]) { super((a: any, b: any) => a - b, init); } }
+// class MaxHeap<T = number> extends Heap<T> { constructor(init?: T[]) { super((a: any, b: any) => b - a, init); } }
 */
