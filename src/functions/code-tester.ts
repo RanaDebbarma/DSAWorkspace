@@ -341,28 +341,27 @@ function renderStepTable(
     console.log(`  ${chalk.gray("Instance:")}  ${chalk.magenta(`new ${operations[0]}(${ctorArgStr})`)}`);
   }
 
-  const MAX_COL_OP = 24;
   const MAX_COL_VAL = 12;
   const COL_STEP = 5;
 
-  const rawOpLabels = operations.map((op, i) => {
-    const isCtor = i === 0;
-    const opArgs = args[i] ?? [];
-    if (isCtor) {
-      if (isCtorComplex) {
-        return `${op}(…)`;
-      }
-      const argStr = formatArgList(opArgs, 14);
-      return `${op}(${argStr})`;
-    }
-    const argStr = formatArgList(opArgs, 14);
-    return `${op}(${argStr})`;
+  // Build method labels first (full args, no truncation) to size the column
+  const methodOpLabels = operations.map((op, i) => {
+    if (i === 0) return "";
+    return `${op}(${formatFullArgs(args[i] ?? [])})`;
   });
 
-  const COL_OP = Math.min(
-    MAX_COL_OP,
-    Math.max(14, ...rawOpLabels.map((l) => l.length + 2)),
-  );
+  // COL_OP driven purely by method call labels (no cap) so they always show fully
+  const COL_OP = Math.max(14, ...methodOpLabels.slice(1).map((l) => l.length + 2));
+
+  // Build rawOpLabels: methods show fully; constructor shows full if it fits, else abbreviated
+  const ctorFullLabel = `${operations[0]}(${formatFullArgs(args[0] ?? [])})`;
+  const rawOpLabels = operations.map((op, i) => {
+    if (i === 0) {
+      if (!isCtorComplex || ctorFullLabel.length + 2 <= COL_OP) return ctorFullLabel;
+      return `${op}(…)`;
+    }
+    return `${op}(${formatFullArgs(args[i] ?? [])})`;
+  });
   const COL_VAL = Math.min(
     MAX_COL_VAL,
     Math.max(8, ...expected.map((v) => (JSON.stringify(v) ?? "null").length + 2)),
