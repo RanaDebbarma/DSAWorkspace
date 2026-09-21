@@ -171,10 +171,11 @@ export const MaxHeap = MaxPriorityQueue;
 
 // =============================================================================
 // 📋 COMPACT COPY-PASTE SNIPPET FOR NEETCODE.IO SUBMISSIONS (JS / TS)
+// Supports MinHeap, MaxHeap, or custom comparator Heap.
 // Select the code inside the block below — clean code with NO leading asterisks:
 // =============================================================================
 /*
-class MinHeap<T = number> {
+class Heap<T = number> {
   private h: T[] = [];
   constructor(private c: (a: T, b: T) => number = (a: any, b: any) => a - b) {}
   push(v: T) { this.h.push(v); this.up(this.h.length - 1); }
@@ -186,6 +187,7 @@ class MinHeap<T = number> {
   }
   peek(): T | undefined { return this.h[0]; }
   size(): number { return this.h.length; }
+  isEmpty(): boolean { return this.h.length === 0; }
   private up(i: number) {
     while (i > 0) {
       const p = (i - 1) >> 1;
@@ -203,4 +205,8 @@ class MinHeap<T = number> {
     }
   }
 }
+
+// Optional
+// class MinHeap<T = number> extends Heap<T> { constructor() { super((a: any, b: any) => a - b); } }
+// class MaxHeap<T = number> extends Heap<T> { constructor() { super((a: any, b: any) => b - a); } }
 */
