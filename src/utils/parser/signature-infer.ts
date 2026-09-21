@@ -1,9 +1,11 @@
-import { ParsedResult, StandardTestCase } from "./text-parser.js";
+import { ParsedResult, StandardTestCase, ClassTestCase } from "./text-parser.js";
 
 export interface SignatureInfo {
   paramsCode: string;
   returnType: string;
   defaultReturn: string;
+  className?: string;
+  classCode?: string;
 }
 
 /**
@@ -42,13 +44,124 @@ export function detectTemplateType(cases: ParsedResult[]): string {
 }
 
 /**
+ * Infer class constructor & method definitions from ClassTestCase objects.
+ */
+export function inferClassSignature(parsedCases: ParsedResult[]): SignatureInfo {
+  const classCases: ClassTestCase[] = parsedCases.map((c) => {
+    if (c.type === "class") return c as ClassTestCase;
+    const st = c as StandardTestCase;
+    return {
+      type: "class",
+      operations: st.input[0] || [],
+      args: st.input[1] || [],
+      expected: Array.isArray(st.output) ? st.output : [],
+    };
+  });
+
+  if (classCases.length === 0) {
+    return {
+      paramsCode: "",
+      returnType: "void",
+      defaultReturn: "",
+      className: "Solution",
+      classCode: `  // Implement class here...
+  push(val: number): void {}
+  pop(): void {}
+  top(): number { return 0; }
+  getMin(): number { return 0; }`,
+    };
+  }
+
+  const first = classCases[0];
+  const className = first.operations[0] || "Solution";
+
+  // Constructor parameters
+  const ctorArgs = first.args[0] || [];
+  const ctorParamStrs = ctorArgs.map((arg, i) => {
+    const t = inferTsType(arg);
+    let name = `arg${i + 1}`;
+    if (t.endsWith("[]")) name = "nums";
+    else if (t === "number" && ctorArgs.length === 1) name = "capacity";
+    else if (t === "number" && i === 0 && ctorArgs.length === 2 && inferTsType(ctorArgs[1]).endsWith("[]")) name = "k";
+    else if (t === "string") name = "val";
+    else if (t === "number") name = "val";
+    return `${name}: ${t}`;
+  });
+
+  const methodsMap = new Map<string, { paramTypes: string[]; returnType: string }>();
+
+  for (const c of classCases) {
+    for (let i = 1; i < c.operations.length; i++) {
+      const op = c.operations[i];
+      if (op === className) continue;
+      const opArgs = c.args[i] || [];
+      const opExp = c.expected[i];
+
+      const existing = methodsMap.get(op);
+      const retType = opExp === null || opExp === undefined ? "void" : inferTsType(opExp);
+
+      if (!existing) {
+        methodsMap.set(op, {
+          paramTypes: opArgs.map(inferTsType),
+          returnType: retType,
+        });
+      } else if (existing.returnType === "void" && retType !== "void") {
+        existing.returnType = retType;
+      }
+    }
+  }
+
+  const lines: string[] = [];
+  lines.push("  // Implement class here...");
+  if (ctorParamStrs.length > 0) {
+    lines.push(`  constructor(${ctorParamStrs.join(", ")}) {}`);
+  }
+
+  for (const [op, { paramTypes, returnType }] of methodsMap.entries()) {
+    const paramStrs = paramTypes.map((t, idx) => {
+      let pName = `arg${idx + 1}`;
+      if (op === "get" && idx === 0) pName = "key";
+      else if (op === "put" && idx === 0) pName = "key";
+      else if (op === "put" && idx === 1) pName = "value";
+      else if ((op === "push" || op === "add") && idx === 0) pName = "val";
+      else if ((op === "insert" || op === "search") && idx === 0) pName = "word";
+      else if (op === "startsWith" && idx === 0) pName = "prefix";
+      else if (paramTypes.length === 1 && t === "number") pName = "val";
+      else if (t.endsWith("[]")) pName = "nums";
+      return `${pName}: ${t}`;
+    });
+
+    let defRet = "";
+    if (returnType === "number") defRet = " return 0;";
+    else if (returnType === "boolean") defRet = " return false;";
+    else if (returnType === "string") defRet = ' return "";';
+    else if (returnType.endsWith("[]")) defRet = " return [];";
+
+    const body = defRet ? `${defRet} ` : "";
+    lines.push(`  ${op}(${paramStrs.join(", ")}): ${returnType} {${body}}`);
+  }
+
+  return {
+    paramsCode: ctorParamStrs.join(", "),
+    returnType: "void",
+    defaultReturn: "",
+    className,
+    classCode: lines.join("\n"),
+  };
+}
+
+/**
  * Infer complete function signature (params, return type, default return value)
- * taking into account template context (e.g. "binary-tree", "linked-list", "graph").
+ * taking into account template context (e.g. "binary-tree", "linked-list", "graph", "class-design").
  */
 export function inferFunctionSignature(
   parsedCases: ParsedResult[],
   template?: string
 ): SignatureInfo {
+  if (parsedCases.length > 0 && (parsedCases[0].type === "class" || template === "class-design")) {
+    return inferClassSignature(parsedCases);
+  }
+
   if (parsedCases.length === 0 || parsedCases[0].type !== "standard") {
     if (template === "binary-tree") {
       return { paramsCode: "root: TreeNode | null", returnType: "TreeNode | null", defaultReturn: "root" };
@@ -61,6 +174,7 @@ export function inferFunctionSignature(
     }
     return { paramsCode: "nums: number[]", returnType: "number", defaultReturn: "0" };
   }
+
 
   const firstCase = parsedCases[0] as StandardTestCase;
 

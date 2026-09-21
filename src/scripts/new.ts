@@ -179,10 +179,35 @@ async function main() {
     }
   }
 
-  // ── Derive function name & prompt for custom override ───────────────────
-  const defaultFnName = toCamelCase(rawName) || "solution";
+  // ── Check Clipboard for testcases & infer signature/template ────────────
+  let clipboardCasesStr: string | undefined = undefined;
+  let sig: SignatureInfo | undefined = undefined;
+  let inferredTemplateType: string | undefined = undefined;
+
+  const rawClipboard = readClipboard();
+  if (rawClipboard.trim()) {
+    const parsed = parseLeetCodeText(rawClipboard);
+    if (parsed.length > 0) {
+      inferredTemplateType = detectTemplateType(parsed);
+      clipboardCasesStr = formatParsedCasesForTs(parsed, inferredTemplateType);
+      sig = inferFunctionSignature(parsed, inferredTemplateType);
+      if (inferredTemplateType === "class-design") {
+        p.log.info(
+          `✔ Auto-filled ${parsed.length} class testcase(s) for ${sig.className || "Class"}`
+        );
+      } else {
+        p.log.info(
+          `✔ Auto-filled ${parsed.length} testcase(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`
+        );
+      }
+    }
+  }
+
+  // ── Derive function/class name & prompt for custom override ──────────────
+  const defaultFnName = (inferredTemplateType === "class-design" && sig?.className) ? sig.className : (toCamelCase(rawName) || "solution");
+  const namePromptMsg = inferredTemplateType === "class-design" ? "Class name (optional)" : "Function name (optional)";
   const fnNameInput = await p.text({
-    message: "Function name (optional)",
+    message: namePromptMsg,
     placeholder: defaultFnName,
     initialValue: "",
   });
@@ -198,23 +223,6 @@ async function main() {
   if (p.isCancel(lcNumberInput)) { p.cancel("Cancelled."); process.exit(0); }
   const lcNumber = (lcNumberInput as string).trim();
 
-  // ── Check Clipboard for testcases & infer signature/template ────────────
-  let clipboardCasesStr: string | undefined = undefined;
-  let sig: SignatureInfo | undefined = undefined;
-  let inferredTemplateType: string | undefined = undefined;
-
-  const rawClipboard = readClipboard();
-  if (rawClipboard.trim()) {
-    const parsed = parseLeetCodeText(rawClipboard);
-    if (parsed.length > 0) {
-      inferredTemplateType = detectTemplateType(parsed);
-      clipboardCasesStr = formatParsedCasesForTs(parsed, inferredTemplateType);
-      sig = inferFunctionSignature(parsed, inferredTemplateType);
-      p.log.info(
-        `✔ Auto-filled ${parsed.length} testcase(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`
-      );
-    }
-  }
 
   // ── Template selection ───────────────────────────────────────────────────
   const templateChoice = await p.select({

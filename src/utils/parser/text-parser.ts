@@ -115,71 +115,179 @@ export function extractTopLevelJsonArrays(text: string): any[] {
 }
 
 /**
+ * Parses a single block (e.g. within an "Example N:" block) into a ClassTestCase if it matches.
+ */
+export function tryParseClassBlock(block: string): ClassTestCase | null {
+  const inputIndex = block.search(/Input\s*:?/i);
+  const outputIndex = block.search(/Output\s*:?/i);
+
+  if (inputIndex === -1 || outputIndex === -1 || inputIndex >= outputIndex) {
+    return null;
+  }
+
+  const inputSegment = block.slice(inputIndex, outputIndex).replace(/Input\s*:?/i, "").trim();
+  let outputSegment = block.slice(outputIndex).replace(/Output\s*:?/i, "");
+  const explanationIndex = outputSegment.search(/Explanation\s*:?/i);
+  if (explanationIndex !== -1) {
+    outputSegment = outputSegment.slice(0, explanationIndex);
+  }
+  outputSegment = outputSegment.trim();
+
+  const inputArrays = extractTopLevelJsonArrays(inputSegment);
+  const outputVal = parseOutputSegment(outputSegment);
+
+  if (inputArrays.length >= 2 && Array.isArray(outputVal)) {
+    const ops = inputArrays[0];
+    const args = inputArrays[1];
+    const expected = outputVal;
+
+    if (
+      Array.isArray(ops) &&
+      ops.length > 0 &&
+      ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
+      Array.isArray(args) &&
+      args.length === ops.length &&
+      args.every((a) => Array.isArray(a)) &&
+      Array.isArray(expected) &&
+      expected.length === ops.length &&
+      (expected[0] === null || expected[0] === undefined)
+    ) {
+      return {
+        type: "class",
+        operations: ops,
+        args: args,
+        expected: expected,
+      };
+    }
+  }
+
+  if (inputArrays.length === 1 && Array.isArray(outputVal)) {
+    return parseInterleavedClassDesign(inputArrays[0], outputVal);
+  }
+
+  return null;
+}
+
+/**
  * Main parser function handling both Standard problems and Class Design problems.
  */
 export function parseLeetCodeText(text: string): ParsedResult[] {
   const cleanText = text.replace(/\r\n/g, "\n");
 
-  if (cleanText.includes('["') || cleanText.includes("['")) {
-    const classResult = tryParseClassDesign(cleanText);
-    if (classResult) return [classResult];
+  const classResults = tryParseClassDesign(cleanText);
+  if (classResults && classResults.length > 0) {
+    return classResults;
   }
 
-  return parseStandardTestCases(cleanText);
+  const standardResults = parseStandardTestCases(cleanText);
+
+  // Safety net: check if standardResults were actually class design cases
+  const convertedClassResults: ClassTestCase[] = [];
+  for (const st of standardResults) {
+    if (
+      st.input.length === 2 &&
+      Array.isArray(st.input[0]) &&
+      st.input[0].length > 0 &&
+      st.input[0].every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
+      Array.isArray(st.input[1]) &&
+      st.input[1].length === st.input[0].length &&
+      st.input[1].every((arg) => Array.isArray(arg)) &&
+      Array.isArray(st.output) &&
+      st.output.length === st.input[0].length &&
+      (st.output[0] === null || st.output[0] === undefined)
+    ) {
+      convertedClassResults.push({
+        type: "class",
+        operations: st.input[0],
+        args: st.input[1],
+        expected: st.output,
+      });
+    }
+  }
+
+  if (convertedClassResults.length === standardResults.length && convertedClassResults.length > 0) {
+    return convertedClassResults;
+  }
+
+  return standardResults;
 }
 
 /**
- * Parses Class Design testcases (e.g. MinStack, LRUCache, Trie)
+ * Parses Class Design testcases (e.g. MinStack, LRUCache, Trie, KthLargest)
+ * Supports multiple examples, raw JSON array triples, and NeetCode interleaved format.
  */
-export function tryParseClassDesign(text: string): ClassTestCase | null {
-  if (/(?:^|\s|,|\n)[a-zA-Z_$][a-zA-Z0-9_$]*\s*=/g.test(text)) {
-    return null;
+export function tryParseClassDesign(text: string): ClassTestCase[] | null {
+  // 1. Try splitting into Example blocks
+  const exampleBlocks = text.split(/(?:Example\s+\d+:?)/i).filter((b) => b.trim());
+  if (exampleBlocks.length > 0) {
+    const blockResults: ClassTestCase[] = [];
+    for (const block of exampleBlocks) {
+      const res = tryParseClassBlock(block);
+      if (res) blockResults.push(res);
+    }
+    if (blockResults.length > 0) return blockResults;
   }
 
-  const topArrays = extractTopLevelJsonArrays(text);
-  if (topArrays.length < 2) return null;
+  // 2. Try parsing single text block with Input/Output
+  const single = tryParseClassBlock(text);
+  if (single) return [single];
 
-  // 1. Standard 3-array format: [ops, args, expected]
-  if (topArrays.length >= 3) {
-    for (let i = 0; i <= topArrays.length - 3; i++) {
+  // 3. Raw arrays without Input/Output headers
+  const topArrays = extractTopLevelJsonArrays(text);
+  if (topArrays.length >= 2) {
+    // Check 3-array triples: [ops, args, expected]
+    let i = 0;
+    const tripleResults: ClassTestCase[] = [];
+    while (i <= topArrays.length - 3) {
       const ops = topArrays[i];
       const args = topArrays[i + 1];
       const expected = topArrays[i + 2];
-
       if (
         Array.isArray(ops) &&
         ops.length > 0 &&
         ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
         Array.isArray(args) &&
         args.length === ops.length &&
-        args.every((arg) => Array.isArray(arg)) &&
+        args.every((a) => Array.isArray(a)) &&
         Array.isArray(expected) &&
-        expected.length === ops.length
+        expected.length === ops.length &&
+        (expected[0] === null || expected[0] === undefined)
       ) {
-        return {
+        tripleResults.push({
           type: "class",
           operations: ops,
           args: args,
           expected: expected,
-        };
+        });
+        i += 3;
+      } else {
+        break;
       }
     }
-  }
+    if (tripleResults.length > 0) return tripleResults;
 
-  // 2. Interleaved / single-input array format (NeetCode format): [flatInput, expected]
-  for (let i = 0; i <= topArrays.length - 2; i++) {
-    const flatInput = topArrays[i];
-    const expected = topArrays[i + 1];
-
-    if (
-      Array.isArray(flatInput) &&
-      Array.isArray(expected) &&
-      expected.length > 0 &&
-      (expected[0] === null || expected[0] === undefined)
-    ) {
-      const parsed = parseInterleavedClassDesign(flatInput, expected);
-      if (parsed) return parsed;
+    // Check 2-array interleaved pairs: [flatInput, expected]
+    let j = 0;
+    const pairResults: ClassTestCase[] = [];
+    while (j <= topArrays.length - 2) {
+      const flatInput = topArrays[j];
+      const expected = topArrays[j + 1];
+      if (
+        Array.isArray(flatInput) &&
+        Array.isArray(expected) &&
+        expected.length > 0 &&
+        (expected[0] === null || expected[0] === undefined)
+      ) {
+        const parsed = parseInterleavedClassDesign(flatInput, expected);
+        if (parsed) {
+          pairResults.push(parsed);
+          j += 2;
+          continue;
+        }
+      }
+      break;
     }
+    if (pairResults.length > 0) return pairResults;
   }
 
   return null;

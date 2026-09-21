@@ -37,14 +37,29 @@ export function stringifyTsValue(val: any, inline = true): string {
 export function formatParsedCasesForTs(cases: ParsedResult[], template?: string): string {
   if (cases.length === 0) return "";
 
-  if (cases[0].type === "class") {
-    const c = cases[0] as ClassTestCase;
-    return `{
-  operations: ${stringifyTsValue(c.operations)},
-  args: ${stringifyTsValue(c.args)},
-  expected: ${stringifyTsValue(c.expected)},
-},`;
+  if (cases[0].type === "class" || template === "class-design") {
+    const classCases: ClassTestCase[] = cases.map((c) => {
+      if (c.type === "class") return c as ClassTestCase;
+      const st = c as StandardTestCase;
+      return {
+        type: "class",
+        operations: st.input[0] || [],
+        args: st.input[1] || [],
+        expected: Array.isArray(st.output) ? st.output : [],
+      };
+    });
+
+    return classCases
+      .map((c) => {
+        return `  {
+    operations: ${stringifyTsValue(c.operations)},
+    args: ${stringifyTsValue(c.args)},
+    expected: ${stringifyTsValue(c.expected)},
+  },`;
+      })
+      .join("\n");
   }
+
 
   const stdCases = cases as StandardTestCase[];
   const formatted = stdCases.map((c) => {

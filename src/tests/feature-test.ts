@@ -444,5 +444,58 @@ console.log(chalk.gray("Rendered N-Queens Board (4x4 string[]):"));
 console.log(matrixToString(nQueensBoard));
 console.log();
 
+// =============================================================================
+// § 13 — MULTI-EXAMPLE LEETCODE CLASS DESIGN PARSER (WITH EXPLANATION)
+// =============================================================================
+section(13, "Multi-Example LeetCode Class Design Parser (with Explanation)");
 
+const lcClassClipboard = `
+Example 1:
 
+Input:
+["KthLargest", "add", "add", "add", "add", "add"]
+[[3, [4, 5, 8, 2]], [3], [5], [10], [9], [4]]
+
+Output: [null, 4, 5, 5, 8, 8]
+
+Explanation:
+
+KthLargest kthLargest = new KthLargest(3, [4, 5, 8, 2]);
+kthLargest.add(3); // return 4
+kthLargest.add(5); // return 5
+kthLargest.add(10); // return 5
+kthLargest.add(9); // return 8
+kthLargest.add(4); // return 8
+
+Example 2:
+
+Input:
+["KthLargest", "add", "add", "add", "add"]
+[[4, [7, 7, 7, 7, 8, 3]], [2], [10], [9], [9]]
+
+Output: [null, 7, 7, 7, 8]
+
+Explanation:
+
+KthLargest kthLargest = new KthLargest(4, [7, 7, 7, 8, 3]);
+kthLargest.add(2); // return 7
+kthLargest.add(10); // return 7
+kthLargest.add(9); // return 7
+kthLargest.add(9); // return 8
+`;
+
+const parsedLcClass = parseLeetCodeText(lcClassClipboard);
+if (
+  parsedLcClass.length === 2 &&
+  parsedLcClass[0].type === "class" &&
+  parsedLcClass[0].operations[0] === "KthLargest" &&
+  parsedLcClass[0].operations.length === 6 &&
+  parsedLcClass[1].type === "class" &&
+  parsedLcClass[1].operations.length === 5 &&
+  Array.isArray(parsedLcClass[0].args[0]) &&
+  parsedLcClass[0].args[0][0] === 3
+) {
+  console.log(chalk.green("✔ Multi-example LeetCode class design input successfully parsed into ClassTestCases!"));
+} else {
+  console.log(chalk.red("❌ Failed to parse multi-example LeetCode class design input:"), parsedLcClass);
+}

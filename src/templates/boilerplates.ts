@@ -166,10 +166,17 @@ ${cases}
 export function getClassDesignTemplate(
   fnName: string,
   initialCases?: string,
-  _sig?: SignatureInfo,
+  sig?: SignatureInfo,
   lcNumber?: string | number
 ): string {
-  const className = fnName.charAt(0).toUpperCase() + fnName.slice(1);
+  const className = sig?.className || fnName.charAt(0).toUpperCase() + fnName.slice(1);
+  const classBody =
+    sig?.classCode ||
+    `  // Implement class here...
+  push(val: number): void {}
+  pop(): void {}
+  top(): number { return 0; }
+  getMin(): number { return 0; }`;
   const cases =
     initialCases ||
     `  {
@@ -182,11 +189,7 @@ export function getClassDesignTemplate(
   return `import { runClassTests } from "#functions/code-tester.js";
 
 ${comment}class ${className} {
-  // Implement class here...
-  push(val: number): void {}
-  pop(): void {}
-  top(): number { return 0; }
-  getMin(): number { return 0; }
+${classBody}
 }
 
 runClassTests(${className}, [

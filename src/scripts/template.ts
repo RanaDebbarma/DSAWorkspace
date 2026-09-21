@@ -91,24 +91,6 @@ async function main() {
     }
   }
 
-  // ── Derive function name & prompt for custom override ───────────────────
-  const fnNameInput = await p.text({
-    message: "Function name (optional)",
-    placeholder: defaultFnName,
-    initialValue: "",
-  });
-  if (p.isCancel(fnNameInput)) { p.cancel("Cancelled."); process.exit(0); }
-  const fnName = (fnNameInput as string).trim() || defaultFnName;
-
-  // ── Optional LeetCode problem number ────────────────────────────────────
-  const lcNumberInput = await p.text({
-    message: "LeetCode question number (optional)",
-    placeholder: existingLcNumber ? `current: ${existingLcNumber}` : "e.g. 297 (leave blank for none)",
-    initialValue: existingLcNumber,
-  });
-  if (p.isCancel(lcNumberInput)) { p.cancel("Cancelled."); process.exit(0); }
-  const lcNumber = (lcNumberInput as string).trim();
-
   // ── Check Clipboard for testcases & infer signature ──────────────────────
   let clipboardCasesStr: string | undefined = undefined;
   let sig: SignatureInfo | undefined = undefined;
@@ -121,11 +103,38 @@ async function main() {
       inferredTemplateType = detectTemplateType(parsed);
       clipboardCasesStr = formatParsedCasesForTs(parsed, inferredTemplateType);
       sig = inferFunctionSignature(parsed, inferredTemplateType);
-      p.log.info(
-        `✔ Auto-filled ${parsed.length} testcase(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`
-      );
+      if (inferredTemplateType === "class-design") {
+        p.log.info(
+          `✔ Auto-filled ${parsed.length} class testcase(s) for ${sig.className || "Class"}`
+        );
+      } else {
+        p.log.info(
+          `✔ Auto-filled ${parsed.length} testcase(s) & inferred signature (${sig.paramsCode}): ${sig.returnType}`
+        );
+      }
     }
   }
+
+  // ── Derive function/class name & prompt for custom override ──────────────
+  const resolvedDefaultName = (inferredTemplateType === "class-design" && sig?.className) ? sig.className : defaultFnName;
+  const namePromptMsg = inferredTemplateType === "class-design" ? "Class name (optional)" : "Function name (optional)";
+  const fnNameInput = await p.text({
+    message: namePromptMsg,
+    placeholder: resolvedDefaultName,
+    initialValue: "",
+  });
+  if (p.isCancel(fnNameInput)) { p.cancel("Cancelled."); process.exit(0); }
+  const fnName = (fnNameInput as string).trim() || resolvedDefaultName;
+
+  // ── Optional LeetCode problem number ────────────────────────────────────
+  const lcNumberInput = await p.text({
+    message: "LeetCode question number (optional)",
+    placeholder: existingLcNumber ? `current: ${existingLcNumber}` : "e.g. 297 (leave blank for none)",
+    initialValue: existingLcNumber,
+  });
+  if (p.isCancel(lcNumberInput)) { p.cancel("Cancelled."); process.exit(0); }
+  const lcNumber = (lcNumberInput as string).trim();
+
 
   // ── Template selection ───────────────────────────────────────────────────
   const templateChoice = await p.select({
