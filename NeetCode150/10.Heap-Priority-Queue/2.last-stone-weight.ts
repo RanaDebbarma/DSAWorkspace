@@ -4,7 +4,17 @@ import { runTests } from "#functions/code-tester.js";
 
 class Heap<T = number> {
   private h: T[] = [];
-  constructor(private c: (a: T, b: T) => number) {}
+  constructor(
+    init?: Iterable<T>,
+    private c: (a: T, b: T) => number = (a: any, b: any) => a - b,
+  ) {
+    if (init) {
+      this.h = [...init];
+      for (let i = (this.h.length >> 1) - 1; i >= 0; i--) {
+        this.down(i);
+      }
+    }
+  }
   push(v: T) {
     this.h.push(v);
     this.up(this.h.length - 1);
@@ -28,11 +38,14 @@ class Heap<T = number> {
   isEmpty(): boolean {
     return this.h.length === 0;
   }
+  private swap(first: number, second: number) {
+    [this.h[first], this.h[second]] = [this.h[second], this.h[first]];
+  }
   private up(i: number) {
     while (i > 0) {
       const p = (i - 1) >> 1;
       if (this.c(this.h[i], this.h[p]) < 0) {
-        [this.h[i], this.h[p]] = [this.h[p], this.h[i]];
+        this.swap(i, p);
         i = p;
       } else break;
     }
@@ -44,7 +57,7 @@ class Heap<T = number> {
         r = b + 1;
       if (r < n && this.c(this.h[r], this.h[b]) < 0) b = r;
       if (this.c(this.h[b], this.h[i]) < 0) {
-        [this.h[i], this.h[b]] = [this.h[b], this.h[i]];
+        this.swap(i, b);
         i = b;
       } else break;
     }
@@ -52,11 +65,7 @@ class Heap<T = number> {
 }
 
 function lastStoneWeight(stones: number[]): number {
-  const maxHeap = new Heap((a, b) => b - a);
-
-  for (const stone of stones) {
-    maxHeap.push(stone);
-  }
+  const maxHeap = new Heap(stones, (a, b) => b - a);
 
   while (maxHeap.size() > 1) {
     const x = maxHeap.pop()!;
