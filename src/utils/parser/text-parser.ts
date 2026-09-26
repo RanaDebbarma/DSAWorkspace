@@ -1,8 +1,35 @@
+/**
+ * text-parser.ts — Entry point for the LeetCode/NeetCode test-case parser.
+ *
+ * This file wires together the sub-modules and provides the public API:
+ *   parseLeetCodeText        — main parser (auto-detects Standard vs Class Design)
+ *   parseStandardTestCases   — Standard problem parser
+ *   parseOutputSegment       — output-segment value extractor
+ *   extractParamsAndInputs   — input-segment param extractor
+ *   readClipboard            — Windows clipboard reader
+ *
+ * Low-level helpers live in sibling files:
+ *   types.ts       — shared interfaces (ParamInfo, StandardTestCase, ClassTestCase, …)
+ *   json-repair.ts — repairJson, convertArgValue, parseValue, extractTopLevelJsonArrays
+ *   class-parser.ts — tryParseClassDesign, tryParseClassBlock, parseInterleavedClassDesign
+ */
+
 import { execSync } from "node:child_process";
 
-/**
- * Reads text from system clipboard via PowerShell on Windows.
- */
+// Re-export everything so existing imports from "text-parser.js" keep working.
+export type { ParamInfo, StandardTestCase, ClassTestCase, ParsedResult } from "./types.js";
+export { repairJson, convertArgValue, parseValue, extractTopLevelJsonArrays } from "./json-repair.js";
+export { tryParseClassDesign, tryParseClassBlock, parseInterleavedClassDesign } from "./class-parser.js";
+
+import type { ParsedResult, StandardTestCase, ClassTestCase, ParamInfo } from "./types.js";
+import { parseValue, extractTopLevelJsonArrays } from "./json-repair.js";
+import { tryParseClassDesign } from "./class-parser.js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clipboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Reads text from the system clipboard via PowerShell on Windows. */
 export function readClipboard(): string {
   try {
     return execSync("powershell -command Get-Clipboard", { encoding: "utf-8" });
@@ -11,480 +38,70 @@ export function readClipboard(): string {
   }
 }
 
-export interface ParamInfo {
-  name: string;
-  value: any;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Output segment
+// ─────────────────────────────────────────────────────────────────────────────
 
-export interface StandardTestCase {
-  type: "standard";
-  params: ParamInfo[];
-  input: any[];
-  output: any;
-}
-
-export interface ClassTestCase {
-  type: "class";
-  operations: string[];
-  args: any[][];
-  expected: any[];
-}
-
-export type ParsedResult = StandardTestCase | ClassTestCase;
-
-// Safe JS/JSON evaluator for types
-export function parseValue(str: string): any {
-  const trimmed = str.trim();
+export function parseOutputSegment(outputSegment: string): any {
+  const trimmed = outputSegment.trim();
   if (!trimmed) return undefined;
 
+  // Try strict JSON
+  try { return JSON.parse(trimmed); } catch {}
+
+  // Try Python-literal replacement
+  const pythonFixed = trimmed
+    .replace(/'/g, '"')
+    .replace(/\bNone\b/g, "null")
+    .replace(/\bTrue\b/g, "true")
+    .replace(/\bFalse\b/g, "false")
+    .replace(/\bundefined\b/g, "null");
+  try { return JSON.parse(pythonFixed); } catch {}
+
+  // Try first line only (some problems have trailing notes)
+  const firstLine = trimmed.split("\n")[0].trim();
+  try { return JSON.parse(firstLine); } catch {}
   try {
-    return JSON.parse(trimmed);
-  } catch {
-    try {
-      const jsonCompatible = trimmed
+    return JSON.parse(
+      firstLine
         .replace(/'/g, '"')
         .replace(/\bNone\b/g, "null")
         .replace(/\bTrue\b/g, "true")
         .replace(/\bFalse\b/g, "false")
-        .replace(/\bundefined\b/g, "null");
-      return JSON.parse(jsonCompatible);
-    } catch {
-      return trimmed;
-    }
-  }
+        .replace(/\bundefined\b/g, "null"),
+    );
+  } catch {}
+
+  // Scan for the first JSON array in the segment
+  const topArrays = extractTopLevelJsonArrays(trimmed);
+  if (topArrays.length > 0) return topArrays[0];
+
+  return parseValue(firstLine) ?? parseValue(trimmed);
 }
 
-/**
- * Extracts top-level JSON arrays from text by tracking bracket depth and string escaping.
- */
-export function extractTopLevelJsonArrays(text: string): any[] {
-  const results: any[] = [];
-  let i = 0;
-  while (i < text.length) {
-    if (text[i] === "[") {
-      let depth = 0;
-      let inString = false;
-      let stringChar = "";
-      let escaped = false;
-      let j = i;
+// ─────────────────────────────────────────────────────────────────────────────
+// Input segment — param extraction
+// ─────────────────────────────────────────────────────────────────────────────
 
-      for (; j < text.length; j++) {
-        const char = text[j];
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (char === "\\") {
-          escaped = true;
-          continue;
-        }
-        if (inString) {
-          if (char === stringChar) {
-            inString = false;
-          }
-          continue;
-        }
-        if (char === '"' || char === "'") {
-          inString = true;
-          stringChar = char;
-          continue;
-        }
-        if (char === "[") {
-          depth++;
-        } else if (char === "]") {
-          depth--;
-          if (depth === 0) {
-            const candidate = text.slice(i, j + 1);
-            const val = parseValue(candidate);
-            if (Array.isArray(val)) {
-              results.push(val);
-              i = j + 1;
-              break;
-            }
-          }
-        }
-      }
-      if (j >= text.length) {
-        i++;
-      }
-    } else {
-      i++;
-    }
-  }
-  return results;
-}
-
-/**
- * Parses a single block (e.g. within an "Example N:" block) into a ClassTestCase if it matches.
- */
-export function tryParseClassBlock(block: string): ClassTestCase | null {
-  const inputIndex = block.search(/Input\s*:?/i);
-  const outputIndex = block.search(/Output\s*:?/i);
-
-  if (inputIndex === -1 || outputIndex === -1 || inputIndex >= outputIndex) {
-    return null;
-  }
-
-  const inputSegment = block.slice(inputIndex, outputIndex).replace(/Input\s*:?/i, "").trim();
-  let outputSegment = block.slice(outputIndex).replace(/Output\s*:?/i, "");
-  const explanationIndex = outputSegment.search(/Explanation\s*:?/i);
-  if (explanationIndex !== -1) {
-    outputSegment = outputSegment.slice(0, explanationIndex);
-  }
-  outputSegment = outputSegment.trim();
-
-  const inputArrays = extractTopLevelJsonArrays(inputSegment);
-  const outputVal = parseOutputSegment(outputSegment);
-
-  if (inputArrays.length >= 2 && Array.isArray(outputVal)) {
-    const ops = inputArrays[0];
-    const args = inputArrays[1];
-    const expected = outputVal;
-
-    if (
-      Array.isArray(ops) &&
-      ops.length > 0 &&
-      ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
-      Array.isArray(args) &&
-      args.length === ops.length &&
-      args.every((a) => Array.isArray(a)) &&
-      Array.isArray(expected) &&
-      expected.length === ops.length &&
-      (expected[0] === null || expected[0] === undefined)
-    ) {
-      return {
-        type: "class",
-        operations: ops,
-        args: args,
-        expected: expected,
-      };
-    }
-  }
-
-  if (inputArrays.length === 1 && Array.isArray(outputVal)) {
-    return parseInterleavedClassDesign(inputArrays[0], outputVal);
-  }
-
-  return null;
-}
-
-/**
- * Main parser function handling both Standard problems and Class Design problems.
- */
-export function parseLeetCodeText(text: string): ParsedResult[] {
-  const cleanText = text.replace(/\r\n/g, "\n");
-
-  const classResults = tryParseClassDesign(cleanText);
-  if (classResults && classResults.length > 0) {
-    return classResults;
-  }
-
-  const standardResults = parseStandardTestCases(cleanText);
-
-  // Safety net: check if standardResults were actually class design cases
-  const convertedClassResults: ClassTestCase[] = [];
-  for (const st of standardResults) {
-    if (
-      st.input.length === 2 &&
-      Array.isArray(st.input[0]) &&
-      st.input[0].length > 0 &&
-      st.input[0].every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
-      Array.isArray(st.input[1]) &&
-      st.input[1].length === st.input[0].length &&
-      st.input[1].every((arg) => Array.isArray(arg)) &&
-      Array.isArray(st.output) &&
-      st.output.length === st.input[0].length &&
-      (st.output[0] === null || st.output[0] === undefined)
-    ) {
-      convertedClassResults.push({
-        type: "class",
-        operations: st.input[0],
-        args: st.input[1],
-        expected: st.output,
-      });
-    }
-  }
-
-  if (convertedClassResults.length === standardResults.length && convertedClassResults.length > 0) {
-    return convertedClassResults;
-  }
-
-  return standardResults;
-}
-
-/**
- * Parses Class Design testcases (e.g. MinStack, LRUCache, Trie, KthLargest)
- * Supports multiple examples, raw JSON array triples, and NeetCode interleaved format.
- */
-export function tryParseClassDesign(text: string): ClassTestCase[] | null {
-  // 1. Try splitting into Example blocks
-  const exampleBlocks = text.split(/(?:Example\s+\d+:?)/i).filter((b) => b.trim());
-  if (exampleBlocks.length > 0) {
-    const blockResults: ClassTestCase[] = [];
-    for (const block of exampleBlocks) {
-      const res = tryParseClassBlock(block);
-      if (res) blockResults.push(res);
-    }
-    if (blockResults.length > 0) return blockResults;
-  }
-
-  // 2. Try parsing single text block with Input/Output
-  const single = tryParseClassBlock(text);
-  if (single) return [single];
-
-  // 3. Raw arrays without Input/Output headers
-  const topArrays = extractTopLevelJsonArrays(text);
-  if (topArrays.length >= 2) {
-    // Check 3-array triples: [ops, args, expected]
-    let i = 0;
-    const tripleResults: ClassTestCase[] = [];
-    while (i <= topArrays.length - 3) {
-      const ops = topArrays[i];
-      const args = topArrays[i + 1];
-      const expected = topArrays[i + 2];
-      if (
-        Array.isArray(ops) &&
-        ops.length > 0 &&
-        ops.every((op) => typeof op === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(op.trim())) &&
-        Array.isArray(args) &&
-        args.length === ops.length &&
-        args.every((a) => Array.isArray(a)) &&
-        Array.isArray(expected) &&
-        expected.length === ops.length &&
-        (expected[0] === null || expected[0] === undefined)
-      ) {
-        tripleResults.push({
-          type: "class",
-          operations: ops,
-          args: args,
-          expected: expected,
-        });
-        i += 3;
-      } else {
-        break;
-      }
-    }
-    if (tripleResults.length > 0) return tripleResults;
-
-    // Check 2-array interleaved pairs: [flatInput, expected]
-    let j = 0;
-    const pairResults: ClassTestCase[] = [];
-    while (j <= topArrays.length - 2) {
-      const flatInput = topArrays[j];
-      const expected = topArrays[j + 1];
-      if (
-        Array.isArray(flatInput) &&
-        Array.isArray(expected) &&
-        expected.length > 0 &&
-        (expected[0] === null || expected[0] === undefined)
-      ) {
-        const parsed = parseInterleavedClassDesign(flatInput, expected);
-        if (parsed) {
-          pairResults.push(parsed);
-          j += 2;
-          continue;
-        }
-      }
-      break;
-    }
-    if (pairResults.length > 0) return pairResults;
-  }
-
-  return null;
-}
-
-/**
- * Parses interleaved / flat Class Design input arrays (e.g. NeetCode clipboard format)
- * where operations and arguments are combined in a single array.
- */
-export function parseInterleavedClassDesign(flatInput: any[], expected: any[]): ClassTestCase | null {
-  const N = expected.length;
-  if (!Array.isArray(flatInput) || flatInput.length < N || N === 0) return null;
-
-  // First item MUST be a valid string identifier (Class constructor name)
-  if (typeof flatInput[0] !== "string" || !/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(flatInput[0].trim())) {
-    return null;
-  }
-
-  // Collect candidate string identifier indices
-  const validIndices: number[] = [];
-  for (let idx = 0; idx < flatInput.length; idx++) {
-    if (typeof flatInput[idx] === "string" && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(flatInput[idx].trim())) {
-      validIndices.push(idx);
-    }
-  }
-
-  if (validIndices.length < N || validIndices[0] !== 0) return null;
-
-  let bestIndices: number[] | null = null;
-
-  if (validIndices.length === N) {
-    bestIndices = validIndices;
-  } else {
-    let bestScore = -Infinity;
-
-    function evaluateCombination(indices: number[]) {
-      const opArgsByName = new Map<string, any[][]>();
-      const opExpectedTypesByName = new Map<string, Set<string>>();
-      const selectedOpNames = new Set(indices.map((idx) => flatInput[idx].trim()));
-
-      function getValType(val: any): string {
-        if (val === null || val === undefined) return "void";
-        if (typeof val === "boolean") return "boolean";
-        if (typeof val === "number") return "number";
-        if (typeof val === "string") return "string";
-        if (Array.isArray(val)) return "array";
-        return "object";
-      }
-
-      let score = 0;
-
-      for (let k = 0; k < N; k++) {
-        const idx = indices[k];
-        const opName = flatInput[idx].trim();
-
-        const nextIdx = k + 1 < N ? indices[k + 1] : flatInput.length;
-        const rawArgs = flatInput.slice(idx + 1, nextIdx);
-
-        // Penalize if rawArgs contains strings that are selected as operation names elsewhere
-        for (const argItem of rawArgs) {
-          if (typeof argItem === "string" && selectedOpNames.has(argItem.trim())) {
-            score -= 2000;
-          }
-        }
-
-        let finalArgs: any[];
-        if (rawArgs.length === 1 && Array.isArray(rawArgs[0])) {
-          finalArgs = rawArgs[0];
-        } else {
-          finalArgs = rawArgs;
-        }
-
-        if (!opArgsByName.has(opName)) {
-          opArgsByName.set(opName, []);
-          opExpectedTypesByName.set(opName, new Set());
-        }
-        opArgsByName.get(opName)!.push(finalArgs);
-        opExpectedTypesByName.get(opName)!.add(getValType(expected[k]));
-      }
-
-      for (const [opName, callArgsList] of opArgsByName.entries()) {
-        const occurrences = callArgsList.length;
-        const argCounts = new Set(callArgsList.map((a) => a.length));
-        const expTypes = opExpectedTypesByName.get(opName)!;
-
-        // Check if return value types in expected array match across calls
-        if (expTypes.size === 1) {
-          score += 200 * occurrences;
-        } else {
-          score -= 800; // Inconsistent return types for the same method name!
-        }
-
-        if (occurrences >= 2) {
-          if (argCounts.size === 1) {
-            score += 300 * occurrences; // High reward for repeated method name with consistent arg count
-          } else {
-            score -= 1000; // Heavy penalty for inconsistent arg counts across calls
-          }
-        } else {
-          // Single occurrence (e.g. constructor or single-use method)
-          if (opName === flatInput[indices[0]].trim()) {
-            score += 100; // Constructor
-          } else {
-            const argCount = callArgsList[0].length;
-            if (argCount <= 4) {
-              score += 20;
-            } else {
-              score -= 200; // Too many leftover arguments for a single method call
-            }
-          }
-        }
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestIndices = [...indices];
-      }
-    }
-
-    function searchCombos(curr: number[], startValidIdx: number) {
-      if (curr.length === N) {
-        evaluateCombination(curr);
-        return;
-      }
-      const needed = N - curr.length;
-      const available = validIndices.length - startValidIdx;
-      if (available < needed) return;
-
-      for (let i = startValidIdx; i < validIndices.length; i++) {
-        curr.push(validIndices[i]);
-        searchCombos(curr, i + 1);
-        curr.pop();
-        if (bestScore >= 400 && validIndices.length > 30) {
-          break;
-        }
-      }
-    }
-
-    searchCombos([0], 1);
-  }
-
-  if (!bestIndices) return null;
-
-  const operations: string[] = [];
-  const args: any[][] = [];
-
-  for (let k = 0; k < N; k++) {
-    const idx = (bestIndices as number[])[k];
-    const opName = flatInput[idx].trim();
-    operations.push(opName);
-
-    const nextIdx = k + 1 < N ? (bestIndices as number[])[k + 1] : flatInput.length;
-    const rawArgs = flatInput.slice(idx + 1, nextIdx);
-
-    if (rawArgs.length === 1 && Array.isArray(rawArgs[0])) {
-      args.push(rawArgs[0]);
-    } else {
-      args.push(rawArgs);
-    }
-  }
-
-  return {
-    type: "class",
-    operations,
-    args,
-    expected,
-  };
-}
-
-/**
- * Extracts param names & values from an Input block.
- */
+/** Extracts named params and their values from a LeetCode `Input:` segment. */
 export function extractParamsAndInputs(inputSegment: string): { params: ParamInfo[]; input: any[] } {
   const params: ParamInfo[] = [];
-  const input: any[] = [];
+  const input:  any[]       = [];
 
+  // Try `name = value` syntax (LeetCode standard format)
   const paramRegex = /(?:^|\s|,|\n)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g;
   const matches: { param: string; index: number; valStart: number }[] = [];
   let m: RegExpExecArray | null;
 
   while ((m = paramRegex.exec(inputSegment)) !== null) {
-    matches.push({
-      param: m[1],
-      index: m.index,
-      valStart: m.index + m[0].length,
-    });
+    matches.push({ param: m[1], index: m.index, valStart: m.index + m[0].length });
   }
 
   if (matches.length > 0) {
     for (let i = 0; i < matches.length; i++) {
       const start = matches[i].valStart;
-      const end = i + 1 < matches.length ? matches[i + 1].index : inputSegment.length;
-      let rawVal = inputSegment.slice(start, end).trim();
-
-      if (rawVal.endsWith(",")) {
-        rawVal = rawVal.slice(0, -1).trim();
-      }
+      const end   = i + 1 < matches.length ? matches[i + 1].index : inputSegment.length;
+      let rawVal  = inputSegment.slice(start, end).trim().replace(/,$/, "").trim();
 
       const parsedVal = parseValue(rawVal);
       params.push({ name: matches[i].param, value: parsedVal });
@@ -493,98 +110,93 @@ export function extractParamsAndInputs(inputSegment: string): { params: ParamInf
     return { params, input };
   }
 
-  // Fallback if no `param =` syntax found
-  const lines = inputSegment
+  // Fallback: one value per line
+  inputSegment
     .split("\n")
     .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  lines.forEach((line, idx) => {
-    const val = parseValue(line);
-    params.push({ name: `arg${idx + 1}`, value: val });
-    input.push(val);
-  });
+    .filter((l) => l.length > 0)
+    .forEach((line, idx) => {
+      const val = parseValue(line);
+      params.push({ name: `arg${idx + 1}`, value: val });
+      input.push(val);
+    });
 
   return { params, input };
 }
 
-export function parseOutputSegment(outputSegment: string): any {
-  const trimmed = outputSegment.trim();
-  if (!trimmed) return undefined;
+// ─────────────────────────────────────────────────────────────────────────────
+// Standard test-case parser
+// ─────────────────────────────────────────────────────────────────────────────
 
-  try {
-    return JSON.parse(trimmed);
-  } catch {}
-
-  try {
-    const jsonCompatible = trimmed
-      .replace(/'/g, '"')
-      .replace(/\bNone\b/g, "null")
-      .replace(/\bTrue\b/g, "true")
-      .replace(/\bFalse\b/g, "false")
-      .replace(/\bundefined\b/g, "null");
-    return JSON.parse(jsonCompatible);
-  } catch {}
-
-  const firstLine = trimmed.split("\n")[0].trim();
-  try {
-    return JSON.parse(firstLine);
-  } catch {}
-
-  try {
-    const jsonCompatible = firstLine
-      .replace(/'/g, '"')
-      .replace(/\bNone\b/g, "null")
-      .replace(/\bTrue\b/g, "true")
-      .replace(/\bFalse\b/g, "false")
-      .replace(/\bundefined\b/g, "null");
-    return JSON.parse(jsonCompatible);
-  } catch {}
-
-  const topArrays = extractTopLevelJsonArrays(trimmed);
-  if (topArrays.length > 0) {
-    return topArrays[0];
-  }
-
-  return parseValue(firstLine) ?? parseValue(trimmed);
-}
-
-/**
- * Parses standard problem testcases across multiple `Example N:` blocks
- */
+/** Parses standard (non-class) LeetCode problems across multiple Example blocks. */
 export function parseStandardTestCases(text: string): StandardTestCase[] {
   const results: StandardTestCase[] = [];
 
   const exampleBlocks = text.split(/(?:Example\s+\d+:?)/i).filter((b) => b.trim());
-  const blocksToProcess = exampleBlocks.length > 0 ? exampleBlocks : [text];
+  const blocks = exampleBlocks.length > 0 ? exampleBlocks : [text];
 
-  for (const block of blocksToProcess) {
-    const inputIndex = block.search(/Input\s*:?/i);
+  for (const block of blocks) {
+    const inputIndex  = block.search(/Input\s*:?/i);
     const outputIndex = block.search(/Output\s*:?/i);
-
     if (inputIndex === -1 || outputIndex === -1) continue;
 
     const inputSegment = block.slice(inputIndex, outputIndex).replace(/Input\s*:?/i, "").trim();
 
     let outputSegment = block.slice(outputIndex).replace(/Output\s*:?/i, "");
-    const explanationIndex = outputSegment.search(/Explanation\s*:?/i);
-    if (explanationIndex !== -1) {
-      outputSegment = outputSegment.slice(0, explanationIndex);
-    }
+    const explIdx = outputSegment.search(/Explanation\s*:?/i);
+    if (explIdx !== -1) outputSegment = outputSegment.slice(0, explIdx);
     outputSegment = outputSegment.trim();
 
     const { params, input } = extractParamsAndInputs(inputSegment);
     const outputVal = parseOutputSegment(outputSegment);
 
     if (input.length > 0) {
-      results.push({
-        type: "standard",
-        params,
-        input,
-        output: outputVal,
-      });
+      results.push({ type: "standard", params, input, output: outputVal });
     }
   }
 
   return results;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main entry point
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Main parser — auto-detects whether the clipboard text describes a
+ * Standard problem or a Class Design problem, and returns parsed test cases.
+ */
+export function parseLeetCodeText(text: string): ParsedResult[] {
+  const clean = text.replace(/\r\n/g, "\n");
+
+  // 1. Try Class Design first
+  const classResults = tryParseClassDesign(clean);
+  if (classResults && classResults.length > 0) return classResults;
+
+  // 2. Fall back to Standard
+  const standardResults = parseStandardTestCases(clean);
+
+  // 3. Safety net: standard parser may have returned two arrays that are
+  //    actually ops + args (edge-case where Input/Output headers are present
+  //    but the arrays look like a class design problem).
+  const IDENT = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+  const converted: ClassTestCase[] = [];
+
+  for (const st of standardResults) {
+    if (
+      st.input.length === 2 &&
+      Array.isArray(st.input[0]) && st.input[0].length > 0 &&
+      st.input[0].every((op: any) => typeof op === "string" && IDENT.test(op.trim())) &&
+      Array.isArray(st.input[1]) && st.input[1].length === st.input[0].length &&
+      st.input[1].every((a: any) => Array.isArray(a)) &&
+      Array.isArray(st.output) && st.output.length === st.input[0].length &&
+      (st.output[0] === null || st.output[0] === undefined)
+    ) {
+      converted.push({ type: "class", operations: st.input[0], args: st.input[1], expected: st.output });
+    }
+  }
+
+  if (converted.length === standardResults.length && converted.length > 0) return converted;
+
+  return standardResults;
 }

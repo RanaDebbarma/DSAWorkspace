@@ -26,7 +26,10 @@ src/                      # Core infrastructure files
 │   ├── testcase-parser.ts # LeetCode testcase parser facade (re-exports parser/*)
 │   ├── title-helper.ts   # Kebab-case title formatting + camelCase derivation
 │   ├── parser/           # Modular testcase parser sub-modules
-│   │   ├── text-parser.ts     # Raw text/JSON parsing, clipboard I/O
+│   │   ├── types.ts           # Shared interfaces (ParamInfo, StandardTestCase, ClassTestCase)
+│   │   ├── json-repair.ts     # repairJson, parseValue, extractTopLevelJsonArrays
+│   │   ├── class-parser.ts    # Class Design parser (LeetCode 2-array & NeetCode interleaved)
+│   │   ├── text-parser.ts     # Entry point: parseLeetCodeText, clipboard I/O, standard parser
 │   │   ├── signature-infer.ts # TypeScript type + function signature inference
 │   │   └── code-formatter.ts  # Testcase value stringification & TS code generation
 │   └── visualizers/      # Modular ASCII visualizer sub-modules
