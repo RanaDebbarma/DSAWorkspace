@@ -2,46 +2,50 @@ import { runTests } from "#functions/code-tester.js";
 
 // LeetCode 621
 
+// intuitive approach
+type Task = {
+  task: string;
+  freq: number;
+  readyAt?: number;
+};
+
 function leastInterval(tasks: string[], n: number): number {
-  const freq = new Map<string, number>();
+  const freqMap = new Map<string, number>();
 
   for (const task of tasks) {
-    freq.set(task, (freq.get(task) ?? 0) + 1);
+    freqMap.set(task, (freqMap.get(task) ?? 0) + 1);
   }
 
-  // Max heap: highest frequency first
-  const heap = new Heap<{ task: string; freq: number }>(
-    (a, b) => b.freq - a.freq,
-  );
+  const taskHeap = new Heap<Task>((a, b) => b.freq - a.freq);
 
-  for (const [task, count] of freq) {
-    heap.push({ task, freq: count });
+  for (const [task, freq] of freqMap) {
+    taskHeap.push({ task, freq });
   }
 
-  // Tasks waiting for their cooldown to finish
-  const cooldown: { task: string; freq: number; readyAt: number }[] = [];
-
+  const cooldownQueue: Task[] = [];
+  let cooldownFront = 0;
   let time = 0;
 
-  while (heap.size > 0 || cooldown.length > 0) {
+  // cpu cycles
+  while (taskHeap.size || cooldownFront < cooldownQueue.length) {
     time++;
 
-    // Move tasks whose cooldown has expired back into the heap
-    if (cooldown.length && cooldown[0].readyAt === time) {
-      heap.push(cooldown.shift()!);
+    while (
+      cooldownFront < cooldownQueue.length &&
+      cooldownQueue[cooldownFront].readyAt === time
+    ) {
+      taskHeap.push(cooldownQueue[cooldownFront++]!);
     }
 
-    if (heap.size > 0) {
-      const task = heap.pop()!;
+    if (taskHeap.size) {
+      const task = taskHeap.pop()!;
 
+      // complete task
       task.freq--;
 
-      if (task.freq > 0) {
-        cooldown.push({
-          task: task.task,
-          freq: task.freq,
-          readyAt: time + n + 1,
-        });
+      if (task.freq) {
+        task.readyAt = time + n + 1;
+        cooldownQueue.push(task);
       }
     }
   }
@@ -49,8 +53,57 @@ function leastInterval(tasks: string[], n: number): number {
   return time;
 }
 
+// 2nd approach
+// type Task = {
+//   freq: number;
+//   readyAt?: number;
+// };
+
+// function leastInterval(tasks: string[], n: number): number {
+//   const countArr = new Array<number>(26).fill(0);
+
+//   for (const task of tasks) {
+//     countArr[task.charCodeAt(0) - 65]++;
+//   }
+
+//   const taskHeap = new Heap<number>(
+//     (a, b) => b - a,
+//     countArr.filter((f) => f > 0),
+//   );
+
+//   const cooldownQueue: Task[] = [];
+//   let cooldownFront = 0;
+//   let time = 0;
+
+//   // cpu cycles
+//   while (taskHeap.size || cooldownFront < cooldownQueue.length) {
+//     time++;
+
+//     while (
+//       cooldownFront < cooldownQueue.length &&
+//       cooldownQueue[cooldownFront].readyAt === time
+//     ) {
+//       taskHeap.push(cooldownQueue[cooldownFront++].freq!);
+//     }
+
+//     if (taskHeap.size) {
+//       // complete task
+//       const freq = taskHeap.pop()! - 1;
+
+//       if (freq) {
+//         cooldownQueue.push({
+//           freq,
+//           readyAt: time + n + 1,
+//         });
+//       }
+//     }
+//   }
+
+//   return time;
+// }
+
 class Heap<T = number> {
-  h: T[] = [];
+  private h: T[] = [];
   constructor(
     private c: (a: T, b: T) => number = (a: any, b: any) => a - b,
     init?: T[],
