@@ -200,3 +200,41 @@ export function compareGraphs(a: GraphNode | null, b: GraphNode | null): boolean
 
   return true;
 }
+
+/**
+ * Returns true if no node in `clone` is the same object reference as any node
+ * in `original`. Used by smartCompare to enforce deep-copy correctness for
+ * Clone Graph (LC 133) — structural equality alone can't detect returning the
+ * original graph unchanged.
+ */
+export function graphHasNoSharedNodes(
+  original: GraphNode | null,
+  clone: GraphNode | null,
+): boolean {
+  if (!original || !clone) return true;
+
+  // Collect all nodes from the original graph
+  const originalNodes = new Set<GraphNode>();
+  const queue: GraphNode[] = [original];
+  const visited = new Set<number>();
+  while (queue.length) {
+    const curr = queue.shift()!;
+    if (visited.has(curr.val)) continue;
+    visited.add(curr.val);
+    originalNodes.add(curr);
+    for (const n of curr.neighbors) queue.push(n);
+  }
+
+  // Walk the clone; if any node is the same reference → not a true clone
+  const cloneQueue: GraphNode[] = [clone];
+  const cloneVisited = new Set<number>();
+  while (cloneQueue.length) {
+    const curr = cloneQueue.shift()!;
+    if (cloneVisited.has(curr.val)) continue;
+    cloneVisited.add(curr.val);
+    if (originalNodes.has(curr)) return false;
+    for (const n of curr.neighbors) cloneQueue.push(n);
+  }
+
+  return true;
+}

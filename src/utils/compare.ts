@@ -7,7 +7,7 @@ import {
   randomListToArray,
 } from "#ds/linked-list.js";
 import { TreeNode, compareBinaryTrees } from "#ds/tree.js";
-import { GraphNode, compareGraphs } from "#ds/graph.js";
+import { GraphNode, compareGraphs, graphHasNoSharedNodes } from "#ds/graph.js";
 
 export type CompareOptions = {
   unordered?: boolean;
@@ -65,7 +65,11 @@ export function smartCompare(
   }
 
   if (actual instanceof GraphNode || expected instanceof GraphNode) {
-    return compareGraphs(actual as GraphNode | null, expected as GraphNode | null);
+    const originalNode = actualInput?.find((v) => v instanceof GraphNode) as GraphNode | undefined;
+    return (
+      compareGraphs(actual as GraphNode | null, expected as GraphNode | null) &&
+      graphHasNoSharedNodes(originalNode ?? null, actual as GraphNode | null)
+    );
   }
 
   if (Array.isArray(actual) && Array.isArray(expected)) {
