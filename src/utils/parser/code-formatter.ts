@@ -87,7 +87,7 @@ export function formatParsedCasesForTs(cases: ParsedResult[], template?: string)
       outputStr = `createBinaryTree(${stringifyTsValue(c.output)})`;
     } else if (template === "linked-list" && Array.isArray(c.output) && c.output.length > 0 && !Array.isArray(c.output[0])) {
       outputStr = `createLinkedList(${stringifyTsValue(c.output)})`;
-    } else if (template === "graph" && Array.isArray(c.output) && c.output.length > 0 && Array.isArray(c.output[0]) && typeof c.output[0][0] === "number") {
+    } else if (template === "graph" && Array.isArray(c.output)) {
       outputStr = `createGraph(${stringifyTsValue(c.output)})`;
     }
 

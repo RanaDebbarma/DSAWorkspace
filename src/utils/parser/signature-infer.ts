@@ -182,9 +182,7 @@ export function inferFunctionSignature(
   if (template === "graph") {
     const rawOutputType = inferTsType(firstCase.output);
     const returnType =
-      Array.isArray(firstCase.output) && Array.isArray(firstCase.output[0])
-        ? rawOutputType
-        : Array.isArray(firstCase.output)
+      Array.isArray(firstCase.output)
         ? "GraphNode | null"
         : rawOutputType;
 
