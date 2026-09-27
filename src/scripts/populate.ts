@@ -112,7 +112,7 @@ async function main() {
   if (argFile) {
     outputPath = path.resolve(targetDir, argFile);
   } else {
-    const detectedFiles = findWorkspaceTsFiles(targetDir, { includeSrc: true });
+    const detectedFiles = findWorkspaceTsFiles(targetDir);
 
     const promptCustomPath = async (): Promise<string> => {
       const customPath = await p.text({
@@ -133,14 +133,9 @@ async function main() {
       p.log.info(`Auto-detected: ${recentFile.relativePath}`);
 
       const selectOptions = [
-        // Most recently modified file is always first and pre-selected
-        {
-          label: `✦ ${recentFile.relativePath}  (most recent)`,
-          value: recentFile.absolutePath,
-        },
-        // Remaining files by mtime
-        ...detectedFiles.slice(1, 7).map((f) => ({
-          label: `${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+        // Top-3 most recently modified files with numbered labels
+        ...detectedFiles.slice(0, 3).map((f, i) => ({
+          label: `${i === 0 ? "✦" : " "}  [${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
           value: f.absolutePath,
         })),
         { label: "✏️  Enter custom file path...", value: "custom" },

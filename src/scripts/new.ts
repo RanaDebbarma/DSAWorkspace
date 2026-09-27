@@ -57,23 +57,25 @@ async function main() {
   } else {
     const wsRoot = getWorkspaceRoot(targetDir);
     const isAtRoot = path.resolve(targetDir).toLowerCase() === wsRoot.toLowerCase();
-    const detectedFiles = findWorkspaceTsFiles(targetDir, { includeSrc: true });
+    const detectedFiles = findWorkspaceTsFiles(targetDir);
 
     // ── Step 1: Decide what to do ──────────────────────────────────────────
     type Action = "new_here" | "new_recent" | "new_choose" | "existing";
 
     let action: Action;
 
-    // Most recently modified file — its folder is likely where the user is working
-    const recentFile = detectedFiles[0];
+    // Top-3 recently modified files — folders are likely where the user is working
+    const recentFiles = detectedFiles.slice(0, 3);
+    const recentFile = recentFiles[0];
     const recentFolder = recentFile ? path.dirname(recentFile.absolutePath) : targetDir;
     const relRecentFolder = path.relative(wsRoot, recentFolder).replace(/\\/g, "/") || ".";
     const relTermDir = path.relative(wsRoot, targetDir).replace(/\\/g, "/") || ".";
     const recentIsSameAsTerminal = recentFolder.toLowerCase() === path.resolve(targetDir).toLowerCase();
 
-    // Log context info above the prompt so the prompt itself stays clean
-    if (recentFile && !recentIsSameAsTerminal) {
-      p.log.info(`Recent:   ${recentFile.relativePath}`);
+    // Log top-3 recent files above the prompt
+    if (recentFiles.length > 0 && !recentIsSameAsTerminal) {
+      p.log.info(`Recent files:`);
+      recentFiles.forEach((f, i) => p.log.info(`  ${i + 1}. ${f.relativePath}`));
     }
     p.log.info(`Terminal: ${relTermDir || "."}`);
 
@@ -131,9 +133,10 @@ async function main() {
       if (detectedFiles.length === 0) {
         outputPath = await promptCustomPath();
       } else {
+        const topRecent = detectedFiles.slice(0, 3);
         const fileOptions = [
-          ...detectedFiles.slice(0, 7).map((f) => ({
-            label: `${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+          ...topRecent.map((f, i) => ({
+            label: `${i === 0 ? "✦" : " "}  [${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
             value: f.absolutePath,
           })),
           { label: "✏️  Enter a custom file path...", value: "custom" },

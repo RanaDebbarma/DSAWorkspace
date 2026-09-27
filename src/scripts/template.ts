@@ -26,7 +26,7 @@ async function main() {
     p.log.info(`Target: ${path.relative(process.cwd(), outputPath)}`);
   } else {
     const wsRoot = getWorkspaceRoot(targetDir);
-    const detectedFiles = findWorkspaceTsFiles(targetDir, { includeSrc: true });
+    const detectedFiles = findWorkspaceTsFiles(targetDir);
 
     const promptCustomPath = async (): Promise<string> => {
       const val = await p.text({
@@ -44,15 +44,13 @@ async function main() {
       outputPath = await promptCustomPath();
     } else {
       const recentFile = detectedFiles[0];
-      p.log.info(`Recent:   ${recentFile.relativePath}`);
+      p.log.info(`Recent files:`);
+      detectedFiles.slice(0, 3).forEach((f, i) => p.log.info(`  ${i + 1}. ${f.relativePath}`));
 
+      const topRecent = detectedFiles.slice(0, 3);
       const selectOptions = [
-        {
-          label: `✦  ${recentFile.relativePath}  (most recent)`,
-          value: recentFile.absolutePath,
-        },
-        ...detectedFiles.slice(1, 7).map((f) => ({
-          label: `   ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+        ...topRecent.map((f, i) => ({
+          label: `${i === 0 ? "✦" : " "}  [${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
           value: f.absolutePath,
         })),
         { label: "✏️   Enter a different file path...", value: "custom" },
