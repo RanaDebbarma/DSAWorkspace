@@ -12,7 +12,7 @@ class MedianFinder {
   }
 
   addNum(val: number): void {
-// Push to lowerHalf first, then shift the largest element to upperHalf
+    // Push to lowerHalf, then move its largest element to upperHalf
     this.lowerHalf.push(val);
     this.upperHalf.push(this.lowerHalf.pop()!);
 
