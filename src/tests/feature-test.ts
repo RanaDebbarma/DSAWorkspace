@@ -555,3 +555,40 @@ if (
   console.log(chalk.red("❌ Failed to parse NeetCode multiline 2D array:"), { parsedGridCases, gridSig });
 }
 
+// =============================================================================
+// § 15 — MATRIX OUTPUT & DIFF VISUALIZATION (with on/off toggles)
+// =============================================================================
+section(15, "Matrix Output & Diff Visualization (with on/off toggles)");
+
+import { isMatrixGrid } from "#utils/display.js";
+
+const is4x4 = isMatrixGrid([[3, -1, 0, 1], [2, 2, 1, -1], [1, -1, 2, -1], [0, -1, 3, 4]]);
+const isTriplets = isMatrixGrid([[-1, -1, 2], [-1, 0, 1]]);
+const isRagged = isMatrixGrid([["bat"], ["nat", "tan"]]);
+const isIntervals = isMatrixGrid([[1, 3], [2, 6], [8, 10]]);
+
+if (is4x4 && !isTriplets && !isRagged && !isIntervals) {
+  console.log(chalk.green("✔ isMatrixGrid accurately distinguishes grids from triplets, intervals, and ragged arrays!"));
+} else {
+  console.log(chalk.red("❌ isMatrixGrid classification failure:"), { is4x4, isTriplets, isRagged, isIntervals });
+}
+
+function dummyMatrix(grid: number[][]): number[][] {
+  return grid;
+}
+
+runTests(dummyMatrix, [
+  {
+    name: "Matrix Output Visualizer — ON by default",
+    input: [[[1, 2], [3, 4]]],
+    output: [[1, 2], [3, 4]],
+  },
+  {
+    name: "Matrix Output Visualizer — turned OFF via option",
+    input: [[[1, 2], [3, 4]]],
+    output: [[1, 2], [3, 4]],
+    visualizeOutput: false,
+  },
+]);
+
+

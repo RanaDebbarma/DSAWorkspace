@@ -57,8 +57,10 @@ export type TestCase<F extends (...args: any[]) => any> = {
   unordered?: boolean;
   /** Explicitly set graph direction for this test case (true for directed, false for undirected). */
   isDirected?: boolean;
-  /** Explicitly set grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric'). */
+  /** Explicitly set grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). */
   gridMode?: GridMode;
+  /** When false, disables visual table/structure rendering for expected output and diff for this test case. Defaults to true. */
+  visualizeOutput?: boolean;
 };
 
 export type ClassTestCase = {
@@ -79,8 +81,10 @@ export type TestOptions = {
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
   isDirected?: boolean;
-  /** Suite-level default for grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric'). Overridden by per-test case `gridMode`. */
+  /** Suite-level default for grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). Overridden by per-test case `gridMode`. */
   gridMode?: GridMode;
+  /** When false, disables visual table/structure rendering for expected output and diff across the suite. Defaults to true. */
+  visualizeOutput?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
@@ -236,13 +240,18 @@ function renderResultBlock(
   output: any,
   executionError: unknown,
   showHint: boolean = true,
+  actualInput?: any[],
+  visualizeOutput: boolean = true,
+  gridMode?: GridMode,
 ): void {
+  const displayOpts = { actualInput, visualizeOutput, gridMode };
+
   if (executionError) {
     const error =
       executionError instanceof Error
         ? `${executionError.name}: ${executionError.message}`
         : String(executionError);
-    const expStr = serializeForDisplay(output);
+    const expStr = serializeForDisplay(output, displayOpts);
     if (expStr.includes("\n")) {
       console.log(`${chalk.green("- Expected:")}\n${indentAll(chalk.green(expStr), 2)}`);
     } else {
@@ -252,7 +261,7 @@ function renderResultBlock(
       `${chalk.red("+ Received:")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 14)}`,
     );
   } else if (passed) {
-    const outStr = serializeForDisplay(result);
+    const outStr = serializeForDisplay(result, displayOpts);
     const coloredOut = outStr.includes("\u001b") ? outStr : chalk.green(outStr);
     if (outStr.includes("\n")) {
       console.log(`${chalk.grey("Output:")}\n${indentAll(coloredOut, 2)}`);
@@ -262,7 +271,7 @@ function renderResultBlock(
       );
     }
   } else {
-    const { expLine, gotLine, hint } = renderDiff(result, output);
+    const { expLine, gotLine, hint } = renderDiff(result, output, displayOpts);
     if (expLine.includes("\n") || gotLine.includes("\n")) {
       console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
       console.log();
@@ -430,6 +439,7 @@ export function runTests<F extends (...args: any[]) => any>(
 
   const showHeader = typeof options === "boolean" ? true : (options?.showHeader ?? true);
   const visualizeInput = typeof options === "boolean" ? true : (options?.visualizeInput ?? true);
+  const visualizeOutput = typeof options === "boolean" ? true : (options?.visualizeOutput ?? true);
   const showStringInput = typeof options === "boolean" ? true : (options?.showStringInput ?? true);
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
   const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
@@ -491,7 +501,18 @@ export function runTests<F extends (...args: any[]) => any>(
     showStringInput && console.log();
 
     printConsoleOutput(execution.logs);
-    renderResultBlock(passed, result, output, execution.error, showHint);
+    const shouldVisualizeOutput = test.visualizeOutput ?? visualizeOutput;
+    const effectiveGridMode = test.gridMode ?? suiteGridMode;
+    renderResultBlock(
+      passed,
+      result,
+      output,
+      execution.error,
+      showHint,
+      actualInput,
+      shouldVisualizeOutput,
+      effectiveGridMode,
+    );
     console.log();
   }
 

@@ -12,6 +12,8 @@ import {
   isChessBoardList,
   chessBoardsToString,
   matrixToString,
+  isMatrixGrid,
+  GridMode,
 } from "#utils/display.js";
 
 /**
@@ -198,6 +200,66 @@ export function renderTreeDiff(
   return { expLine, gotLine, hint };
 }
 
+export interface DiffOptions {
+  actualInput?: any[];
+  visualizeOutput?: boolean;
+  gridMode?: GridMode;
+}
+
+/**
+ * Renders diff between two 2D matrix grids, highlighting mismatched cells in red/green.
+ */
+export function renderMatrixDiff(
+  actual: any[][],
+  expected: any[][],
+  gridMode?: GridMode,
+): { expLine: string; gotLine: string; hint: string } {
+  const resolvedMode: GridMode = gridMode && gridMode !== "none" ? gridMode : "auto";
+  let firstMismatch: { r: number; c: number; exp: any; got: any } | null = null;
+
+  const sameDimensions =
+    actual.length === expected.length &&
+    actual.length > 0 &&
+    Array.isArray(actual[0]) &&
+    Array.isArray(expected[0]) &&
+    actual[0].length === expected[0].length;
+
+  if (sameDimensions) {
+    const expLine = matrixToString(expected, {
+      mode: resolvedMode,
+      cellFormatter: (val, str, r, c, defaultStr) => {
+        if (actual[r] && !smartCompare(actual[r][c], val)) {
+          if (!firstMismatch) firstMismatch = { r, c, exp: val, got: actual[r][c] };
+          return chalk.green.bold(str);
+        }
+        return defaultStr;
+      },
+    });
+
+    const gotLine = matrixToString(actual, {
+      mode: resolvedMode,
+      cellFormatter: (val, str, r, c, defaultStr) => {
+        if (expected[r] && !smartCompare(expected[r][c], val)) {
+          return chalk.red.bold(str);
+        }
+        return defaultStr;
+      },
+    });
+
+    const hint = firstMismatch
+      ? `cell [${firstMismatch.r}, ${firstMismatch.c}]: expected ${JSON.stringify(firstMismatch.exp)}, got ${JSON.stringify(firstMismatch.got)}`
+      : "";
+
+    return { expLine, gotLine, hint };
+  }
+
+  return {
+    expLine: matrixToString(expected, { mode: resolvedMode }),
+    gotLine: matrixToString(actual, { mode: resolvedMode }),
+    hint: `dimensions mismatch — expected ${expected.length}x${expected[0]?.length ?? 0}, got ${actual.length}x${actual[0]?.length ?? 0}`,
+  };
+}
+
 /**
  * Main diff renderer. Returns { expLine, gotLine, hint } for any value pair.
  * Falls back to plain serializeForDisplay when no structured diff is possible.
@@ -205,15 +267,36 @@ export function renderTreeDiff(
 export function renderDiff(
   actual: unknown,
   expected: unknown,
+  options?: DiffOptions,
 ): { expLine: string; gotLine: string; hint: string } {
+  // Matrix Grid diff (only if visualizeOutput !== false and gridMode !== "none")
+  if (options?.visualizeOutput !== false && options?.gridMode !== "none") {
+    const isExpGrid = isMatrixGrid(expected, options?.actualInput);
+    const isActGrid = isMatrixGrid(actual, options?.actualInput);
+
+    if (isExpGrid && isActGrid) {
+      return renderMatrixDiff(actual as any[][], expected as any[][], options?.gridMode);
+    }
+    if (isExpGrid && !isActGrid) {
+      const expLine = matrixToString(expected as any[][], { mode: options?.gridMode ?? "auto" });
+      const { gotLine, hint } = renderDiff(actual, expected, { ...options, visualizeOutput: false });
+      return { expLine, gotLine, hint };
+    }
+    if (!isExpGrid && isActGrid) {
+      const gotLine = matrixToString(actual as any[][], { mode: options?.gridMode ?? "auto" });
+      const { expLine, hint } = renderDiff(actual, expected, { ...options, visualizeOutput: false });
+      return { expLine, gotLine, hint };
+    }
+  }
+
   // Chessboard list diff (e.g. N-Queens solution sets)
   if (isChessBoardList(expected) || isChessBoardList(actual)) {
     const expLine = isChessBoardList(expected)
       ? chessBoardsToString(expected)
-      : serializeForDisplay(expected);
+      : serializeForDisplay(expected, options);
     const gotLine = isChessBoardList(actual)
       ? chessBoardsToString(actual)
-      : serializeForDisplay(actual);
+      : serializeForDisplay(actual, options);
     let hint = "";
     if (Array.isArray(actual) && Array.isArray(expected) && actual.length !== expected.length) {
       hint = `expected ${expected.length} solution(s), got ${actual.length}`;
@@ -225,10 +308,10 @@ export function renderDiff(
   if (isChessBoard(expected) || isChessBoard(actual)) {
     const expLine = isChessBoard(expected)
       ? matrixToString(expected, { mode: "chess" })
-      : serializeForDisplay(expected);
+      : serializeForDisplay(expected, options);
     const gotLine = isChessBoard(actual)
       ? matrixToString(actual, { mode: "chess" })
-      : serializeForDisplay(actual);
+      : serializeForDisplay(actual, options);
     return { expLine, gotLine, hint: "" };
   }
 

@@ -4,7 +4,7 @@ import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode, graphToAdjList } from "#ds/graph.js";
 
 import { treeToString } from "./visualizers/tree-visualizer.js";
-import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString } from "./visualizers/grid-visualizer.js";
+import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString, isMatrixGrid, GridMode } from "./visualizers/grid-visualizer.js";
 import { graphToString, edgeListStringGraphToString, isStringEdgeList, isAdjacencyMap, adjMapToString } from "./visualizers/graph-visualizer.js";
 
 export * from "./visualizers/tree-visualizer.js";
@@ -91,11 +91,17 @@ export function indentAll(str: string, indentSize: number): string {
   return str.split("\n").map(line => padding + line).join("\n");
 }
 
+export interface DisplayOptions {
+  actualInput?: any[];
+  visualizeOutput?: boolean;
+  gridMode?: GridMode;
+}
+
 /**
  * Like formatValue but always returns a printable string (for inline display).
- * Uses visual structures for ListNodes, TreeNodes, and GraphNodes.
+ * Uses visual structures for ListNodes, TreeNodes, GraphNodes, and Matrix Grids.
  */
-export function serializeForDisplay(value: unknown): string {
+export function serializeForDisplay(value: unknown, options?: DisplayOptions): string {
   if (value === null || value === undefined) return String(value);
 
   if (value instanceof ListNode)  return linkedListToString(value);
@@ -111,6 +117,15 @@ export function serializeForDisplay(value: unknown): string {
   // Render chessboard or list of chessboards (e.g. N-Queens solutions)
   if (isChessBoard(value)) return matrixToString(value, { mode: "chess" });
   if (isChessBoardList(value)) return chessBoardsToString(value);
+
+  // Render true 2D matrix grid as ASCII table
+  if (
+    options?.visualizeOutput !== false &&
+    options?.gridMode !== "none" &&
+    isMatrixGrid(value, options?.actualInput)
+  ) {
+    return matrixToString(value, { mode: options?.gridMode ?? "auto" });
+  }
 
   if (typeof value === "string") return `"${value}"`;
 

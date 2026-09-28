@@ -1,15 +1,16 @@
 import chalk from "chalk";
 
-export type GridMode = "auto" | "board" | "maze" | "binary" | "sudoku" | "numeric" | "chess";
+export type GridMode = "auto" | "board" | "maze" | "binary" | "sudoku" | "numeric" | "chess" | "none";
 
 export type MatrixToStringOptions = {
   mode?: GridMode;
+  cellFormatter?: (val: any, str: string, r: number, c: number, defaultFormatted: string) => string;
 };
 
 /**
  * Automatically infers the most appropriate GridMode by inspecting the cells of the matrix.
  */
-export function detectGridMode(matrix: any[][]): Exclude<GridMode, "auto"> {
+export function detectGridMode(matrix: any[][]): Exclude<GridMode, "auto" | "none"> {
   let stringCount = 0;
   let numberCount = 0;
 
@@ -201,8 +202,11 @@ export function matrixToString(
 
   if (!Array.isArray(matrix[0])) return JSON.stringify(rawMatrix);
 
+  const optionsObj: MatrixToStringOptions | undefined = typeof options === "object" ? options : undefined;
   const rawMode: GridMode = typeof options === "string" ? options : (options?.mode ?? "auto");
-  const resolvedMode: Exclude<GridMode, "auto"> =
+  if (rawMode === "none") return JSON.stringify(rawMatrix);
+
+  const resolvedMode: Exclude<GridMode, "auto" | "none"> =
     rawMode === "auto" ? detectGridMode(matrix) : rawMode;
 
   const rows = matrix.length;
@@ -228,7 +232,11 @@ export function matrixToString(
     for (let c = 0; c < cols; c++) {
       const rawVal = matrix[r]?.[c];
       const valStr = String(rawVal ?? "").padStart(colWidths[c]);
-      cells.push(` ${colorMatrixCell(rawVal, valStr, resolvedMode)} `);
+      const defaultColored = colorMatrixCell(rawVal, valStr, resolvedMode);
+      const coloredCell = optionsObj?.cellFormatter
+        ? optionsObj.cellFormatter(rawVal, valStr, r, c, defaultColored)
+        : defaultColored;
+      cells.push(` ${coloredCell} `);
     }
     lines.push(chalk.gray("│") + cells.join(chalk.gray("│")) + chalk.gray("│"));
     if (r < rows - 1) {
@@ -238,6 +246,67 @@ export function matrixToString(
 
   lines.push(chalk.gray(botBorder));
   return lines.join("\n");
+}
+
+/**
+ * Checks if a value is a true 2D matrix grid (rectangular, uniform rows, primitive cells).
+ * Distinguishes true grids from 3Sum triplets, intervals, coordinate pairs, and ragged arrays.
+ */
+export function isMatrixGrid(val: unknown, actualInput?: any[]): val is any[][] {
+  if (!Array.isArray(val) || val.length === 0) return false;
+  if (!Array.isArray(val[0]) || val[0].length === 0) return false;
+
+  const rows = val.length;
+  const cols = val[0].length;
+
+  // Must be strictly rectangular: all rows same length
+  for (let r = 0; r < rows; r++) {
+    if (!Array.isArray(val[r]) || val[r].length !== cols) return false;
+  }
+
+  // Cells must be primitives (numbers, strings, booleans, null)
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = val[r][c];
+      if (cell !== null && cell !== undefined && typeof cell === "object") {
+        return false;
+      }
+    }
+  }
+
+  // 1. If any input was a 2D matrix of the same dimensions, definitely a grid
+  if (
+    actualInput &&
+    actualInput.some(
+      (inp) =>
+        Array.isArray(inp) &&
+        inp.length === rows &&
+        Array.isArray(inp[0]) &&
+        inp[0].length === cols,
+    )
+  ) {
+    return true;
+  }
+
+  // 2. Square matrix of size >= 2x2
+  if (rows >= 2 && cols >= 2 && rows === cols) {
+    return true;
+  }
+
+  // 3. 2x2 matrix
+  if (cols === 2) {
+    return rows === 2;
+  }
+
+  // 4. cols === 3: only if input was also a grid (otherwise 3Sum triplets)
+  if (cols === 3) {
+    return actualInput
+      ? actualInput.some((inp) => Array.isArray(inp) && Array.isArray(inp[0]))
+      : false;
+  }
+
+  // 5. cols >= 4 and rows >= 2
+  return true;
 }
 
 /**

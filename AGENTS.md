@@ -56,11 +56,13 @@ runTests(solve, [
   },
 ], {
   // TestOptions (all optional):
-  // showHeader?: boolean;      // Default: true
-  // visualizeInput?: boolean;  // Default: true (renders trees, 2D grids, graphs)
-  // showStringInput?: boolean; // Default: true
-  // unordered?: boolean;       // Default: false
-  // showHint?: boolean;        // Default: true (shows index mismatch hint)
+  // showHeader?: boolean;       // Default: true
+  // visualizeInput?: boolean;   // Default: true (renders trees, 2D grids, graphs)
+  // visualizeOutput?: boolean;  // Default: true (renders visual tables/trees/graphs for output & diff)
+  // showStringInput?: boolean;  // Default: true
+  // unordered?: boolean;        // Default: false
+  // showHint?: boolean;         // Default: true (shows index mismatch hint)
+  // gridMode?: GridMode;        // 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'
 });
 ```
 
