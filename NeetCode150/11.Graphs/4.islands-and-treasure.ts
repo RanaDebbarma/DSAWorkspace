@@ -2,9 +2,89 @@ import { runTests } from "#functions/code-tester.js";
 
 // LeetCode 286
 
+// Optimal soln
 function islandsAndTreasure(grid: number[][]): number[][] {
-  return [];
+  const ROWS = grid.length;
+  const COLS = grid[0].length;
+
+  const queue: [number, number][] = [];
+
+  // Start BFS from every treasure
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c] === 0) {
+        queue.push([r, c]);
+      }
+    }
+  }
+
+  let head = 0;
+
+  while (head < queue.length) {
+    const [r, c] = queue[head++];
+
+    const neighbors = [
+      [r - 1, c],
+      [r + 1, c],
+      [r, c - 1],
+      [r, c + 1],
+    ];
+
+    for (const [nr, nc] of neighbors) {
+      if (
+        nr < 0 ||
+        nr >= ROWS ||
+        nc < 0 ||
+        nc >= COLS ||
+        grid[nr][nc] !== 2147483647
+      ) {
+        continue;
+      }
+
+      grid[nr][nc] = grid[r][c] + 1;
+      queue.push([nr, nc]);
+    }
+  }
+
+  return grid;
 }
+
+// not optimal
+// function islandsAndTreasure(grid: number[][]): number[][] {
+//   const ROWS = grid.length;
+//   const COLS = grid[0].length;
+
+//   for (let r = 0; r < ROWS; r++) {
+//     for (let c = 0; c < COLS; c++) {
+//       if (grid[r][c] === 0) {
+//         dfs(r, c, 0);
+//       }
+//     }
+//   }
+
+//   return grid;
+
+//   function dfs(r: number, c: number, distance: number): void {
+//     if (
+//       r < 0 ||
+//       r >= ROWS ||
+//       c < 0 ||
+//       c >= COLS ||
+//       grid[r][c] === -1 ||
+//       grid[r][c] < distance
+//     )
+//       return;
+
+//     grid[r][c] = distance;
+
+//     dfs(r - 1, c, distance + 1);
+//     dfs(r + 1, c, distance + 1);
+//     dfs(r, c - 1, distance + 1);
+//     dfs(r, c + 1, distance + 1);
+
+//     return;
+//   }
+// }
 
 runTests(
   islandsAndTreasure,
