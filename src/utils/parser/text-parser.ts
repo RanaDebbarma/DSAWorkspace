@@ -83,43 +83,96 @@ export function parseOutputSegment(outputSegment: string): any {
 // Input segment — param extraction
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Splits text into top-level arguments, respecting nested brackets [], {}, () and strings.
+ * Top-level separators are commas and newlines.
+ */
+export function splitTopLevelArguments(text: string): string[] {
+  const args: string[] = [];
+  let depth = 0;
+  let inString: string | false = false;
+  let escaped = false;
+  let current = "";
+
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+
+    if (inString) {
+      current += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === inString) {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inString = ch;
+      current += ch;
+      continue;
+    }
+
+    if (ch === "[" || ch === "{" || ch === "(") {
+      depth++;
+      current += ch;
+      continue;
+    }
+
+    if (ch === "]" || ch === "}" || ch === ")") {
+      depth--;
+      current += ch;
+      continue;
+    }
+
+    if (depth === 0) {
+      if (ch === "," || ch === "\n") {
+        if (current.trim()) {
+          args.push(current.trim());
+          current = "";
+        }
+        continue;
+      }
+    }
+
+    current += ch;
+  }
+
+  if (current.trim()) {
+    args.push(current.trim());
+  }
+
+  return args;
+}
+
 /** Extracts named params and their values from a LeetCode `Input:` segment. */
 export function extractParamsAndInputs(inputSegment: string): { params: ParamInfo[]; input: any[] } {
   const params: ParamInfo[] = [];
   const input:  any[]       = [];
 
-  // Try `name = value` syntax (LeetCode standard format)
-  const paramRegex = /(?:^|\s|,|\n)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g;
-  const matches: { param: string; index: number; valStart: number }[] = [];
-  let m: RegExpExecArray | null;
+  const chunks = splitTopLevelArguments(inputSegment);
+  chunks.forEach((chunk, idx) => {
+    const match = chunk.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*([\s\S]*)$/);
+    let name: string;
+    let rawVal: string;
 
-  while ((m = paramRegex.exec(inputSegment)) !== null) {
-    matches.push({ param: m[1], index: m.index, valStart: m.index + m[0].length });
-  }
-
-  if (matches.length > 0) {
-    for (let i = 0; i < matches.length; i++) {
-      const start = matches[i].valStart;
-      const end   = i + 1 < matches.length ? matches[i + 1].index : inputSegment.length;
-      let rawVal  = inputSegment.slice(start, end).trim().replace(/,$/, "").trim();
-
-      const parsedVal = parseValue(rawVal);
-      params.push({ name: matches[i].param, value: parsedVal });
-      input.push(parsedVal);
+    if (match) {
+      name = match[1];
+      rawVal = match[2];
+    } else {
+      name = `arg${idx + 1}`;
+      rawVal = chunk;
     }
-    return { params, input };
-  }
 
-  // Fallback: one value per line
-  inputSegment
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .forEach((line, idx) => {
-      const val = parseValue(line);
-      params.push({ name: `arg${idx + 1}`, value: val });
-      input.push(val);
-    });
+    const parsedVal = parseValue(rawVal);
+    params.push({ name, value: parsedVal });
+    input.push(parsedVal);
+  });
 
   return { params, input };
 }

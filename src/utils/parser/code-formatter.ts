@@ -91,7 +91,23 @@ export function formatParsedCasesForTs(cases: ParsedResult[], template?: string)
       outputStr = `createGraph(${stringifyTsValue(c.output)})`;
     }
 
-    return `  { input: ${inputStr}, output: ${outputStr} },`;
+    const singleLine = `  { input: ${inputStr}, output: ${outputStr} },`;
+    if (!inputStr.includes("\n") && !outputStr.includes("\n") && singleLine.length <= 100) {
+      return singleLine;
+    }
+
+    const indent = (str: string, spaces: number) => {
+      const pad = " ".repeat(spaces);
+      return str
+        .split("\n")
+        .map((line, i) => (i === 0 ? line : `${pad}${line}`))
+        .join("\n");
+    };
+
+    return `  {
+    input: ${indent(inputStr, 4)},
+    output: ${indent(outputStr, 4)},
+  },`;
   });
 
   return formatted.join("\n");

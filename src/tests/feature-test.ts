@@ -499,3 +499,59 @@ if (
 } else {
   console.log(chalk.red("❌ Failed to parse multi-example LeetCode class design input:"), parsedLcClass);
 }
+
+// =============================================================================
+// § 14 — MULTILINE 2D ARRAY & NEETCODE PARSER
+// =============================================================================
+section(14, "Multiline 2D Array & NeetCode Parser");
+
+import { inferFunctionSignature, formatParsedCasesForTs } from "#utils/testcase-parser.js";
+
+const neetcodeGridClipboard = `
+Example 1:
+
+Input: [
+  [2147483647,-1,0,2147483647],
+  [2147483647,2147483647,2147483647,-1],
+  [2147483647,-1,2147483647,-1],
+  [0,-1,2147483647,2147483647]
+]
+
+Output: [
+  [3,-1,0,1],
+  [2,2,1,-1],
+  [1,-1,2,-1],
+  [0,-1,3,4]
+]
+Example 2:
+
+Input: [
+  [0,-1],
+  [2147483647,2147483647]
+]
+
+Output: [
+  [0,-1],
+  [1,2]
+]
+`;
+
+const parsedGridCases = parseLeetCodeText(neetcodeGridClipboard);
+const gridSig = inferFunctionSignature(parsedGridCases, "standard");
+const formattedGridCases = formatParsedCasesForTs(parsedGridCases, "standard");
+
+if (
+  parsedGridCases.length === 2 &&
+  parsedGridCases[0].type === "standard" &&
+  parsedGridCases[0].input.length === 1 &&
+  Array.isArray(parsedGridCases[0].input[0]) &&
+  parsedGridCases[0].input[0].length === 4 &&
+  gridSig.paramsCode === "grid: number[][]" &&
+  gridSig.returnType === "number[][]" &&
+  formattedGridCases.includes("input: [[")
+) {
+  console.log(chalk.green("✔ NeetCode multiline 2D array successfully parsed and formatted!"));
+} else {
+  console.log(chalk.red("❌ Failed to parse NeetCode multiline 2D array:"), { parsedGridCases, gridSig });
+}
+

@@ -269,11 +269,49 @@ export function inferFunctionSignature(
     };
   }
 
+function inferSensibleParamName(
+  rawName: string,
+  type: string,
+  index: number,
+  totalCount: number,
+): string {
+  // If the problem text provided an explicit, non-generic name, keep it
+  if (rawName && !/^arg\d+$/i.test(rawName)) {
+    return rawName;
+  }
+
+  // Single parameter inferences
+  if (totalCount === 1) {
+    if (type.endsWith("[][]")) return "grid";
+    if (type.endsWith("[]")) {
+      return type.startsWith("string") ? "strs" : "nums";
+    }
+    if (type === "string") return "s";
+    if (type === "number") return "n";
+    if (type === "boolean") return "flag";
+  }
+
+  // Two parameter inferences
+  if (totalCount === 2) {
+    if (index === 0) {
+      if (type.endsWith("[][]")) return "grid";
+      if (type.endsWith("[]")) return type.startsWith("string") ? "strs" : "nums";
+      if (type === "string") return "s";
+    } else if (index === 1) {
+      if (type === "number") return "target";
+      if (type === "string") return "t";
+      if (type.endsWith("[]")) return "nums2";
+    }
+  }
+
+  return rawName || `arg${index + 1}`;
+}
+
   // Standard Template
   const paramStrings: string[] = [];
   firstCase.params.forEach((p, idx) => {
-    const pName = p.name || `arg${idx + 1}`;
     const pType = inferTsType(p.value);
+    const pName = inferSensibleParamName(p.name, pType, idx, firstCase.params.length);
     paramStrings.push(`${pName}: ${pType}`);
   });
 
