@@ -63,6 +63,7 @@ runTests(solve, [
   // unordered?: boolean;        // Default: false
   // showHint?: boolean;         // Default: true (shows index mismatch hint)
   // gridMode?: GridMode;        // 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'
+  // gridMapping?: GridMapping;  // Custom cell mapping & color-coding, e.g. { 2147483647: { label: "INF", color: "#74b9ff" }, [-1]: { label: "W", color: "#ff7675" }, 0: { label: "T", color: "#f1c40f" } }
 });
 ```
 
@@ -98,9 +99,9 @@ runClassTests(MyClass, [
 3. **Automatic Input Isolation**:
    * All inputs are deep-cloned with `cloneValue()` before running each test case so in-place mutations (e.g., sorting `nums`, reversing linked list) do not corrupt subsequent test runs.
 
-4. **Rich Input Visualizers (on by default)**:
+4. **Rich Input & Output Visualizers (on by default)**:
    * **Binary Trees**: Renders top-down ASCII tree with branch connectors. Supports subnode highlighting for LCA problems (`tree.find(val)`).
-   * **2D Grids**: Box-drawing table visualizer (auto-detects Sudoku, chess, maze, binary grid, numeric matrix).
+   * **2D Grids**: Box-drawing table visualizer (auto-detects Sudoku, chess, maze, binary grid, numeric matrix) for inputs, expected outputs, and diffs. Supports `gridMapping` to customize cell labels and color-code using hex codes (`"#74b9ff"`) or chalk functions/styles.
    * **Graphs**: Visualizes adjacency lists, raw adjacency maps, and edge lists with automatic directed/undirected detection.
    * **Linked Lists**: Arrow-linked chains (`1 → 2 → 3 → null`).
 

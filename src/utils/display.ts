@@ -4,7 +4,7 @@ import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode, graphToAdjList } from "#ds/graph.js";
 
 import { treeToString } from "./visualizers/tree-visualizer.js";
-import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString, isMatrixGrid, GridMode } from "./visualizers/grid-visualizer.js";
+import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString, isMatrixGrid, GridMode, GridMapping } from "./visualizers/grid-visualizer.js";
 import { graphToString, edgeListStringGraphToString, isStringEdgeList, isAdjacencyMap, adjMapToString } from "./visualizers/graph-visualizer.js";
 
 export * from "./visualizers/tree-visualizer.js";
@@ -95,6 +95,7 @@ export interface DisplayOptions {
   actualInput?: any[];
   visualizeOutput?: boolean;
   gridMode?: GridMode;
+  gridMapping?: GridMapping;
 }
 
 /**
@@ -124,7 +125,10 @@ export function serializeForDisplay(value: unknown, options?: DisplayOptions): s
     options?.gridMode !== "none" &&
     isMatrixGrid(value, options?.actualInput)
   ) {
-    return matrixToString(value, { mode: options?.gridMode ?? "auto" });
+    return matrixToString(value, {
+      mode: options?.gridMode ?? "auto",
+      gridMapping: options?.gridMapping,
+    });
   }
 
   if (typeof value === "string") return `"${value}"`;

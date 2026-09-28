@@ -269,16 +269,19 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 
 ## ⚙️ Test Options Reference
 
-The third argument to `runTests(fn, tests, options)` controls display behavior. All options default to `true` and `visualizeInput` is **on by default**.
+The third argument to `runTests(fn, tests, options)` controls display behavior. All options default to `true` and `visualizeInput` & `visualizeOutput` are **on by default**.
 
 ```typescript
 runTests(solve, tests, {
   showHeader?: boolean;       // Show the "RUNS solve()" banner. Default: true
   visualizeInput?: boolean;   // Render rich visual inputs per test. Default: true
+  visualizeOutput?: boolean;  // Render rich visual tables/structures for expected output & diffs. Default: true
   showStringInput?: boolean;  // Show `param = value` lines below visuals. Default: true
   unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
   showHint?: boolean;         // Show index failure hint (↳ index [i]: expected X, got Y). Default: true
   isDirected?: boolean;       // Explicitly set graph direction (true/false) across suite. Default: auto
+  gridMode?: GridMode;        // Grid style: 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'chess' | 'none'. Default: 'auto'
+  gridMapping?: GridMapping;  // Custom cell labels & colors (hex codes or chalk). Default: undefined
 });
 ```
 
@@ -288,37 +291,66 @@ runTests(solve, tests, {
 |---|---|---|
 | `showHeader` | `true` | Displays the `RUNS fn()` banner at the top |
 | `visualizeInput` | **`true`** | Renders structured visual diagrams before each test case |
+| `visualizeOutput` | **`true`** | Renders structured visual ASCII tables/structures for expected outputs and test diffs |
 | `showStringInput` | `true` | Prints plain `param = value` lines (can suppress when using visuals only) |
 | `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
 | `showHint` | `true` | Shows detailed index mismatch hint on test failure |
 | `isDirected` | `auto` | Suite-level default for graph direction (`true` for directed, `false` for undirected). Overridden by per-test `isDirected`. |
+| `gridMode` | `'auto'` | Suite-level grid visualizer mode (`'auto' \| 'board' \| 'maze' \| 'binary' \| 'sudoku' \| 'numeric' \| 'chess' \| 'none'`). Set to `'none'` to disable table formatting for grids. |
+| `gridMapping` | `undefined` | Custom cell representation and color-coding using hex codes (`"#74b9ff"`), chalk styles, or replacement labels. |
 
-> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered?: boolean` and `isDirected?: boolean` for granular per-test control.
+> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered?: boolean`, `isDirected?: boolean`, `gridMode?: GridMode`, `gridMapping?: GridMapping`, and `visualizeOutput?: boolean` for granular per-test control.
 
 ### Visualizer Output by Type
 
-When `visualizeInput: true` (the default), each input is rendered before every test case:
+When `visualizeInput: true` and `visualizeOutput: true` (the defaults), values are visually rendered for inputs, outputs, and diffs:
 
-| Input Type | Visual Output |
+| Input / Output Type | Visual Output |
 |---|---|
 | **Binary Tree** | Top-down ASCII tree with branch connectors |
-| **2D Grid / Matrix** | Box-drawing table with row/column borders (`9x9` Sudoku, `3x4` matrices) |
+| **2D Grid / Matrix** | Box-drawing table with row/column borders (`4x4` matrix, `9x9` Sudoku, chessboards) |
 | **Linked List** | `1 → 2 → 3 → null` arrow chain |
 | **Graph (`GraphNode` / Adj Map / Edge List)** | Node adjacency list with directed (`──►`) / undirected (`──`) edge rendering & component grouping |
 | **Multi-param Trees (LCA, etc.)** | Single unified tree diagram with `p [green]` and `q [yellow]` node labels |
 
 > 💡 **Smart 2D Array Disambiguation**:
-> For 2D arrays (`any[][]`), the visualizer automatically distinguishes 2D Grids from Graph Edge Lists:
+> For 2D arrays (`any[][]`), the visualizer automatically distinguishes true 2D Grids from Graph Edge Lists, intervals, triplets, and ragged arrays:
 > - **Parameter Name Precedence**: Parameters named `grid`, `board`, `matrix`, or `table` are **always** rendered as 2D Grids. Parameters named `edges`, `prereqs`, `flights`, `connections`, `times`, or `adj` are **always** rendered as Graph Edge Lists.
-> - **Structural Fallback**: For generic parameter names (e.g. `arr`), 2-tuple or 3-tuple rows (`[u, v]` or `[u, v, weight]`) default to Graph Edge Lists, while other dimensions (e.g. `9x9` Sudoku, `3x4` matrix) default to 2D Grids.
+> - **Structural Fallback**: For generic parameter names (e.g. `arr`), 2-tuple or 3-tuple rows (`[u, v]` or `[u, v, weight]`) default to Graph Edge Lists, while rectangular matrices of dimensions $\ge 2\times 2$ default to 2D Grids.
+
+### 2D Matrix Grid Mapping & Custom Colors (`gridMapping`)
+
+For matrix problems where raw numbers or characters represent domain concepts (e.g. `2147483647` for empty rooms/islands, `-1` for obstacles/walls, `0` for gates/treasures), use `gridMapping` to customize cell labels and color-code them:
+
+```typescript
+runTests(islandsAndTreasure, tests, {
+  gridMapping: {
+    // 1. Object format with custom hex color or chalk:
+    2147483647: { label: "INF", color: "#74b9ff" }, // Light Blue
+    [-1]:        { label: "W",   color: "#ff7675" }, // Warm Red
+    0:           { label: "T",   color: "#f1c40f" }, // Gold
+
+    // 2. Pre-styled string with chalk:
+    // 2147483647: chalk.hex("#74b9ff")("INF"),
+
+    // 3. Direct chalk function without changing the label:
+    // 2147483647: chalk.dim,
+  },
+});
+```
+
+All table borders and column widths dynamically adjust using ANSI-aware string measuring (`stripAnsi`), keeping ASCII tables perfectly aligned regardless of color styling.
 
 ### Examples
 
 ```typescript
-// Default — visualizeInput is ON
+// Default — visualizeInput and visualizeOutput are ON
 runTests(levelOrder, [
   { input: [createBinaryTree([3, 9, 20, null, null, 15, 7])], output: [[3], [9, 20], [15, 7]] },
 ]);
+
+// Turn OFF visual matrix table output (falls back to JSON array output)
+runTests(islandsAndTreasure, tests, { visualizeOutput: false });
 
 // Suppress visualizer (plain param = value output only)
 runTests(twoSum, tests, { visualizeInput: false });

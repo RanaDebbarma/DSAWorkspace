@@ -2,10 +2,103 @@ import chalk from "chalk";
 
 export type GridMode = "auto" | "board" | "maze" | "binary" | "sudoku" | "numeric" | "chess" | "none";
 
+export type GridCellMappingValue =
+  | string
+  | ((text: string) => string)
+  | {
+      label?: string;
+      color?: string | ((text: string) => string);
+    };
+
+export type GridMapping = Record<string | number, GridCellMappingValue>;
+
 export type MatrixToStringOptions = {
   mode?: GridMode;
   cellFormatter?: (val: any, str: string, r: number, c: number, defaultFormatted: string) => string;
+  gridMapping?: GridMapping;
 };
+
+/**
+ * Strips ANSI escape codes from a string to measure visible length.
+ */
+export function stripAnsi(str: string): string {
+  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+}
+
+/**
+ * Pads a string to a visible width respecting ANSI escape sequences.
+ */
+export function padVisible(text: string, targetWidth: number): string {
+  const visibleLen = stripAnsi(text).length;
+  const padLen = Math.max(0, targetWidth - visibleLen);
+  return " ".repeat(padLen) + text;
+}
+
+/**
+ * Resolves a cell's display label, color styling, and visible length.
+ * Supports:
+ * - Direct styling functions: chalk.cyan, chalk.bold.hex("#74b9ff")
+ * - Direct hex color string: "#74b9ff"
+ * - Pre-styled ANSI strings: chalk.cyan("INF")
+ * - Plain replacement label strings: "INF"
+ * - Objects: { label: "INF", color: "#74b9ff" } or { label: "T", color: chalk.yellow }
+ */
+export function resolveCellDisplay(
+  rawVal: any,
+  mapping?: GridMapping,
+  defaultColorFn?: (val: any, str: string) => string,
+): { label: string; styled: string; visibleLen: number } {
+  const mapped =
+    mapping?.[rawVal] ??
+    (rawVal !== undefined && rawVal !== null ? mapping?.[String(rawVal)] : undefined);
+
+  if (mapped === undefined) {
+    const label = String(rawVal ?? "");
+    const styled = defaultColorFn ? defaultColorFn(rawVal, label) : label;
+    return { label, styled, visibleLen: stripAnsi(styled).length };
+  }
+
+  // 1. Direct function: chalk.cyan or (t) => ...
+  if (typeof mapped === "function") {
+    const label = String(rawVal ?? "");
+    const styled = mapped(label);
+    return { label, styled, visibleLen: stripAnsi(styled).length };
+  }
+
+  // 2. String format: pre-styled, direct hex code, or plain label
+  if (typeof mapped === "string") {
+    if (mapped.includes("\u001b")) {
+      return { label: stripAnsi(mapped), styled: mapped, visibleLen: stripAnsi(mapped).length };
+    }
+    // Direct hex code like "#74b9ff"
+    if (/^#[0-9a-fA-F]{3,8}$/.test(mapped)) {
+      const label = String(rawVal ?? "");
+      const styled = chalk.hex(mapped)(label);
+      return { label, styled, visibleLen: stripAnsi(styled).length };
+    }
+    // Plain label string like "INF"
+    const styled = defaultColorFn ? defaultColorFn(rawVal, mapped) : mapped;
+    return { label: mapped, styled, visibleLen: stripAnsi(styled).length };
+  }
+
+  // 3. Object format: { label?: "INF", color?: "#74b9ff" | "cyan" | chalk.dim }
+  const label = mapped.label !== undefined ? mapped.label : String(rawVal ?? "");
+  let styled = label;
+
+  if (typeof mapped.color === "function") {
+    styled = mapped.color(label);
+  } else if (typeof mapped.color === "string") {
+    if (mapped.color.startsWith("#")) {
+      styled = chalk.hex(mapped.color)(label);
+    } else if (typeof (chalk as any)[mapped.color] === "function") {
+      styled = (chalk as any)[mapped.color](label);
+    }
+  } else if (defaultColorFn) {
+    styled = defaultColorFn(rawVal, label);
+  }
+
+  return { label, styled, visibleLen: stripAnsi(styled).length };
+}
 
 /**
  * Automatically infers the most appropriate GridMode by inspecting the cells of the matrix.
@@ -216,8 +309,9 @@ export function matrixToString(
   const colWidths = Array(cols).fill(1);
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const valStr = String(matrix[r]?.[c] ?? "");
-      colWidths[c] = Math.max(colWidths[c], valStr.length);
+      const rawVal = matrix[r]?.[c];
+      const cellInfo = resolveCellDisplay(rawVal, optionsObj?.gridMapping);
+      colWidths[c] = Math.max(colWidths[c], cellInfo.visibleLen);
     }
   }
 
@@ -231,12 +325,16 @@ export function matrixToString(
     const cells = [];
     for (let c = 0; c < cols; c++) {
       const rawVal = matrix[r]?.[c];
-      const valStr = String(rawVal ?? "").padStart(colWidths[c]);
-      const defaultColored = colorMatrixCell(rawVal, valStr, resolvedMode);
+      const cellInfo = resolveCellDisplay(
+        rawVal,
+        optionsObj?.gridMapping,
+        (val, str) => colorMatrixCell(val, str, resolvedMode),
+      );
       const coloredCell = optionsObj?.cellFormatter
-        ? optionsObj.cellFormatter(rawVal, valStr, r, c, defaultColored)
-        : defaultColored;
-      cells.push(` ${coloredCell} `);
+        ? optionsObj.cellFormatter(rawVal, cellInfo.label, r, c, cellInfo.styled)
+        : cellInfo.styled;
+      const paddedCell = padVisible(coloredCell, colWidths[c]);
+      cells.push(` ${paddedCell} `);
     }
     lines.push(chalk.gray("│") + cells.join(chalk.gray("│")) + chalk.gray("│"));
     if (r < rows - 1) {
@@ -334,13 +432,6 @@ export function isChessBoard(val: unknown): val is string[] {
 export function isChessBoardList(val: unknown): val is string[][] {
   if (!Array.isArray(val) || val.length === 0) return false;
   return val.every(isChessBoard);
-}
-
-/**
- * Strips ANSI escape codes from a string to measure visible length.
- */
-function stripAnsi(str: string): string {
-  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
 }
 
 /**

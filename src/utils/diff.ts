@@ -14,6 +14,7 @@ import {
   matrixToString,
   isMatrixGrid,
   GridMode,
+  GridMapping,
 } from "#utils/display.js";
 
 /**
@@ -204,6 +205,7 @@ export interface DiffOptions {
   actualInput?: any[];
   visualizeOutput?: boolean;
   gridMode?: GridMode;
+  gridMapping?: GridMapping;
 }
 
 /**
@@ -213,6 +215,7 @@ export function renderMatrixDiff(
   actual: any[][],
   expected: any[][],
   gridMode?: GridMode,
+  gridMapping?: GridMapping,
 ): { expLine: string; gotLine: string; hint: string } {
   const resolvedMode: GridMode = gridMode && gridMode !== "none" ? gridMode : "auto";
   let firstMismatch: { r: number; c: number; exp: any; got: any } | null = null;
@@ -227,10 +230,11 @@ export function renderMatrixDiff(
   if (sameDimensions) {
     const expLine = matrixToString(expected, {
       mode: resolvedMode,
-      cellFormatter: (val, str, r, c, defaultStr) => {
+      gridMapping,
+      cellFormatter: (val, label, r, c, defaultStr) => {
         if (actual[r] && !smartCompare(actual[r][c], val)) {
           if (!firstMismatch) firstMismatch = { r, c, exp: val, got: actual[r][c] };
-          return chalk.green.bold(str);
+          return chalk.green.bold(label);
         }
         return defaultStr;
       },
@@ -238,9 +242,10 @@ export function renderMatrixDiff(
 
     const gotLine = matrixToString(actual, {
       mode: resolvedMode,
-      cellFormatter: (val, str, r, c, defaultStr) => {
+      gridMapping,
+      cellFormatter: (val, label, r, c, defaultStr) => {
         if (expected[r] && !smartCompare(expected[r][c], val)) {
-          return chalk.red.bold(str);
+          return chalk.red.bold(label);
         }
         return defaultStr;
       },
@@ -254,8 +259,8 @@ export function renderMatrixDiff(
   }
 
   return {
-    expLine: matrixToString(expected, { mode: resolvedMode }),
-    gotLine: matrixToString(actual, { mode: resolvedMode }),
+    expLine: matrixToString(expected, { mode: resolvedMode, gridMapping }),
+    gotLine: matrixToString(actual, { mode: resolvedMode, gridMapping }),
     hint: `dimensions mismatch — expected ${expected.length}x${expected[0]?.length ?? 0}, got ${actual.length}x${actual[0]?.length ?? 0}`,
   };
 }
@@ -275,15 +280,26 @@ export function renderDiff(
     const isActGrid = isMatrixGrid(actual, options?.actualInput);
 
     if (isExpGrid && isActGrid) {
-      return renderMatrixDiff(actual as any[][], expected as any[][], options?.gridMode);
+      return renderMatrixDiff(
+        actual as any[][],
+        expected as any[][],
+        options?.gridMode,
+        options?.gridMapping,
+      );
     }
     if (isExpGrid && !isActGrid) {
-      const expLine = matrixToString(expected as any[][], { mode: options?.gridMode ?? "auto" });
+      const expLine = matrixToString(expected as any[][], {
+        mode: options?.gridMode ?? "auto",
+        gridMapping: options?.gridMapping,
+      });
       const { gotLine, hint } = renderDiff(actual, expected, { ...options, visualizeOutput: false });
       return { expLine, gotLine, hint };
     }
     if (!isExpGrid && isActGrid) {
-      const gotLine = matrixToString(actual as any[][], { mode: options?.gridMode ?? "auto" });
+      const gotLine = matrixToString(actual as any[][], {
+        mode: options?.gridMode ?? "auto",
+        gridMapping: options?.gridMapping,
+      });
       const { expLine, hint } = renderDiff(actual, expected, { ...options, visualizeOutput: false });
       return { expLine, gotLine, hint };
     }

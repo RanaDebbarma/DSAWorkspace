@@ -591,4 +591,54 @@ runTests(dummyMatrix, [
   },
 ]);
 
+// =============================================================================
+// § 16 — CUSTOM GRID CELL MAPPING & COLOR-CODING (chalk, hex codes, labels)
+// =============================================================================
+section(16, "Custom Grid Cell Mapping & Colors (gridMapping with chalk & hex)");
+
+import { matrixToString, resolveCellDisplay, stripAnsi } from "#utils/display.js";
+
+const rawTestGrid = [
+  [2147483647, -1],
+  [0, 2147483647],
+];
+
+const customMapping = {
+  2147483647: { label: "INF", color: "#74b9ff" },
+  [-1]: { label: "W", color: "#ff7675" },
+  0: { label: "T", color: chalk.bold.hex("#f1c40f") },
+};
+
+const renderedWithMapping = matrixToString(rawTestGrid, { gridMapping: customMapping });
+const renderedLines = renderedWithMapping.split("\n");
+const visibleLengths = renderedLines.map(l => stripAnsi(l).length);
+const allLinesSameLength = visibleLengths.every(len => len === visibleLengths[0]);
+
+if (
+  renderedWithMapping.includes("INF") &&
+  renderedWithMapping.includes("W") &&
+  renderedWithMapping.includes("T") &&
+  allLinesSameLength
+) {
+  console.log(chalk.green("✔ gridMapping correctly replaces labels, applies custom colors, and preserves column alignment!"));
+} else {
+  console.log(chalk.red("❌ gridMapping alignment or formatting failed!"), { visibleLengths });
+}
+
+runTests(
+  dummyMatrix,
+  [
+    {
+      name: "Matrix Grid with gridMapping (hex & chalk colors)",
+      input: [rawTestGrid],
+      output: rawTestGrid,
+    },
+  ],
+  {
+    gridMapping: customMapping,
+    showStringInput: false,
+  },
+);
+
+
 

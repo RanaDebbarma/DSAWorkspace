@@ -28,6 +28,7 @@ import {
   containsTreeNode,
   TreeHighlightMap,
   GridMode,
+  GridMapping,
   detectGridMode,
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
@@ -59,6 +60,8 @@ export type TestCase<F extends (...args: any[]) => any> = {
   isDirected?: boolean;
   /** Explicitly set grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). */
   gridMode?: GridMode;
+  /** Custom mapping for matrix grid cell representation and color-coding. */
+  gridMapping?: GridMapping;
   /** When false, disables visual table/structure rendering for expected output and diff for this test case. Defaults to true. */
   visualizeOutput?: boolean;
 };
@@ -83,6 +86,8 @@ export type TestOptions = {
   isDirected?: boolean;
   /** Suite-level default for grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). Overridden by per-test case `gridMode`. */
   gridMode?: GridMode;
+  /** Suite-level default for custom matrix grid cell representation and color-coding. Overridden by per-test case `gridMapping`. */
+  gridMapping?: GridMapping;
   /** When false, disables visual table/structure rendering for expected output and diff across the suite. Defaults to true. */
   visualizeOutput?: boolean;
 };
@@ -121,6 +126,8 @@ function renderInputBlock(
   suiteIsDirected?: boolean,
   testGridMode?: GridMode,
   suiteGridMode?: GridMode,
+  testGridMapping?: GridMapping,
+  suiteGridMapping?: GridMapping,
 ): void {
   const paramNames = getParamNames(fn);
   const formattedInputs = input.map(formatValue);
@@ -187,6 +194,7 @@ function renderInputBlock(
         } else {
           const resolvedGridMode = testGridMode ?? suiteGridMode ?? "auto";
           const effectiveMode = resolvedGridMode === "auto" ? detectGridMode(rawVal) : resolvedGridMode;
+          const effectiveGridMapping = testGridMapping ?? suiteGridMapping;
           const modeColor =
             effectiveMode === "board" ? chalk.hex("#ffeaa7") :
             effectiveMode === "maze" ? chalk.hex("#00cec9") :
@@ -200,7 +208,7 @@ function renderInputBlock(
             : `${chalk.gray("mode: ")}${modeColor(resolvedGridMode)}`;
 
           console.log(`${chalk.gray(`${pName} (${rawVal.length}x${rawVal[0].length} · `)}${modeLabel}${chalk.gray("):")}`);
-          console.log(indentAll(matrixToString(rawVal, { mode: resolvedGridMode }), 2));
+          console.log(indentAll(matrixToString(rawVal, { mode: resolvedGridMode, gridMapping: effectiveGridMapping }), 2));
           console.log();
         }
       } else if (rawVal instanceof GraphNode) {
@@ -243,8 +251,9 @@ function renderResultBlock(
   actualInput?: any[],
   visualizeOutput: boolean = true,
   gridMode?: GridMode,
+  gridMapping?: GridMapping,
 ): void {
-  const displayOpts = { actualInput, visualizeOutput, gridMode };
+  const displayOpts = { actualInput, visualizeOutput, gridMode, gridMapping };
 
   if (executionError) {
     const error =
@@ -445,6 +454,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
   const suiteIsDirected = typeof options === "object" ? options?.isDirected : undefined;
   const suiteGridMode = typeof options === "object" ? options?.gridMode : undefined;
+  const suiteGridMapping = typeof options === "object" ? options?.gridMapping : undefined;
 
   let passedCount = 0;
 
@@ -494,6 +504,8 @@ export function runTests<F extends (...args: any[]) => any>(
         suiteIsDirected,
         test.gridMode,
         suiteGridMode,
+        test.gridMapping,
+        suiteGridMapping,
       );
     } catch {
       console.dir(input.map(formatValue), { depth: null });
@@ -503,6 +515,7 @@ export function runTests<F extends (...args: any[]) => any>(
     printConsoleOutput(execution.logs);
     const shouldVisualizeOutput = test.visualizeOutput ?? visualizeOutput;
     const effectiveGridMode = test.gridMode ?? suiteGridMode;
+    const effectiveGridMapping = test.gridMapping ?? suiteGridMapping;
     renderResultBlock(
       passed,
       result,
@@ -512,6 +525,7 @@ export function runTests<F extends (...args: any[]) => any>(
       actualInput,
       shouldVisualizeOutput,
       effectiveGridMode,
+      effectiveGridMapping,
     );
     console.log();
   }
