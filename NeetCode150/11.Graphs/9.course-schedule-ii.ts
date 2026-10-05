@@ -2,6 +2,7 @@ import { runTests } from "#functions/code-tester.js";
 
 // LeetCode 210
 
+// DFS + 3 state
 function findOrder(numCourses: number, prerequisites: number[][]): number[] {
   const order: number[] = [];
   const preReqMap = new Map<number, number[]>();
@@ -37,6 +38,8 @@ function findOrder(numCourses: number, prerequisites: number[][]): number[] {
     return true;
   }
 }
+
+// Kahn's Algorithm (BFS)
 
 runTests(
   findOrder,

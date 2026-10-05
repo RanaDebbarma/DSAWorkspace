@@ -676,3 +676,64 @@ runTests(
   ],
   { showStringInput: false },
 );
+
+// =============================================================================
+// § 18 — 5+ NODE GRAPH VISUALIZATIONS (LINEAR CHAIN, 2x3 GRID, STAR)
+// =============================================================================
+section(18, "5+ Node Graph Visualizations (Linear Chain & 2x3 Grid)");
+
+function dummyGraphAlgo(n: number, edges: number[][]): boolean {
+  return true;
+}
+
+runTests(
+  dummyGraphAlgo,
+  [
+    {
+      name: "5-Node Linear Chain (N=5)",
+      input: [
+        5,
+        [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 4],
+        ],
+      ],
+      output: true,
+      isDirected: true,
+    },
+    {
+      name: "6-Node 2x3 Grid / Cycle (N=6)",
+      input: [
+        6,
+        [
+          [0, 1],
+          [1, 2],
+          [2, 5],
+          [5, 4],
+          [4, 3],
+          [3, 0],
+        ],
+      ],
+      output: true,
+      isDirected: true,
+    },
+    {
+      name: "5-Node Star Hub Layout (N=5)",
+      input: [
+        5,
+        [
+          [0, 1],
+          [0, 2],
+          [0, 3],
+          [0, 4],
+        ],
+      ],
+      output: true,
+      isDirected: true,
+    },
+  ],
+  { showStringInput: false },
+);
+

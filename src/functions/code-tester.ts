@@ -104,12 +104,13 @@ export type TestOptions<F extends (...args: any[]) => any = any> = {
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
 
-const DIRECTED_PARAM_REGEX = /directed|prereq|flight|dag|order|dependency|dependencies/i;
+const DIRECTED_PARAM_REGEX = /directed|prereq|flight|dag|order|dependency|dependencies|topo/i;
 
 function resolveIsDirected(
   paramName: string,
   testIsDirected?: boolean,
   suiteIsDirected?: boolean,
+  fnName?: string,
 ): boolean {
   if (typeof testIsDirected === "boolean") {
     return testIsDirected;
@@ -117,7 +118,7 @@ function resolveIsDirected(
   if (typeof suiteIsDirected === "boolean") {
     return suiteIsDirected;
   }
-  if (DIRECTED_PARAM_REGEX.test(paramName)) {
+  if (DIRECTED_PARAM_REGEX.test(paramName) || (fnName && DIRECTED_PARAM_REGEX.test(fnName))) {
     return true;
   }
   return false;
@@ -153,7 +154,7 @@ function renderInputBlock(
     const rawVal = input[i];
     const formattedVal = formattedInputs[i];
     const pName = paramNames[i] || `param${i + 1}`;
-    const resolvedDirected = resolveIsDirected(pName, testIsDirected, suiteIsDirected);
+    const resolvedDirected = resolveIsDirected(pName, testIsDirected, suiteIsDirected, fn.name);
 
     if (visualizeInput) {
       // Tree visualizer — detect subnodes on first param pass
