@@ -89,6 +89,7 @@ export function edgeListToNormalizedGraph(
   edges: number[][],
   numNodes?: number,
   isDirectedOverride?: boolean,
+  reverseEdges?: boolean,
 ): NormalizedGraph | null {
   if (!Array.isArray(edges)) return null;
 
@@ -107,9 +108,11 @@ export function edgeListToNormalizedGraph(
 
   for (const row of edges) {
     if (!Array.isArray(row) || row.length < 2) continue;
-    const u = Number(row[0]);
-    const v = Number(row[1]);
-    if (isNaN(u) || isNaN(v)) return null;
+    const rawU = Number(row[0]);
+    const rawV = Number(row[1]);
+    if (isNaN(rawU) || isNaN(rawV)) return null;
+    const u = reverseEdges ? rawV : rawU;
+    const v = reverseEdges ? rawU : rawV;
 
     const w = row.length >= 3 && typeof row[2] === "number" ? row[2] : undefined;
     if (w !== undefined) isWeighted = true;
@@ -302,8 +305,8 @@ export function graphToString(node: GraphNode | null, name = "graph", isDirected
   return normalizedGraphToString(normalized, name);
 }
 
-export function edgeListGraphToString(edges: number[][], name = "edges", numNodes?: number, isDirectedOverride?: boolean): string {
-  const normalized = edgeListToNormalizedGraph(edges, numNodes, isDirectedOverride);
+export function edgeListGraphToString(edges: number[][], name = "edges", numNodes?: number, isDirectedOverride?: boolean, reverseEdges?: boolean): string {
+  const normalized = edgeListToNormalizedGraph(edges, numNodes, isDirectedOverride, reverseEdges);
   if (!normalized) return JSON.stringify(edges);
   return normalizedGraphToString(normalized, name);
 }

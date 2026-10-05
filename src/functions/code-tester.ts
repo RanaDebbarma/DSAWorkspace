@@ -58,6 +58,8 @@ export type TestCase<F extends (...args: any[]) => any> = {
   unordered?: boolean;
   /** Explicitly set graph direction for this test case (true for directed, false for undirected). */
   isDirected?: boolean;
+  /** When true, reverses the edge direction in the graph visualization (swaps u↔v). */
+  reverseEdges?: boolean;
   /** Explicitly set grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). */
   gridMode?: GridMode;
   /** Custom mapping for matrix grid cell representation and color-coding. */
@@ -84,6 +86,8 @@ export type TestOptions = {
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
   isDirected?: boolean;
+  /** Suite-level default to reverse edge direction in graph visualizations (swaps u↔v). Overridden by per-test case `reverseEdges`. */
+  reverseEdges?: boolean;
   /** Suite-level default for grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). Overridden by per-test case `gridMode`. */
   gridMode?: GridMode;
   /** Suite-level default for custom matrix grid cell representation and color-coding. Overridden by per-test case `gridMapping`. */
@@ -124,6 +128,8 @@ function renderInputBlock(
   showStringInput: boolean,
   testIsDirected?: boolean,
   suiteIsDirected?: boolean,
+  testReverseEdges?: boolean,
+  suiteReverseEdges?: boolean,
   testGridMode?: GridMode,
   suiteGridMode?: GridMode,
   testGridMapping?: GridMapping,
@@ -185,10 +191,11 @@ function renderInputBlock(
       // 2D matrix / edge list visualizer
       if (Array.isArray(rawVal) && rawVal.length > 0 && Array.isArray(rawVal[0])) {
         if (isEdgeListParam(pName, rawVal)) {
+          const resolvedReverse = testReverseEdges ?? suiteReverseEdges ?? false;
           if (isStringEdgeList(rawVal)) {
             console.log(edgeListStringGraphToString(rawVal, pName, resolvedDirected));
           } else {
-            console.log(edgeListGraphToString(rawVal, pName, undefined, resolvedDirected));
+            console.log(edgeListGraphToString(rawVal, pName, undefined, resolvedDirected, resolvedReverse));
           }
           console.log();
         } else {
@@ -453,6 +460,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
   const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
   const suiteIsDirected = typeof options === "object" ? options?.isDirected : undefined;
+  const suiteReverseEdges = typeof options === "object" ? options?.reverseEdges : undefined;
   const suiteGridMode = typeof options === "object" ? options?.gridMode : undefined;
   const suiteGridMapping = typeof options === "object" ? options?.gridMapping : undefined;
 
@@ -502,6 +510,8 @@ export function runTests<F extends (...args: any[]) => any>(
         showStringInput,
         test.isDirected,
         suiteIsDirected,
+        test.reverseEdges,
+        suiteReverseEdges,
         test.gridMode,
         suiteGridMode,
         test.gridMapping,
