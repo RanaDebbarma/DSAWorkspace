@@ -280,6 +280,7 @@ runTests(solve, tests, {
   unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
   showHint?: boolean;         // Show index failure hint (↳ index [i]: expected X, got Y). Default: true
   isDirected?: boolean;       // Explicitly set graph direction (true/false) across suite. Default: auto
+  reverseEdges?: boolean;     // Flip edge direction in graph visualizations (swaps u↔v). Default: false
   gridMode?: GridMode;        // Grid style: 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'chess' | 'none'. Default: 'auto'
   gridMapping?: GridMapping;  // Custom cell labels & colors (hex codes or chalk). Default: undefined
 });
@@ -296,10 +297,11 @@ runTests(solve, tests, {
 | `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
 | `showHint` | `true` | Shows detailed index mismatch hint on test failure |
 | `isDirected` | `auto` | Suite-level default for graph direction (`true` for directed, `false` for undirected). Overridden by per-test `isDirected`. |
+| `reverseEdges` | `false` | Flips the edge direction in graph visualizations (swaps u↔v). Useful when the raw `[a, b]` convention means "b → a" semantically. Overridden by per-test `reverseEdges`. |
 | `gridMode` | `'auto'` | Suite-level grid visualizer mode (`'auto' \| 'board' \| 'maze' \| 'binary' \| 'sudoku' \| 'numeric' \| 'chess' \| 'none'`). Set to `'none'` to disable table formatting for grids. |
 | `gridMapping` | `undefined` | Custom cell representation and color-coding using hex codes (`"#74b9ff"`), chalk styles, or replacement labels. |
 
-> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered?: boolean`, `isDirected?: boolean`, `gridMode?: GridMode`, `gridMapping?: GridMapping`, and `visualizeOutput?: boolean` for granular per-test control.
+> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered`, `isDirected`, `reverseEdges`, `gridMode`, `gridMapping`, and `visualizeOutput` for granular per-test control.
 
 ### Visualizer Output by Type
 
