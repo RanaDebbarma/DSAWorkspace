@@ -75,13 +75,19 @@ export type ClassTestCase = {
   expected: any[];
 };
 
-export type TestOptions = {
+export type TestOptions<F extends (...args: any[]) => any = any> = {
   showHeader?: boolean;
   visualizeInput?: boolean;
   /** When false, suppresses the plain `param = value` lines printed below visual input blocks. Defaults to true. */
   showStringInput?: boolean;
   /** When true, treats array output order as insensitive across all test cases in this suite. */
   unordered?: boolean;
+  /** Suite-level custom comparator. Overridden by per-test case `compare`. */
+  compare?: (
+    actual: ReturnType<F>,
+    expected: any,
+    actualInput: Parameters<F>,
+  ) => boolean;
   /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
@@ -90,7 +96,7 @@ export type TestOptions = {
   reverseEdges?: boolean;
   /** Suite-level default for grid visualization mode ('auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'). Overridden by per-test case `gridMode`. */
   gridMode?: GridMode;
-  /** Suite-level default for custom matrix grid cell representation and color-coding. Overridden by per-test case `gridMapping`. */
+  /** Custom mapping for matrix grid cell representation and color-coding. */
   gridMapping?: GridMapping;
   /** When false, disables visual table/structure rendering for expected output and diff across the suite. Defaults to true. */
   visualizeOutput?: boolean;
@@ -446,7 +452,7 @@ function renderStepTable(
 export function runTests<F extends (...args: any[]) => any>(
   fn: F,
   tests: TestCase<F>[],
-  options: boolean | TestOptions = true,
+  options: boolean | TestOptions<F> = true,
 ) {
   if (tests.length === 0) {
     console.log(chalk.yellow("⚠ No test cases provided."));
@@ -458,6 +464,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const visualizeOutput = typeof options === "boolean" ? true : (options?.visualizeOutput ?? true);
   const showStringInput = typeof options === "boolean" ? true : (options?.showStringInput ?? true);
   const suiteUnordered = typeof options === "object" ? (options?.unordered ?? false) : false;
+  const suiteCompare = typeof options === "object" ? options?.compare : undefined;
   const showHint = typeof options === "boolean" ? true : (options?.showHint ?? true);
   const suiteIsDirected = typeof options === "object" ? options?.isDirected : undefined;
   const suiteReverseEdges = typeof options === "object" ? options?.reverseEdges : undefined;
@@ -484,12 +491,16 @@ export function runTests<F extends (...args: any[]) => any>(
     const result = execution.value as ReturnType<F>;
 
     const isUnordered = unordered ?? suiteUnordered;
+    const effectiveCompare = compare ?? suiteCompare;
 
     const passed = execution.error
       ? false
-      : compare
-        ? compare(result, output, actualInput)
-        : smartCompare(result, output, actualInput, { unordered: isUnordered });
+      : effectiveCompare
+        ? effectiveCompare(result, output, actualInput)
+        : smartCompare(result, output, actualInput, {
+            unordered: isUnordered,
+            fnName: fn.name,
+          });
 
     if (passed) passedCount++;
 

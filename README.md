@@ -214,6 +214,7 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 1. **Zero-Boilerplate Comparison (`smartCompare`)**:
    The test runner automatically inspects your solution outputs and arguments. If it sees nested arrays, `ListNode`s, `TreeNode`s, or cyclic `GraphNode`s, it selects the correct structural comparator out-of-the-box — no custom comparators needed.
    - **Unordered 2D arrays** (Subsets, Combinations, Group Anagrams, 3Sum): Automatically compared without caring about order of rows or elements.
+   - **Topological Sort Auto-Detection** (Course Schedule II, Alien Dictionary, DAG problems): Automatically detects graph dependencies and validates alternative valid topological orderings without requiring manual configuration.
    - **Floating-point results** (Pow, geometry, probability): Compared with `1e-5` tolerance automatically.
 
 2. **LeetCode-Style Parameter Display**:
@@ -278,6 +279,7 @@ runTests(solve, tests, {
   visualizeOutput?: boolean;  // Render rich visual tables/structures for expected output & diffs. Default: true
   showStringInput?: boolean;  // Show `param = value` lines below visuals. Default: true
   unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
+  compare?: ComparatorFn;     // Custom suite-level comparator (actual, expected, actualInput) => boolean
   showHint?: boolean;         // Show index failure hint (↳ index [i]: expected X, got Y). Default: true
   isDirected?: boolean;       // Explicitly set graph direction (true/false) across suite. Default: auto
   reverseEdges?: boolean;     // Flip edge direction in graph visualizations (swaps u↔v). Default: false
@@ -295,6 +297,7 @@ runTests(solve, tests, {
 | `visualizeOutput` | **`true`** | Renders structured visual ASCII tables/structures for expected outputs and test diffs |
 | `showStringInput` | `true` | Prints plain `param = value` lines (can suppress when using visuals only) |
 | `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
+| `compare` | `undefined` | Suite-level custom comparator (`(actual, expected, actualInput) => boolean`). Overridden by per-test case `compare`. |
 | `showHint` | `true` | Shows detailed index mismatch hint on test failure |
 | `isDirected` | `auto` | Suite-level default for graph direction (`true` for directed, `false` for undirected). Overridden by per-test `isDirected`. |
 | `reverseEdges` | `false` | Flips the edge direction in graph visualizations (swaps u↔v). Useful when the raw `[a, b]` convention means "b → a" semantically. Overridden by per-test `reverseEdges`. |

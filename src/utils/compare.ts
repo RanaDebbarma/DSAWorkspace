@@ -11,6 +11,7 @@ import { GraphNode, compareGraphs, graphHasNoSharedNodes } from "#ds/graph.js";
 
 export type CompareOptions = {
   unordered?: boolean;
+  fnName?: string;
 };
 
 /**
@@ -97,10 +98,21 @@ export function smartCompare(
     }
 
     // Default: ordered element-wise comparison
+    let matchesOrdered = true;
     for (let i = 0; i < actual.length; i++) {
-      if (!smartCompare(actual[i], expected[i], undefined, options)) return false;
+      if (!smartCompare(actual[i], expected[i], undefined, options)) {
+        matchesOrdered = false;
+        break;
+      }
     }
-    return true;
+    if (matchesOrdered) return true;
+
+    // Auto-detect Topological Sort / Course Schedule valid permutations
+    if (compareTopologicalSort(actual, expected, actualInput, options)) {
+      return true;
+    }
+
+    return false;
   }
 
   return isDeepStrictEqual(actual, expected);
@@ -172,3 +184,106 @@ export function compareRandomLists(
     randomListHasNoSharedNodes(original, actual)
   );
 }
+
+/**
+ * Auto-detect and compare alternative valid Topological Sort orders (e.g. Course Schedule II).
+ * Verifies that `actual` is a valid permutation of courses/nodes satisfying all edge constraints
+ * matching the direction exhibited by `expected`.
+ */
+export function compareTopologicalSort(
+  actual: any,
+  expected: any,
+  actualInput?: any[],
+  options?: CompareOptions,
+): boolean {
+  if (!Array.isArray(actual) || !Array.isArray(expected)) return false;
+  if (actual.length !== expected.length) return false;
+
+  const graphData = extractGraphInputs(actualInput);
+  if (!graphData) return false;
+
+  const { n, edges } = graphData;
+  if (expected.length !== n || actual.length !== n) return false;
+
+  // Both must be valid permutations of 0..n-1
+  if (!isPermutationOfN(expected, n) || !isPermutationOfN(actual, n)) {
+    return false;
+  }
+
+  // If no edges exist:
+  // If fnName is available, only allow unconstrained permutations if it represents an ordering/schedule problem.
+  if (edges.length === 0) {
+    if (options?.fnName && !/(order|schedule|topo|course)/i.test(options.fnName)) {
+      return false;
+    }
+    return true;
+  }
+
+  // Pre-calculate index positions
+  const posExp = new Int32Array(n);
+  for (let i = 0; i < n; i++) posExp[expected[i]] = i;
+
+  const posAct = new Int32Array(n);
+  for (let i = 0; i < n; i++) posAct[actual[i]] = i;
+
+  // Determine edge direction by examining expected output:
+  // 1. Prerequisites style ([course, prereq] -> prereq must appear before course)
+  const isPrereqStyle = edges.every(([course, prereq]) => posExp[prereq] < posExp[course]);
+
+  // 2. Direct edge style ([u, v] -> u must appear before v)
+  const isDirectEdgeStyle = edges.every(([u, v]) => posExp[u] < posExp[v]);
+
+  if (!isPrereqStyle && !isDirectEdgeStyle) {
+    return false;
+  }
+
+  if (isPrereqStyle) {
+    return edges.every(([course, prereq]) => posAct[prereq] < posAct[course]);
+  }
+
+  return edges.every(([u, v]) => posAct[u] < posAct[v]);
+}
+
+function isPermutationOfN(arr: number[], n: number): boolean {
+  if (arr.length !== n) return false;
+  const seen = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const val = arr[i];
+    if (typeof val !== "number" || !Number.isInteger(val) || val < 0 || val >= n || seen[val] === 1) {
+      return false;
+    }
+    seen[val] = 1;
+  }
+  return true;
+}
+
+function extractGraphInputs(actualInput?: any[]): { n: number; edges: [number, number][] } | null {
+  if (!actualInput || !Array.isArray(actualInput) || actualInput.length < 2) return null;
+
+  let n: number | null = null;
+  let edges: [number, number][] | null = null;
+
+  for (const arg of actualInput) {
+    if (typeof arg === "number" && Number.isInteger(arg) && arg >= 0 && n === null) {
+      n = arg;
+    } else if (
+      Array.isArray(arg) &&
+      edges === null &&
+      arg.every(
+        (e) => Array.isArray(e) && e.length === 2 && typeof e[0] === "number" && typeof e[1] === "number",
+      )
+    ) {
+      edges = arg as [number, number][];
+    }
+  }
+
+  if (n !== null && edges !== null) {
+    const validEdges = edges.every(([u, v]) => u >= 0 && u < n! && v >= 0 && v < n!);
+    if (validEdges) {
+      return { n, edges };
+    }
+  }
+
+  return null;
+}
+

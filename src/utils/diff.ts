@@ -218,7 +218,7 @@ export function renderMatrixDiff(
   gridMapping?: GridMapping,
 ): { expLine: string; gotLine: string; hint: string } {
   const resolvedMode: GridMode = gridMode && gridMode !== "none" ? gridMode : "auto";
-  let firstMismatch: { r: number; c: number; exp: any; got: any } | null = null;
+  const mismatchRef: { current: { r: number; c: number; exp: any; got: any } | null } = { current: null };
 
   const sameDimensions =
     actual.length === expected.length &&
@@ -233,7 +233,7 @@ export function renderMatrixDiff(
       gridMapping,
       cellFormatter: (val, label, r, c, defaultStr) => {
         if (actual[r] && !smartCompare(actual[r][c], val)) {
-          if (!firstMismatch) firstMismatch = { r, c, exp: val, got: actual[r][c] };
+          if (!mismatchRef.current) mismatchRef.current = { r, c, exp: val, got: actual[r][c] };
           return chalk.green.bold(label);
         }
         return defaultStr;
@@ -251,8 +251,8 @@ export function renderMatrixDiff(
       },
     });
 
-    const hint = firstMismatch
-      ? `cell [${firstMismatch.r}, ${firstMismatch.c}]: expected ${JSON.stringify(firstMismatch.exp)}, got ${JSON.stringify(firstMismatch.got)}`
+    const hint = mismatchRef.current
+      ? `cell [${mismatchRef.current.r}, ${mismatchRef.current.c}]: expected ${JSON.stringify(mismatchRef.current.exp)}, got ${JSON.stringify(mismatchRef.current.got)}`
       : "";
 
     return { expLine, gotLine, hint };

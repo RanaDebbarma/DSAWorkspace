@@ -61,6 +61,7 @@ runTests(solve, [
   // visualizeOutput?: boolean;  // Default: true (renders visual tables/trees/graphs for output & diff)
   // showStringInput?: boolean;  // Default: true
   // unordered?: boolean;        // Default: false
+  // compare?: ComparatorFn;     // Custom suite-level comparator (actual, expected, actualInput) => boolean
   // showHint?: boolean;         // Default: true (shows index mismatch hint)
   // gridMode?: GridMode;        // 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'
   // gridMapping?: GridMapping;  // Custom cell mapping & color-coding, e.g. { 2147483647: { label: "INF", color: "#74b9ff" }, [-1]: { label: "W", color: "#ff7675" }, 0: { label: "T", color: "#f1c40f" } }
@@ -90,6 +91,7 @@ runClassTests(MyClass, [
    * Automatically deep-compares primitives, objects, `TreeNode`, `ListNode` (handles cycles safely), and `GraphNode`.
    * Floating-point tolerance: Automatically allows `1e-5` difference.
    * Unordered comparisons: Handles 1D and 2D arrays order-insensitively when `{ unordered: true }` or for recognized problems (3Sum, Group Anagrams, Subsets).
+   * **Topological Sort Auto-Detection**: Automatically validates DAG ordering constraints when multiple valid topological orderings exist (e.g. Course Schedule II / LeetCode 210) without needing manual configuration.
 
 2. **Heap & PriorityQueue (`#ds/heap.js`)**:
    * Fully matches LeetCode `@datastructures-js/priority-queue` (`MinPriorityQueue`, `MaxPriorityQueue`, `PriorityQueue`) with `.enqueue()`, `.dequeue()`, `.front()`, `.size()`, and `.isEmpty()`.

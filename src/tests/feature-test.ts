@@ -19,6 +19,17 @@ import {
 import { createLinkedList, createCyclicLinkedList, ListNode } from "#ds/linked-list.js";
 import { createBinaryTree, TreeNode } from "#ds/tree.js";
 import { createGraph, cloneGraph } from "#ds/graph.js";
+import {
+  parseLeetCodeText,
+  inferFunctionSignature,
+  formatParsedCasesForTs,
+} from "#utils/testcase-parser.js";
+import {
+  matrixToString,
+  isMatrixGrid,
+  resolveCellDisplay,
+  stripAnsi,
+} from "#utils/display.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION HEADER UTILITY
@@ -403,7 +414,6 @@ runTests(lowestCommonAncestor, [
 // =============================================================================
 section(11, "NeetCode Interleaved Class Design Parser Test");
 
-import { parseLeetCodeText } from "#utils/testcase-parser.js";
 
 const neetcodeClipboard = `
 Input:
@@ -431,7 +441,6 @@ if (
 // =============================================================================
 section(12, "Chessboard Matrix Visualization (string[] & chess mode)");
 
-import { matrixToString } from "#functions/code-tester.js";
 
 const nQueensBoard = [
   ".Q..",
@@ -505,7 +514,6 @@ if (
 // =============================================================================
 section(14, "Multiline 2D Array & NeetCode Parser");
 
-import { inferFunctionSignature, formatParsedCasesForTs } from "#utils/testcase-parser.js";
 
 const neetcodeGridClipboard = `
 Example 1:
@@ -560,7 +568,6 @@ if (
 // =============================================================================
 section(15, "Matrix Output & Diff Visualization (with on/off toggles)");
 
-import { isMatrixGrid } from "#utils/display.js";
 
 const is4x4 = isMatrixGrid([[3, -1, 0, 1], [2, 2, 1, -1], [1, -1, 2, -1], [0, -1, 3, 4]]);
 const isTriplets = isMatrixGrid([[-1, -1, 2], [-1, 0, 1]]);
@@ -596,7 +603,6 @@ runTests(dummyMatrix, [
 // =============================================================================
 section(16, "Custom Grid Cell Mapping & Colors (gridMapping with chalk & hex)");
 
-import { matrixToString, resolveCellDisplay, stripAnsi } from "#utils/display.js";
 
 const rawTestGrid = [
   [2147483647, -1],
@@ -640,5 +646,33 @@ runTests(
   },
 );
 
+// =============================================================================
+// § 17 — TOPOLOGICAL SORT / COURSE SCHEDULE AUTO-DETECTION
+// =============================================================================
+section(17, "Topological Sort & Course Schedule II Auto-Detection");
 
+function findOrder(numCourses: number, prerequisites: number[][]): number[] {
+  // Returns valid topological order [0, 1, 2, 3]
+  return [0, 1, 2, 3];
+}
 
+runTests(
+  findOrder,
+  [
+    {
+      name: "Auto-detect valid alternative topological sort order",
+      input: [
+        4,
+        [
+          [1, 0],
+          [2, 0],
+          [3, 1],
+          [3, 2],
+        ],
+      ],
+      // Expected is [0, 2, 1, 3], actual returns [0, 1, 2, 3]. Both are valid!
+      output: [0, 2, 1, 3],
+    },
+  ],
+  { showStringInput: false },
+);
