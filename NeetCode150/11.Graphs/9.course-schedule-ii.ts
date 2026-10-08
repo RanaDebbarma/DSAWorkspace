@@ -109,5 +109,5 @@ runTests(
       output: [0, 2, 1, 3],
     },
   ],
-  { showHint: false },
+  { showHint: false, reverseEdges: true },
 );
