@@ -8,10 +8,11 @@ function merge(
   nums2: number[],
   n: number,
 ): number[] {
-  let p1 = m - 1;
-  let p2 = n - 1;
-  let i = m + n - 1;
+  let p1 = m - 1;      // Last valid element in nums1
+  let p2 = n - 1;      // Last element in nums2
+  let i = m + n - 1;   // Last position in nums1
 
+  // Place the largest remaining element at the end.
   while (p1 >= 0 && p2 >= 0) {
     if (nums1[p1] < nums2[p2]) {
       nums1[i--] = nums2[p2--];
@@ -20,8 +21,10 @@ function merge(
     }
   }
 
-  while (p1 >= 0) nums1[i--] = nums1[p1--];
-  while (p2 >= 0) nums1[i--] = nums2[p2--];
+  // Copy remaining elements from nums2, if any.
+  while (p2 >= 0) {
+    nums1[i--] = nums2[p2--];
+  }
 
   return nums1;
 }
