@@ -39,22 +39,21 @@ function climbStairsIterative(n: number): number {
 
 // o(n) time and o(1) space ----- Optimized Tabulation -- Bottom-up DP
 function climbStairs(n: number): number {
-  if (n <= 2) return n;
-
+  let prev1 = 1;
   let prev2 = 1;
-  let prev1 = 2;
-
-  for (let i = 3; i <= n; i++) {
-    const curr = prev1 + prev2;
-
-    prev2 = prev1;
-    prev1 = curr;
+  
+  for (let i = 2; i <= n; i++) {
+    const next = prev1 + prev2;
+    
+    prev1 = prev2;
+    prev2 = next;
   }
-
-  return prev1;
+  
+  return prev2;
 }
 
 runTests(climbStairs, [
   { input: [2], output: 2 },
   { input: [3], output: 3 },
+  { input: [5], output: 8 },
 ]);
