@@ -64,7 +64,7 @@ function rob_BU(nums: number[]): number {
 }
 
 // O(n) time and O(1) space — Bottom-Up + Space Optimization
-function rob(nums: number[]): number {
+function rob_SO(nums: number[]): number {
   const n = nums.length;
 
   if (n === 0) return 0;
@@ -81,6 +81,22 @@ function rob(nums: number[]): number {
     const curr = Math.max(robCurrent, skipCurrent);
 
     // Advance the two DP states
+    prev2 = prev1;
+    prev1 = curr;
+  }
+
+  return prev1;
+}
+
+// O(n) time and O(1) space — Bottom-Up + Space Optimization
+// cleaner code
+function rob(nums: number[]): number {
+  let prev2 = 0;
+  let prev1 = 0;
+
+  for (const money of nums) {
+    const curr = Math.max(prev1, prev2 + money);
+
     prev2 = prev1;
     prev1 = curr;
   }
