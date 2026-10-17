@@ -100,7 +100,7 @@ function longestPalindrome(s: string): string {
   }
 }
 
-runTests(longestPalindrome, [
+runTests([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], [
   { input: ["ababd"], output: "bab" },
   { input: ["abbc"], output: "bb" },
   { input: ["babad"], output: "aba" },

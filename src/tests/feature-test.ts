@@ -11,6 +11,7 @@ import chalk from "chalk";
 import {
   runTests,
   runClassTests,
+  runCompare,
   compareUnorderedArrays,
   compareUnordered2DArrays,
   compareGroupAnagrams,
@@ -737,3 +738,35 @@ runTests(
   { showStringInput: false },
 );
 
+// =============================================================================
+// § 19 — MULTI-FUNCTION runTests (sequential) & runCompare (timing table)
+// =============================================================================
+section(19, "Multi-Function runTests (sequential) & runCompare (timing table)");
+
+function fibRecursive(n: number): number {
+  if (n <= 1) return n;
+  return fibRecursive(n - 1) + fibRecursive(n - 2);
+}
+
+function fibIterative(n: number): number {
+  if (n <= 1) return n;
+  let a = 0, b = 1;
+  for (let i = 2; i <= n; i++) {
+    const c = a + b;
+    a = b;
+    b = c;
+  }
+  return b;
+}
+
+const fibTests = [
+  { input: [5], output: 5 },
+  { input: [10], output: 55 },
+  { input: [15], output: 610 },
+];
+
+// Runs each function individually through the full test runner sequentially
+runTests([fibRecursive, fibIterative], fibTests);
+
+// Runs all functions side-by-side with compact timing comparison + summary table
+runCompare([fibRecursive, fibIterative], fibTests);

@@ -16,7 +16,8 @@ src/                      # Core infrastructure files
 │   ├── graph.ts          # GraphNode, adjacency list builder, clone, compare
 │   └── heap.ts           # MinPriorityQueue, MaxPriorityQueue, PriorityQueue, MinHeap, MaxHeap
 ├── functions/            # Test framework entry point
-│   └── code-tester.ts    # runTests, runClassTests, TestCase, ClassTestCase types
+│   ├── code-tester.ts    # runTests, runClassTests, TestCase, ClassTestCase types
+│   └── run-compare.ts    # runCompare multi-implementation runtime comparison
 ├── utils/                # Internal test runner & CLI helper utilities
 │   ├── clone.ts          # Deep input cloning (arrays, ListNode, TreeNode, GraphNode)
 │   ├── compare.ts        # Comparison engine (smartCompare, unordered arrays, aliases)
@@ -267,6 +268,11 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
      ```
    - **NeetCode.io Compatibility**: Includes a compact copy-paste snippet in comments for environments without built-in priority queue support.
 
+9. **Multi-Function Convenience (`runTests([fn1, fn2])`) and Runtime Comparison (`runCompare`)**:
+   When you have multiple implementations and want to run them against the same test suite:
+   - **`runTests([fn1, fn2, fn3], tests)`** — Runs each function through the full individual test runner sequentially (complete `RUNS fn() / PASS / FAIL` output for each). A pure convenience shorthand — no extra imports, no restructuring.
+   - **`runCompare([fn1, fn2, fn3], tests)`** — Dedicated side-by-side runtime comparison: compact per-test timing rows with `✓`/`✗` status, inline failure diffs, `◀ fastest` badges per test, and an aggregated summary table (Passed, Avg Time, Total).
+
 ---
 
 ## ⚙️ Test Options Reference
@@ -378,6 +384,17 @@ runClassTests(MinStack, [
     expected: [null, null, null, null, -3, null, 0, -2],
   },
 ]);
+
+// Multi-function convenience: runs each function individually in sequence
+import { runTests } from "#functions/code-tester.js";
+
+runTests([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests);
+// equivalent to runTests(longestPalindrome_BF, tests) then runTests(longestPalindrome_BU, tests) etc.
+
+// Multi-function timing comparison (compact table with ◀ fastest badge and summary)
+import { runCompare } from "#functions/code-tester.js";
+
+runCompare([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests);
 ```
 
 ### Unordered Comparison Helpers

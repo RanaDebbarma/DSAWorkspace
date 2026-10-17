@@ -30,7 +30,7 @@ This repository is a local TypeScript practice and testing framework for LeetCod
 TypeScript path aliases are configured in `package.json` and `tsconfig.json`:
 
 ```typescript
-import { runTests, runClassTests } from "#functions/code-tester.js";
+import { runTests, runClassTests, runCompare } from "#functions/code-tester.js";
 import { TreeNode, createBinaryTree } from "#ds/tree.js";
 import { ListNode, createLinkedList, createCyclicLinkedList } from "#ds/linked-list.js";
 import { GraphNode, createGraph } from "#ds/graph.js";
@@ -84,6 +84,26 @@ runClassTests(MyClass, [
   },
 ]);
 ```
+
+### 3. Comparing Multiple Implementations (`runCompare` / `runTests`)
+```typescript
+import { runCompare, runTests } from "#functions/code-tester.js";
+
+function solve_BF(...): ReturnType { ... }
+function solve_DP(...): ReturnType { ... }
+function solve_Optimal(...): ReturnType { ... }
+
+// runTests with an array runs each function individually (full PASS/FAIL output per function):
+runTests([solve_BF, solve_DP, solve_Optimal], tests);
+// equivalent to:
+// runTests(solve_BF, tests);
+// runTests(solve_DP, tests);
+// runTests(solve_Optimal, tests);
+
+// runCompare runs all functions side-by-side with compact timing comparison:
+runCompare([solve_BF, solve_DP, solve_Optimal], tests);
+```
+`runCompare` displays a compact per-test timing row with `✓`/`✗`, fastest indicator (`◀ fastest`), and an aggregated summary table with average and total runtimes.
 
 ---
 

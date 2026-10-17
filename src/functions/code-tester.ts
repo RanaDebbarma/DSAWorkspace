@@ -36,6 +36,7 @@ import {
   captureConsoleOutput,
   printConsoleOutput,
 } from "#utils/console-capture.js";
+import { runCompare } from "#functions/run-compare.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -466,11 +467,23 @@ function renderStepTable(
 /**
  * Runs test cases for a standard function and prints a formatted result report.
  */
+export function runTests<F extends (...args: any[]) => any>(fn: F, tests: TestCase<F>[], options?: boolean | TestOptions<F>): void;
+/**
+ * Runs multiple function implementations against the same test suite individually.
+ * Equivalent to calling `runTests(fn, tests, options)` for each function in sequence.
+ */
+export function runTests<F extends (...args: any[]) => any>(fns: F[], tests: TestCase<F>[], options?: boolean | TestOptions<F>): void;
 export function runTests<F extends (...args: any[]) => any>(
-  fn: F,
+  fn: F | F[],
   tests: TestCase<F>[],
   options: boolean | TestOptions<F> = true,
 ) {
+  if (Array.isArray(fn)) {
+    for (const f of fn) {
+      runTests(f, tests, options);
+    }
+    return;
+  }
   if (tests.length === 0) {
     console.log(chalk.yellow("⚠ No test cases provided."));
     return;
@@ -715,4 +728,5 @@ export {
   compareGroupAnagrams,
   compare3Sum,
   matrixToString,
+  runCompare,
 };
