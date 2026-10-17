@@ -215,6 +215,7 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
    The test runner automatically inspects your solution outputs and arguments. If it sees nested arrays, `ListNode`s, `TreeNode`s, or cyclic `GraphNode`s, it selects the correct structural comparator out-of-the-box — no custom comparators needed.
    - **Unordered 2D arrays** (Subsets, Combinations, Group Anagrams, 3Sum): Automatically compared without caring about order of rows or elements.
    - **Topological Sort Auto-Detection** (Course Schedule II, Alien Dictionary, DAG problems): Automatically detects graph dependencies and validates alternative valid topological orderings without requiring manual configuration.
+   - **Longest Palindromic Substring Auto-Detection**: When a function takes a single string input and returns a string of equal length to the expected answer, `smartCompare` automatically accepts any valid alternative — as long as the returned string is a palindrome and a substring of the input. Guards are strict (single-string input signature, equal length, substring membership) to prevent false positives on unrelated problems.
    - **Floating-point results** (Pow, geometry, probability): Compared with `1e-5` tolerance automatically.
 
 2. **LeetCode-Style Parameter Display**:
@@ -304,7 +305,7 @@ runTests(solve, tests, {
 | `gridMode` | `'auto'` | Suite-level grid visualizer mode (`'auto' \| 'board' \| 'maze' \| 'binary' \| 'sudoku' \| 'numeric' \| 'chess' \| 'none'`). Set to `'none'` to disable table formatting for grids. |
 | `gridMapping` | `undefined` | Custom cell representation and color-coding using hex codes (`"#74b9ff"`), chalk styles, or replacement labels. |
 
-> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered`, `isDirected`, `reverseEdges`, `gridMode`, `gridMapping`, and `visualizeOutput` for granular per-test control.
+> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered`, `anyOf`, `isDirected`, `reverseEdges`, `gridMode`, `gridMapping`, and `visualizeOutput` for granular per-test control.
 
 ### Visualizer Output by Type
 
@@ -395,7 +396,17 @@ runTests(topKFrequent, [
   { input: [[1, 2, 2, 3, 3, 3], 2], output: [2, 3], unordered: true },
 ]);
 
-// 3. Custom comparator (if custom logic is required)
+// 3. anyOf — explicit multiple valid answers for a single test case
+// `output` is the canonical answer (also valid); `anyOf` lists additional valid alternatives.
+// On failure, displays:  - Expected (any of):  "bab" | "aba"
+runTests(longestPalindrome, [
+  { input: ["ababd"], output: "bab", anyOf: ["aba"] },
+  { input: ["babad"], output: "bab", anyOf: ["aba"] },
+]);
+// NOTE: For Longest Palindromic Substring specifically, smartCompare auto-detects
+// valid alternatives without needing anyOf — it's shown here for illustration.
+
+// 4. Custom comparator (if custom logic is required)
 import { compareUnorderedArrays } from "#functions/code-tester.js";
 runTests(fn, [{ input: [...], output: [...], compare: compareUnorderedArrays }]);
 

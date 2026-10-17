@@ -115,6 +115,13 @@ export function smartCompare(
     return false;
   }
 
+  // Auto-detect Longest Palindromic Substring: accept any equal-length palindrome found in the input
+  if (typeof actual === "string" && typeof expected === "string") {
+    if (compareLongestPalindromicSubstring(actual, expected, actualInput)) {
+      return true;
+    }
+  }
+
   return isDeepStrictEqual(actual, expected);
 }
 
@@ -287,3 +294,36 @@ function extractGraphInputs(actualInput?: any[]): { n: number; edges: [number, n
   return null;
 }
 
+/**
+ * Auto-detect Longest Palindromic Substring alternative valid answers.
+ * Accepts `actual` if it is a palindrome of the same length as `expected`
+ * and exists as a contiguous substring of the single string input.
+ *
+ * Guards against false positives:
+ *  - Same length as expected (shorter = wrong answer)
+ *  - Input must be exactly one string parameter  (s: string) → string
+ *  - actual must be a contiguous substring of s
+ *  - actual must itself be a palindrome
+ */
+export function compareLongestPalindromicSubstring(
+  actual: string,
+  expected: string,
+  actualInput?: any[],
+): boolean {
+  if (actual.length !== expected.length) return false;
+  if (!actualInput || actualInput.length !== 1 || typeof actualInput[0] !== "string") return false;
+
+  const s = actualInput[0] as string;
+  if (!s.includes(actual)) return false;
+
+  return isPalindromeStr(actual);
+}
+
+function isPalindromeStr(str: string): boolean {
+  let l = 0;
+  let r = str.length - 1;
+  while (l < r) {
+    if (str[l++] !== str[r--]) return false;
+  }
+  return true;
+}

@@ -56,6 +56,10 @@ export type TestCase<F extends (...args: any[]) => any> = {
   cloneInput?: (input: Parameters<F>) => Parameters<F>;
   /** When true, treats array output order as insensitive for this test case. */
   unordered?: boolean;
+  /** When provided, the test passes if the actual output matches ANY of these values (via smartCompare).
+   * `output` is also treated as a valid answer and is used for display.
+   * Ignored when a custom `compare` function is set. */
+  anyOf?: ExpectedOutput<ReturnType<F>>[];
   /** Explicitly set graph direction for this test case (true for directed, false for undirected). */
   isDirected?: boolean;
   /** When true, reverses the edge direction in the graph visualization (swaps u↔v). */
@@ -266,6 +270,7 @@ function renderResultBlock(
   visualizeOutput: boolean = true,
   gridMode?: GridMode,
   gridMapping?: GridMapping,
+  anyOf?: any[],
 ): void {
   const displayOpts = { actualInput, visualizeOutput, gridMode, gridMapping };
 
@@ -294,20 +299,31 @@ function renderResultBlock(
       );
     }
   } else {
-    const { expLine, gotLine, hint } = renderDiff(result, output, displayOpts);
-    if (expLine.includes("\n") || gotLine.includes("\n")) {
-      console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
-      console.log();
-      console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
-      if (showHint && hint) {
-        console.log();
-        console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
-      }
+    if (anyOf && anyOf.length > 0) {
+      // Display all valid alternatives as: - Expected (any of):  "bab" | "aba"
+      const allValid = [output, ...anyOf];
+      const anyOfStr = allValid
+        .map((v) => serializeForDisplay(v, displayOpts))
+        .join(chalk.gray(" | "));
+      const gotStr = serializeForDisplay(result, displayOpts);
+      console.log(`${chalk.green("- Expected (any of):")}  ${anyOfStr}`);
+      console.log(`${chalk.red("+ Received:")}           ${chalk.red(gotStr)}`);
     } else {
-      console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
-      console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
-      if (showHint && hint) {
-        console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+      const { expLine, gotLine, hint } = renderDiff(result, output, displayOpts);
+      if (expLine.includes("\n") || gotLine.includes("\n")) {
+        console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
+        console.log();
+        console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
+        if (showHint && hint) {
+          console.log();
+          console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+        }
+      } else {
+        console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
+        console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
+        if (showHint && hint) {
+          console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
+        }
       }
     }
   }
@@ -480,7 +496,7 @@ export function runTests<F extends (...args: any[]) => any>(
   }
 
   for (const [index, test] of tests.entries()) {
-    const { name, input, output, compare, cloneInput, unordered } = test;
+    const { name, input, output, compare, cloneInput, unordered, anyOf } = test;
 
     const actualInput = cloneInput
       ? cloneInput(input)
@@ -498,10 +514,15 @@ export function runTests<F extends (...args: any[]) => any>(
       ? false
       : effectiveCompare
         ? effectiveCompare(result, output, actualInput)
-        : smartCompare(result, output, actualInput, {
-            unordered: isUnordered,
-            fnName: fn.name,
-          });
+        : anyOf
+          ? // output is also a valid answer; anyOf lists additional valid alternatives
+            [output, ...anyOf].some((alt) =>
+              smartCompare(result, alt, actualInput, { unordered: isUnordered, fnName: fn.name }),
+            )
+          : smartCompare(result, output, actualInput, {
+              unordered: isUnordered,
+              fnName: fn.name,
+            });
 
     if (passed) passedCount++;
 
@@ -548,6 +569,7 @@ export function runTests<F extends (...args: any[]) => any>(
       shouldVisualizeOutput,
       effectiveGridMode,
       effectiveGridMapping,
+      anyOf,
     );
     console.log();
   }

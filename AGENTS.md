@@ -53,6 +53,7 @@ runTests(solve, [
     input: [/* arguments matching solve parameters */],
     output: /* expected return value */,
     unordered?: boolean, // Order-insensitive array comparison (optional)
+    anyOf?: any[],       // Additional valid answers — output is also valid. (optional)
   },
 ], {
   // TestOptions (all optional):
@@ -61,6 +62,7 @@ runTests(solve, [
   // visualizeOutput?: boolean;  // Default: true (renders visual tables/trees/graphs for output & diff)
   // showStringInput?: boolean;  // Default: true
   // unordered?: boolean;        // Default: false
+  // anyOf?: any[];              // Per-test-case list of additional valid answers (output is also valid)
   // compare?: ComparatorFn;     // Custom suite-level comparator (actual, expected, actualInput) => boolean
   // showHint?: boolean;         // Default: true (shows index mismatch hint)
   // gridMode?: GridMode;        // 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'
@@ -92,6 +94,7 @@ runClassTests(MyClass, [
    * Floating-point tolerance: Automatically allows `1e-5` difference.
    * Unordered comparisons: Handles 1D and 2D arrays order-insensitively when `{ unordered: true }` or for recognized problems (3Sum, Group Anagrams, Subsets).
    * **Topological Sort Auto-Detection**: Automatically validates DAG ordering constraints when multiple valid topological orderings exist (e.g. Course Schedule II / LeetCode 210) without needing manual configuration.
+   * **Longest Palindromic Substring Auto-Detection**: Accepts any equal-length palindrome that is a substring of the single string input as a valid answer (e.g. both `"bab"` and `"aba"` pass for `"babad"`).
 
 2. **Heap & PriorityQueue (`#ds/heap.js`)**:
    * Fully matches LeetCode `@datastructures-js/priority-queue` (`MinPriorityQueue`, `MaxPriorityQueue`, `PriorityQueue`) with `.enqueue()`, `.dequeue()`, `.front()`, `.size()`, and `.isEmpty()`.
