@@ -310,6 +310,8 @@ runTests(solve, tests, {
 | `reverseEdges` | `false` | Flips the edge direction in graph visualizations (swaps u↔v). Useful when the raw `[a, b]` convention means "b → a" semantically. Overridden by per-test `reverseEdges`. |
 | `gridMode` | `'auto'` | Suite-level grid visualizer mode (`'auto' \| 'board' \| 'maze' \| 'binary' \| 'sudoku' \| 'numeric' \| 'chess' \| 'none'`). Set to `'none'` to disable table formatting for grids. |
 | `gridMapping` | `undefined` | Custom cell representation and color-coding using hex codes (`"#74b9ff"`), chalk styles, or replacement labels. |
+| `summaryOnly` | `false` | When `true` in `runCompare`, skips per-test timing rows and renders only the aggregated summary table |
+| `showTests` | `true` | When `false` in `runCompare`, suppresses per-test outputs (alias for `summaryOnly: true`) |
 
 > 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered`, `anyOf`, `isDirected`, `reverseEdges`, `gridMode`, `gridMapping`, and `visualizeOutput` for granular per-test control.
 
@@ -394,7 +396,11 @@ runTests([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests)
 // Multi-function timing comparison (compact table with ◀ fastest badge and summary)
 import { runCompare } from "#functions/code-tester.js";
 
-runCompare([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests);
+runCompare([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests, {
+  // summaryOnly: true,       // skip individual test rows, display only summary table
+  // showStringInput: false,  // omit inline param=value text from test headers
+  // showHeader: false,       // hide the top COMPARE header banner
+});
 ```
 
 ### Unordered Comparison Helpers

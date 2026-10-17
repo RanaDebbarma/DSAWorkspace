@@ -105,6 +105,10 @@ export type TestOptions<F extends (...args: any[]) => any = any> = {
   gridMapping?: GridMapping;
   /** When false, disables visual table/structure rendering for expected output and diff across the suite. Defaults to true. */
   visualizeOutput?: boolean;
+  /** When true in runCompare, suppresses per-test outputs and displays only the summary table. Defaults to false. */
+  summaryOnly?: boolean;
+  /** When false in runCompare, suppresses per-test outputs (alias for summaryOnly: true). Defaults to true. */
+  showTests?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────

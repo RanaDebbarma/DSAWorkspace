@@ -4,9 +4,9 @@ import type { TestCase, TestOptions } from "#functions/code-tester.js";
 import { smartCompare } from "#utils/compare.js";
 import { cloneValue } from "#utils/clone.js";
 import { captureConsoleOutput } from "#utils/console-capture.js";
-import { getParamNames, formatValue, drawDivider } from "#utils/display.js";
+import { getParamNames, formatValue } from "#utils/display.js";
 
-// ── Internal helpers ───────────────────────────────────────────────────────────
+// ── Internal helpers ────────────────────────────────────────────────────────
 
 type FnResult = {
   passed: boolean;
@@ -15,6 +15,13 @@ type FnResult = {
   error?: unknown;
 };
 
+const badgeColor = chalk.hex("#94a3b8"); // soft muted slate — higher focus than runtime, doesn't fight fastest badge
+const fastestBadge = chalk.yellow.bold("◀");
+
+function badge(i: number): string {
+  return `[${i + 1}]`;
+}
+
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
@@ -22,14 +29,19 @@ function truncate(s: string, max: number): string {
 function compact(val: any): string {
   if (val === null) return "null";
   if (val === undefined) return "undefined";
-  try {
-    return JSON.stringify(val);
-  } catch {
-    return String(val);
-  }
+  try { return JSON.stringify(val); } catch { return String(val); }
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────────
+/** Width capped at 60 — friendly for narrow side-panel terminals */
+function divWidth(): number {
+  return Math.min(process.stdout.columns || 60, 60);
+}
+
+function div(char = "─"): void {
+  console.log(chalk.hex("#5d5d5d")(char.repeat(divWidth())));
+}
+
+// ── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Runs multiple function implementations against the same test suite and
@@ -37,10 +49,6 @@ function compact(val: any): string {
  *
  * @example
  * runCompare([solve_BF, solve_DP, solve_Greedy], tests);
- *
- * @example
- * // Also accessible via the runTests overload:
- * runTests([solve_BF, solve_DP, solve_Greedy], tests);
  */
 export function runCompare<F extends (...args: any[]) => any>(
   fns: F[],
@@ -60,17 +68,28 @@ export function runCompare<F extends (...args: any[]) => any>(
   const maxNameLen = Math.max(...fnNames.map((n) => n.length), 8);
   const suiteUnordered = options.unordered ?? false;
   const suiteCompare = options.compare;
+  const showHeader = options.showHeader ?? true;
+  const showStringInput = options.showStringInput ?? true;
+  const summaryOnly = options.summaryOnly ?? (options.showTests === false);
 
   // Per-function accumulators
   const stats = fns.map(() => ({ passed: 0, totalTime: 0 }));
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-  drawDivider("═");
-  console.log(
-    `${chalk.bold.bgCyan.black(" COMPARE ")}  ${fnNames.map((n) => chalk.cyan.bold(n)).join(chalk.gray(" · "))}`,
-  );
+  // ── Header ─────────────────────────────────────────────────────────────────
+  if (showHeader) {
+    div("═");
+    console.log(
+      `${chalk.bold.bgBlue.white(" COMPARE ")}  ` +
+      chalk.gray(`${fns.length} functions · ${tests.length} tests`),
+    );
+    div();
+    for (const [i, name] of fnNames.entries()) {
+      console.log(`  ${badgeColor(badge(i))}  ${chalk.cyan(name)}`);
+    }
+    if (summaryOnly) console.log();
+  }
 
-  // ── Per-test loop ────────────────────────────────────────────────────────────
+  // ── Per-test loop ──────────────────────────────────────────────────────────
   for (const [testIdx, test] of tests.entries()) {
     const { input, output, compare, unordered, anyOf } = test;
     const isUnordered = unordered ?? suiteUnordered;
@@ -120,62 +139,71 @@ export function runCompare<F extends (...args: any[]) => any>(
     }
     const showFastest = results.filter((r) => r.passed).length > 1;
 
-    // ── Test block header ──────────────────────────────────────────────────────
-    drawDivider();
-    console.log(chalk.cyan.bold(` Test ${testIdx + 1}`));
-    drawDivider();
-    console.log();
+    if (!summaryOnly) {
+      // ── Test block header — single line with inline inputs ─────────────────
+      div();
 
-    // Input display — compact param = value lines
-    const paramNames = getParamNames(fns[0]);
-    for (let i = 0; i < (input as any[]).length; i++) {
-      const raw = (input as any[])[i];
-      const pName = paramNames[i] || `param${i + 1}`;
-      const serialized =
-        typeof raw === "string"
-          ? `"${raw}"`
-          : truncate(JSON.stringify(formatValue(raw)), 80);
-      console.log(
-        `${chalk.cyan(pName)} ${chalk.gray("=")} ${chalk.white(serialized)}`,
-      );
-    }
-    console.log();
+      const effectiveShowStringInput =
+        (test as any).showStringInput ?? showStringInput;
+      const testTitle = test.name
+        ? `Test ${testIdx + 1} — ${test.name}`
+        : `Test ${testIdx + 1}`;
 
-    // ── Timing rows ────────────────────────────────────────────────────────────
-    const COL_TIME = 10; // " 0.123 ms" right-aligned
-    for (const [i, res] of results.entries()) {
-      const name = fnNames[i].padEnd(maxNameLen);
-      const timeStr = `${res.time.toFixed(3)} ms`.padStart(COL_TIME);
-      const badge =
-        showFastest && i === fastestIdx ? chalk.yellow("  ◀ fastest") : "";
-
-      if (res.passed) {
-        console.log(
-          `  ${chalk.green("✓")}  ${chalk.white(name)}  ${chalk.gray(timeStr)}${badge}`,
-        );
+      if (effectiveShowStringInput) {
+        const paramNames = getParamNames(fns[0]);
+        const inputParts = (input as any[]).map((raw, i) => {
+          const pName = paramNames[i] || `p${i + 1}`;
+          const val =
+            typeof raw === "string"
+              ? `"${raw}"`
+              : truncate(JSON.stringify(formatValue(raw)), 30);
+          return `${chalk.cyan(pName)}${chalk.gray("=")}${chalk.white(val)}`;
+        });
+        const partsStr =
+          inputParts.length > 0
+            ? `  ${chalk.gray("·")}  ${inputParts.join(chalk.gray(", "))}`
+            : "";
+        console.log(`  ${chalk.bold.white(testTitle)}${partsStr}`);
       } else {
-        const gotStr = res.error
-          ? chalk.red(
-              truncate(
-                `Runtime Error: ${res.error instanceof Error ? res.error.message : String(res.error)}`,
-                32,
-              ),
-            )
-          : chalk.red(truncate(compact(res.actual), 24));
-        const expStr = chalk.green(truncate(compact(output), 24));
-        console.log(
-          `  ${chalk.red("✗")}  ${chalk.red(name)}  ${chalk.gray(timeStr)}   ${chalk.gray("got")} ${gotStr}   ${chalk.gray("exp")} ${expStr}`,
-        );
+        console.log(`  ${chalk.bold.white(testTitle)}`);
       }
-    }
+      console.log();
 
-    console.log();
+      // ── Timing rows ─────────────────────────────────────────────────────────
+      const COL_TIME = 9; // "0.123 ms" right-aligned
+      for (const [i, res] of results.entries()) {
+        const b = badge(i);
+        const timeStr = `${res.time.toFixed(3)} ms`.padStart(COL_TIME);
+        const fastest = showFastest && i === fastestIdx;
+
+        if (res.passed) {
+          console.log(
+            `  ${chalk.green("✓")}  ${badgeColor(b)}  ${chalk.gray(timeStr)}` +
+            (fastest ? `  ${fastestBadge}` : ""),
+          );
+        } else {
+          const gotStr = res.error
+            ? chalk.red(truncate(
+                `Error: ${res.error instanceof Error ? res.error.message : String(res.error)}`,
+                28,
+              ))
+            : chalk.red(truncate(compact(res.actual), 20));
+          const expStr = chalk.green(truncate(compact(output), 20));
+          console.log(
+            `  ${chalk.red("✗")}  ${badgeColor(b)}  ${chalk.gray(timeStr)}` +
+            `  ${chalk.gray("got")} ${gotStr}  ${chalk.gray("exp")} ${expStr}`,
+          );
+        }
+      }
+
+      console.log();
+    }
   }
 
   // ── Summary table ──────────────────────────────────────────────────────────
-  drawDivider("═");
-  console.log(chalk.bold.white(" SUMMARY"));
-  drawDivider();
+  div("═");
+  console.log(`${chalk.bold.bgBlue.white(" SUMMARY ")}`);
+  div();
   console.log();
 
   // Overall fastest = lowest totalTime among fully-passing functions
@@ -193,10 +221,11 @@ export function runCompare<F extends (...args: any[]) => any>(
   }
   const showOverallFastest = fullPassCount > 1;
 
+  // Tighter columns
   const COL_NAME = maxNameLen;
-  const COL_PASS = 10; // "  6 / 6  " right-aligned
-  const COL_AVG  = 11; // "  0.052 ms"
-  const COL_TOT  = 11; // "  0.314 ms"
+  const COL_PASS = 5;  // "6/6"
+  const COL_AVG  = 9;  // "0.052 ms"
+  const COL_TOT  = 9;  // "0.314 ms"
 
   const padL = (s: string, n: number) =>
     s.length > n ? s.slice(0, n - 1) + "…" : s.padEnd(n);
@@ -204,33 +233,32 @@ export function runCompare<F extends (...args: any[]) => any>(
 
   // Header row
   console.log(
-    `  ${chalk.gray(padL("Function", COL_NAME))}  ` +
-    `${chalk.gray(padR("Passed", COL_PASS))}  ` +
-    `${chalk.gray(padR("Avg Time", COL_AVG))}  ` +
+    `       ${chalk.gray(padL("Function", COL_NAME))}  ` +
+    `${chalk.gray(padR("Pass", COL_PASS))}  ` +
+    `${chalk.gray(padR("Avg", COL_AVG))}  ` +
     `${chalk.gray(padR("Total", COL_TOT))}`,
   );
-  drawDivider();
+  div();
 
   for (const [i, stat] of stats.entries()) {
     const allPassed = stat.passed === tests.length;
-    const passedStr = `${stat.passed} / ${tests.length}`;
+    const passedStr = `${stat.passed}/${tests.length}`;
     const avgStr = `${(stat.totalTime / tests.length).toFixed(3)} ms`;
     const totStr = `${stat.totalTime.toFixed(3)} ms`;
-    const badge =
-      showOverallFastest && i === overallFastestIdx
-        ? chalk.yellow("  ◀ fastest")
-        : "";
+    const fastest = showOverallFastest && i === overallFastestIdx;
     const nameColor = allPassed ? chalk.white : chalk.red;
     const passColor = allPassed ? chalk.green : chalk.red;
 
     console.log(
-      `  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
+      `  ${badgeColor(badge(i))}  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
       `${passColor(padR(passedStr, COL_PASS))}  ` +
       `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
-      `${chalk.gray(padR(totStr, COL_TOT))}${badge}`,
+      `${chalk.gray(padR(totStr, COL_TOT))}` +
+      (fastest ? `  ${fastestBadge}` : ""),
     );
   }
 
   console.log();
-  drawDivider("═");
+  div("═");
 }
+

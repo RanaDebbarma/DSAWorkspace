@@ -101,9 +101,13 @@ runTests([solve_BF, solve_DP, solve_Optimal], tests);
 // runTests(solve_Optimal, tests);
 
 // runCompare runs all functions side-by-side with compact timing comparison:
-runCompare([solve_BF, solve_DP, solve_Optimal], tests);
+runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
+  // summaryOnly?: boolean;  // Default: false (when true, skips individual test rows and prints only the summary table)
+  // showStringInput?: boolean; // Default: true (when false, omits inline input values)
+  // showHeader?: boolean;   // Default: true
+});
 ```
-`runCompare` displays a compact per-test timing row with `✓`/`✗`, fastest indicator (`◀ fastest`), and an aggregated summary table with average and total runtimes.
+`runCompare` displays a compact per-test timing row with `✓`/`✗`, fastest indicator (`◀`), and an aggregated summary table with average and total runtimes.
 
 ---
 

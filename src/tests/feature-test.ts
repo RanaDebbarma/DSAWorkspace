@@ -759,14 +759,16 @@ function fibIterative(n: number): number {
   return b;
 }
 
-const fibTests = [
-  { input: [5], output: 5 },
-  { input: [10], output: 55 },
-  { input: [15], output: 610 },
-];
-
 // Runs each function individually through the full test runner sequentially
-runTests([fibRecursive, fibIterative], fibTests);
+runTests([fibRecursive, fibIterative], [
+  { input: [5]  as [number], output: 5 },
+  { input: [10] as [number], output: 55 },
+  { input: [15] as [number], output: 610 },
+]);
 
 // Runs all functions side-by-side with compact timing comparison + summary table
-runCompare([fibRecursive, fibIterative], fibTests);
+runCompare([fibRecursive, fibIterative], [
+  { input: [5]  as [number], output: 5 },
+  { input: [10] as [number], output: 55 },
+  { input: [15] as [number], output: 610 },
+]);
