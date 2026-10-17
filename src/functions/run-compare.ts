@@ -89,18 +89,61 @@ export function runCompare<F extends (...args: any[]) => any>(
     if (summaryOnly) console.log();
   }
 
+  // ── Warmup pass ─────────────────────────────────────────────────────────────
+  // Runs each function a few times with cloned input to warm up JIT,
+  // initialize V8 Inline Caches (ICs), and ramp the CPU governor out of idle states.
+  for (let w = 0; w < 5; w++) {
+    for (const fn of fns) {
+      try {
+        const warmupInput = cloneValue(tests[0].input) as Parameters<F>;
+        fn(...warmupInput);
+      } catch {
+        // Safe to ignore: official run handles errors and logs
+      }
+    }
+  }
+
   // ── Per-test loop ──────────────────────────────────────────────────────────
   for (const [testIdx, test] of tests.entries()) {
     const { input, output, compare, unordered, anyOf } = test;
     const isUnordered = unordered ?? suiteUnordered;
     const effectiveCompare = compare ?? suiteCompare;
 
-    // Run every function with its own deep-cloned input
-    const results: FnResult[] = fns.map((fn) => {
+    const times = new Array(fns.length).fill(0);
+
+    // Pass 1: Forward execution with console capture and result collection
+    const pass1Results = fns.map((fn, i) => {
       const actualInput = cloneValue(input) as Parameters<F>;
-      const start = performance.now();
-      const execution = captureConsoleOutput(() => fn(...actualInput));
-      const end = performance.now();
+      let start = 0;
+      let end = 0;
+      const execution = captureConsoleOutput(() => {
+        start = performance.now();
+        const val = fn(...actualInput);
+        end = performance.now();
+        return val;
+      });
+      times[i] = end - start;
+      return { execution, actualInput };
+    });
+
+    // Pass 2: Symmetrical reverse execution (neutralizes positional / cache bias)
+    if (fns.length > 1) {
+      for (let i = fns.length - 1; i >= 0; i--) {
+        if (!pass1Results[i].execution.error) {
+          const actualInput = cloneValue(input) as Parameters<F>;
+          const start = performance.now();
+          try {
+            fns[i](...actualInput);
+          } catch {}
+          const end = performance.now();
+          times[i] = (times[i] + (end - start)) / 2;
+        }
+      }
+    }
+
+    // Form final results
+    const results: FnResult[] = fns.map((fn, i) => {
+      const { execution, actualInput } = pass1Results[i];
       const actual = execution.value as ReturnType<F>;
 
       const passed = execution.error
@@ -119,7 +162,7 @@ export function runCompare<F extends (...args: any[]) => any>(
                 fnName: fn.name,
               });
 
-      return { passed, time: end - start, actual, error: execution.error };
+      return { passed, time: times[i], actual, error: execution.error };
     });
 
     // Accumulate totals
@@ -131,13 +174,22 @@ export function runCompare<F extends (...args: any[]) => any>(
     // Identify fastest passing function for this test
     let fastestIdx = -1;
     let fastestTime = Infinity;
+    let secondFastestTime = Infinity;
     for (const [i, res] of results.entries()) {
-      if (res.passed && res.time < fastestTime) {
-        fastestTime = res.time;
-        fastestIdx = i;
+      if (res.passed) {
+        if (res.time < fastestTime) {
+          secondFastestTime = fastestTime;
+          fastestTime = res.time;
+          fastestIdx = i;
+        } else if (res.time < secondFastestTime) {
+          secondFastestTime = res.time;
+        }
       }
     }
-    const showFastest = results.filter((r) => r.passed).length > 1;
+    // Only show fastest if there are >= 2 passing functions and winner is visibly faster (>= 0.0005 ms)
+    const showFastest =
+      results.filter((r) => r.passed).length > 1 &&
+      secondFastestTime - fastestTime >= 0.0005;
 
     if (!summaryOnly) {
       // ── Test block header — single line with inline inputs ─────────────────
@@ -209,17 +261,24 @@ export function runCompare<F extends (...args: any[]) => any>(
   // Overall fastest = lowest totalTime among fully-passing functions
   let overallFastestIdx = -1;
   let overallFastestTime = Infinity;
+  let overallSecondFastestTime = Infinity;
   let fullPassCount = 0;
   for (const [i, stat] of stats.entries()) {
     if (stat.passed === tests.length) {
       fullPassCount++;
       if (stat.totalTime < overallFastestTime) {
+        overallSecondFastestTime = overallFastestTime;
         overallFastestTime = stat.totalTime;
         overallFastestIdx = i;
+      } else if (stat.totalTime < overallSecondFastestTime) {
+        overallSecondFastestTime = stat.totalTime;
       }
     }
   }
-  const showOverallFastest = fullPassCount > 1;
+  // Only show overall fastest if there are >= 2 passing functions and winner is visibly faster (>= 0.0005 ms)
+  const showOverallFastest =
+    fullPassCount > 1 &&
+    overallSecondFastestTime - overallFastestTime >= 0.0005;
 
   // Tighter columns
   const COL_NAME = maxNameLen;

@@ -271,7 +271,11 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 9. **Multi-Function Convenience (`runTests([fn1, fn2])`) and Runtime Comparison (`runCompare`)**:
    When you have multiple implementations and want to run them against the same test suite:
    - **`runTests([fn1, fn2, fn3], tests)`** — Runs each function through the full individual test runner sequentially (complete `RUNS fn() / PASS / FAIL` output for each). A pure convenience shorthand — no extra imports, no restructuring.
-   - **`runCompare([fn1, fn2, fn3], tests)`** — Dedicated side-by-side runtime comparison: compact per-test timing rows with `✓`/`✗` status, inline failure diffs, `◀ fastest` badges per test, and an aggregated summary table (Passed, Avg Time, Total).
+   - **`runCompare([fn1, fn2, fn3], tests)`** — Dedicated side-by-side runtime comparison:
+     - **Narrow-Panel Friendly**: Stacked function headers, bracketed `[1]` function badges, and tight single-line test headers fit narrow side terminals.
+     - **Unbiased Benchmarking**: Eliminates V8 engine warmup and positional bias using pre-run JIT warmups and symmetrical forward/reverse passes ($[A, B]$ and $[B, A]$).
+     - **`◀` Fastest Indicators**: Automatically highlights the fastest implementation per test and in the summary table.
+     - **`summaryOnly: true` Option**: Skip individual test rows and jump straight to the aggregated summary table.
 
 ---
 
