@@ -1,10 +1,11 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
 import type { TestCase, CompareOptions, FnLabelMode } from "#functions/code-tester.js";
+import { renderInputBlock } from "#functions/code-tester.js";
 import { smartCompare } from "#utils/compare.js";
 import { cloneValue } from "#utils/clone.js";
 import { captureConsoleOutput } from "#utils/console-capture.js";
-import { getParamNames, formatValue } from "#utils/display.js";
+import { getParamNames, formatValue, type GridMode, type GridMapping } from "#utils/display.js";
 
 export type { CompareOptions, FnLabelMode };
 export type RunCompareOptions<F extends (...args: any[]) => any = any> = CompareOptions<F>;
@@ -99,6 +100,12 @@ export function runCompare<F extends (...args: any[]) => any>(
   const showHeader = options.showHeader ?? true;
   const showStringInput = options.showStringInput ?? true;
   const summaryOnly = options.summaryOnly ?? (options.showTests === false);
+  const tableBorders = options.tableBorders ?? true;
+  const visualizeInput = options.visualizeInput ?? false;
+  const suiteIsDirected = options.isDirected;
+  const suiteReverseEdges = options.reverseEdges;
+  const suiteGridMode = options.gridMode as GridMode | undefined;
+  const suiteGridMapping = options.gridMapping as GridMapping | undefined;
 
   // Column width calculations
   const COL_NAME = maxNameLen;
@@ -126,7 +133,8 @@ export function runCompare<F extends (...args: any[]) => any>(
   const defaultWidth = Math.min(termCols, baseWidth);
 
   function div(char = "─", width = defaultWidth): void {
-    console.log(chalk.hex("#5d5d5d")(char.repeat(Math.min(termCols, width))));
+    const w = char === "═" ? termCols : Math.min(termCols, width);
+    console.log(chalk.hex("#5d5d5d")(char.repeat(w)));
   }
 
   // Per-function accumulators
@@ -260,23 +268,62 @@ export function runCompare<F extends (...args: any[]) => any>(
 
       if (effectiveShowStringInput) {
         const paramNames = getParamNames(fns[0]);
+
+        // Truncate every param value uniformly (strings included)
         const inputParts = (input as any[]).map((raw, i) => {
           const pName = paramNames[i] || `p${i + 1}`;
-          const val =
-            typeof raw === "string"
-              ? `"${raw}"`
-              : truncate(JSON.stringify(formatValue(raw)), 30);
-          return `${chalk.cyan(pName)}${chalk.gray("=")}${chalk.white(val)}`;
+          const val = typeof raw === "string"
+            ? truncate(`"${raw}"`, 30)
+            : truncate(JSON.stringify(formatValue(raw)), 30);
+          return { plain: `${pName} = ${val}`, colored: `${chalk.cyan(pName)} ${chalk.gray("=")} ${chalk.white(val)}` };
         });
-        const partsStr =
-          inputParts.length > 0
-            ? `  ${chalk.gray("·")}  ${inputParts.join(chalk.gray(", "))}`
-            : "";
+
+        // Measure visible length (strip ANSI codes) to fit within terminal width
+        const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+        const prefix = `  ${testTitle}  ·  `;
+        const sep = chalk.gray(", ");
+        const sepLen = 2; // ", "
+
+        let budget = termCols - stripAnsi(prefix).length;
+        let included = 0;
+        for (const part of inputParts) {
+          const cost = stripAnsi(part.plain).length + (included > 0 ? sepLen : 0);
+          if (budget - cost < 0) break;
+          budget -= cost;
+          included++;
+        }
+        const omitted = inputParts.length - included;
+
+        let partsStr = "";
+        if (inputParts.length > 0) {
+          const visibleParts = inputParts.slice(0, included).map((p) => p.colored);
+          if (omitted > 0) visibleParts.push(chalk.gray(`+${omitted} more`));
+          partsStr = `  ${chalk.gray("·")}  ${visibleParts.join(sep)}`;
+        }
+
         console.log(`  ${chalk.bold.white(testTitle)}${partsStr}`);
       } else {
         console.log(`  ${chalk.bold.white(testTitle)}`);
       }
       console.log();
+
+      // ── Rich input visualization (when visualizeInput: true) ─────────────────
+      if (visualizeInput) {
+        renderInputBlock(
+          fns[0],
+          input as any[],
+          true,
+          false, // showStringInput handled above inline — avoid duplication
+          (test as any).isDirected,
+          suiteIsDirected,
+          (test as any).reverseEdges,
+          suiteReverseEdges,
+          (test as any).gridMode,
+          suiteGridMode,
+          (test as any).gridMapping,
+          suiteGridMapping,
+        );
+      }
 
       // ── Timing rows ─────────────────────────────────────────────────────────
       const COL_TIME = 9; // "0.123 ms" right-aligned
@@ -314,9 +361,13 @@ export function runCompare<F extends (...args: any[]) => any>(
   }
 
   // ── Summary table ──────────────────────────────────────────────────────────
+  // Each │ sep adds 3 chars ("  │") vs plain 2-space gap, × 3 separators = 9 extra
+  const borderExtra = tableBorders ? 9 : 0;
+  const sep = tableBorders ? `  ${chalk.hex("#5d5d5d")("│")}` : "  ";
+
   div("═");
   console.log(`${chalk.bold.bgBlue.white(" SUMMARY ")}`);
-  div();
+  div("─", defaultWidth + borderExtra);
   console.log();
 
   // Overall fastest = lowest totalTime among fully-passing functions
@@ -341,31 +392,31 @@ export function runCompare<F extends (...args: any[]) => any>(
     fullPassCount > 1 &&
     overallSecondFastestTime - overallFastestTime >= 0.0005;
 
-  // Header row
+
   if (fnLabelMode === "number") {
     console.log(
-      `  ${chalk.gray(padL("Fn", maxBadgeLen))}  ` +
-      `${chalk.gray(padR("Pass", COL_PASS))}  ` +
-      `${chalk.gray(padR("Avg", COL_AVG))}  ` +
-      `${chalk.gray(padR("Total", COL_TOT))}`,
+      `  ${chalk.gray(padL("Fn", maxBadgeLen))}${sep}` +
+      `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
+      `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
+      `  ${chalk.gray(padR("Total", COL_TOT))}`,
     );
   } else if (fnLabelMode === "name") {
     console.log(
-      `  ${chalk.gray(padL("Function", COL_NAME))}  ` +
-      `${chalk.gray(padR("Pass", COL_PASS))}  ` +
-      `${chalk.gray(padR("Avg", COL_AVG))}  ` +
-      `${chalk.gray(padR("Total", COL_TOT))}`,
+      `  ${chalk.gray(padL("Function", COL_NAME))}${sep}` +
+      `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
+      `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
+      `  ${chalk.gray(padR("Total", COL_TOT))}`,
     );
   } else {
     // "both"
     console.log(
-      `${" ".repeat(maxBadgeLen + 4)}${chalk.gray(padL("Function", COL_NAME))}  ` +
-      `${chalk.gray(padR("Pass", COL_PASS))}  ` +
-      `${chalk.gray(padR("Avg", COL_AVG))}  ` +
-      `${chalk.gray(padR("Total", COL_TOT))}`,
+      `${" ".repeat(maxBadgeLen + 4)}${chalk.gray(padL("Function", COL_NAME))}${sep}` +
+      `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
+      `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
+      `  ${chalk.gray(padR("Total", COL_TOT))}`,
     );
   }
-  div();
+  div("─", defaultWidth + borderExtra);
 
   for (const [i, stat] of stats.entries()) {
     const allPassed = stat.passed === tests.length;
@@ -379,26 +430,26 @@ export function runCompare<F extends (...args: any[]) => any>(
 
     if (fnLabelMode === "number") {
       console.log(
-        `  ${badgeColor(b)}  ` +
-        `${passColor(padR(passedStr, COL_PASS))}  ` +
-        `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
-        `${chalk.gray(padR(totStr, COL_TOT))}` +
+        `  ${badgeColor(b)}${sep}` +
+        `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
+        `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
+        `  ${chalk.gray(padR(totStr, COL_TOT))}` +
         (fastest ? `  ${fastestBadge}` : ""),
       );
     } else if (fnLabelMode === "name") {
       console.log(
-        `  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
-        `${passColor(padR(passedStr, COL_PASS))}  ` +
-        `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
-        `${chalk.gray(padR(totStr, COL_TOT))}` +
+        `  ${nameColor(padL(fnNames[i], COL_NAME))}${sep}` +
+        `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
+        `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
+        `  ${chalk.gray(padR(totStr, COL_TOT))}` +
         (fastest ? `  ${fastestBadge}` : ""),
       );
     } else {
       console.log(
-        `  ${badgeColor(b)}  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
-        `${passColor(padR(passedStr, COL_PASS))}  ` +
-        `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
-        `${chalk.gray(padR(totStr, COL_TOT))}` +
+        `  ${badgeColor(b)}  ${nameColor(padL(fnNames[i], COL_NAME))}${sep}` +
+        `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
+        `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
+        `  ${chalk.gray(padR(totStr, COL_TOT))}` +
         (fastest ? `  ${fastestBadge}` : ""),
       );
     }

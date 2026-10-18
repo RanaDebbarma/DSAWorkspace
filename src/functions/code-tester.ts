@@ -139,6 +139,18 @@ export type CompareOptions<F extends (...args: any[]) => any = any> = BaseTestOp
   summaryOnly?: boolean;
   /** When false, suppresses per-test outputs (alias for summaryOnly: true). Defaults to true. */
   showTests?: boolean;
+  /** When false, removes │ column separators from the summary table. Defaults to true. */
+  tableBorders?: boolean;
+  /** When true, renders rich visualizations (trees, grids, graphs) above timing rows for each test. Defaults to false. */
+  visualizeInput?: boolean;
+  /** Suite-level default for graph direction (true for directed, false for undirected). */
+  isDirected?: boolean;
+  /** Suite-level default to reverse edge direction in graph visualizations. */
+  reverseEdges?: boolean;
+  /** Suite-level default for grid visualization mode. */
+  gridMode?: GridMode;
+  /** Custom mapping for matrix grid cell representation and color-coding. */
+  gridMapping?: GridMapping;
 };
 
 /** Alias for `CompareOptions`. */
@@ -180,7 +192,7 @@ function resolveIsDirected(
  * Renders the visual and text input block for a single test case.
  * Handles tree subnode highlights, 2D grids, edge lists, and GraphNodes.
  */
-function renderInputBlock(
+export function renderInputBlock(
   fn: (...args: any[]) => any,
   input: any[],
   visualizeInput: boolean,
