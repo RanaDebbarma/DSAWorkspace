@@ -82,12 +82,11 @@ export type ClassTestCase = {
 
 export type FnLabelMode = "both" | "number" | "name";
 
-export type TestOptions<F extends (...args: any[]) => any = any> = {
+/** Base options common to all test runners. */
+export type BaseTestOptions<F extends (...args: any[]) => any = any> = {
+  /** Controls whether the top header banner is displayed. Defaults to true. */
   showHeader?: boolean;
-  visualizeInput?: boolean;
-  /** When false, suppresses the plain `param = value` lines printed below visual input blocks. Defaults to true. */
-  showStringInput?: boolean;
-  /** When true, treats array output order as insensitive across all test cases in this suite. */
+  /** When true, treats array output order as insensitive across all test cases. Defaults to false. */
   unordered?: boolean;
   /** Suite-level custom comparator. Overridden by per-test case `compare`. */
   compare?: (
@@ -95,6 +94,16 @@ export type TestOptions<F extends (...args: any[]) => any = any> = {
     expected: any,
     actualInput: Parameters<F>,
   ) => boolean;
+};
+
+/** Options for standard single-function test runner (`runTests`). */
+export type TestOptions<F extends (...args: any[]) => any = any> = BaseTestOptions<F> & {
+  /** When false, disables rich visual diagrams (trees, 2D grids, graphs) before test execution. Defaults to true. */
+  visualizeInput?: boolean;
+  /** When false, disables visual table/structure rendering for expected output and diff. Defaults to true. */
+  visualizeOutput?: boolean;
+  /** When false, suppresses the plain `param = value` lines printed below visual input blocks. Defaults to true. */
+  showStringInput?: boolean;
   /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
@@ -105,12 +114,15 @@ export type TestOptions<F extends (...args: any[]) => any = any> = {
   gridMode?: GridMode;
   /** Custom mapping for matrix grid cell representation and color-coding. */
   gridMapping?: GridMapping;
-  /** When false, disables visual table/structure rendering for expected output and diff across the suite. Defaults to true. */
-  visualizeOutput?: boolean;
-  /** When true in runCompare, suppresses per-test outputs and displays only the summary table. Defaults to false. */
-  summaryOnly?: boolean;
-  /** When false in runCompare, suppresses per-test outputs (alias for summaryOnly: true). Defaults to true. */
-  showTests?: boolean;
+};
+
+/** Alias for `TestOptions`. */
+export type RunTestOptions<F extends (...args: any[]) => any = any> = TestOptions<F>;
+
+/** Options for multi-implementation runtime comparison (`runCompare`). */
+export type CompareOptions<F extends (...args: any[]) => any = any> = BaseTestOptions<F> & {
+  /** When false, omits inline input values in test headers. Defaults to true. */
+  showStringInput?: boolean;
   /** In runCompare, controls how functions are labeled in the summary table and test rows:
    * - "both" (default): displays badge number and function name (e.g. `[1]  myFn`)
    * - "number": displays only badge number (e.g. `[1]`), ideal for small width terminals
@@ -119,10 +131,27 @@ export type TestOptions<F extends (...args: any[]) => any = any> = {
   fnLabel?: FnLabelMode;
   /** Alias for `fnLabel`. */
   fnDisplay?: FnLabelMode;
-  /** When false, omits function names in runCompare summary table (alias for fnLabel: "number"). Defaults to true. */
+  /** When false, omits function names in summary table (alias for fnLabel: "number"). Defaults to true. */
   showFnName?: boolean;
-  /** When false, omits function badge numbers in runCompare (alias for fnLabel: "name"). Defaults to true. */
+  /** When false, omits function badge numbers (alias for fnLabel: "name"). Defaults to true. */
   showFnNumber?: boolean;
+  /** When true, suppresses per-test outputs and displays only the summary table. Defaults to false. */
+  summaryOnly?: boolean;
+  /** When false, suppresses per-test outputs (alias for summaryOnly: true). Defaults to true. */
+  showTests?: boolean;
+};
+
+/** Alias for `CompareOptions`. */
+export type RunCompareOptions<F extends (...args: any[]) => any = any> = CompareOptions<F>;
+
+/** Options for interactive class / OOP test runner (`runClassTests`). */
+export type ClassTestOptions = {
+  /** Controls whether the top header banner is displayed. Defaults to true. */
+  showHeader?: boolean;
+  /** When true, treats array output order as insensitive across all operations. Defaults to false. */
+  unordered?: boolean;
+  /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
+  showHint?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────
@@ -620,7 +649,7 @@ export function runTests<F extends (...args: any[]) => any>(
 export function runClassTests<C extends new (...args: any[]) => any>(
   cls: C,
   tests: ClassTestCase[],
-  options: boolean | TestOptions = true,
+  options: boolean | ClassTestOptions = true,
 ) {
   if (tests.length === 0) {
     console.log(chalk.yellow("⚠ No test cases provided."));

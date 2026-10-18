@@ -102,6 +102,7 @@ runTests([solve_BF, solve_DP, solve_Optimal], tests);
 
 // runCompare runs all functions side-by-side with compact timing comparison:
 runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
+  // CompareOptions (all optional):
   // fnLabel?: "both" | "number" | "name"; // Default: "both" ("number" shows only [1] in summary table, ideal for narrow terminals)
   // summaryOnly?: boolean;  // Default: false (when true, skips individual test rows and prints only the summary table)
   // showStringInput?: boolean; // Default: true (when false, omits inline input values)

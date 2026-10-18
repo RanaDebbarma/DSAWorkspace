@@ -1,12 +1,13 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import type { TestCase, TestOptions, FnLabelMode } from "#functions/code-tester.js";
+import type { TestCase, CompareOptions, FnLabelMode } from "#functions/code-tester.js";
 import { smartCompare } from "#utils/compare.js";
 import { cloneValue } from "#utils/clone.js";
 import { captureConsoleOutput } from "#utils/console-capture.js";
 import { getParamNames, formatValue } from "#utils/display.js";
 
-export type { FnLabelMode };
+export type { CompareOptions, FnLabelMode };
+export type RunCompareOptions<F extends (...args: any[]) => any = any> = CompareOptions<F>;
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 
@@ -42,7 +43,12 @@ function padR(s: string, n: number): string {
   return s.padStart(n);
 }
 
-function resolveFnLabelMode(options: TestOptions<any>): FnLabelMode {
+function resolveFnLabelMode(options: {
+  fnLabel?: FnLabelMode;
+  fnDisplay?: FnLabelMode;
+  showFnName?: boolean;
+  showFnNumber?: boolean;
+}): FnLabelMode {
   const raw = options.fnLabel ?? options.fnDisplay;
   if (typeof raw === "string") {
     const lower = raw.toLowerCase().trim();
@@ -73,7 +79,7 @@ function resolveFnLabelMode(options: TestOptions<any>): FnLabelMode {
 export function runCompare<F extends (...args: any[]) => any>(
   fns: F[],
   tests: TestCase<F>[],
-  options: TestOptions<F> = {},
+  options: CompareOptions<F> = {},
 ): void {
   if (fns.length === 0) {
     console.log(chalk.yellow("⚠ No functions provided."));
