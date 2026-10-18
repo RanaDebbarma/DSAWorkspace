@@ -1,4 +1,4 @@
-import { runTests } from "#functions/code-tester.js";
+import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
 
 // LeetCode 5
 
@@ -69,7 +69,7 @@ function longestPalindrome_BU(s: string): string {
 // Time: O(n²)
 // Space: O(1) auxiliary space (excluding the returned string)
 // Expand Around Center
-function longestPalindrome(s: string): string {
+function longestPalindrome_EAC(s: string): string {
   const n = s.length;
   let res = "";
 
@@ -92,6 +92,7 @@ function longestPalindrome(s: string): string {
 
     // Pointers have crossed the palindrome's boundaries.
     // The actual palindrome is s[left + 1...right - 1].
+    // length = (right - 1) - (left + 1) + 1;
     const length = right - left - 1;
 
     if (length > res.length) {
@@ -100,11 +101,22 @@ function longestPalindrome(s: string): string {
   }
 }
 
-runTests([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], [
-  { input: ["ababd"], output: "bab" },
-  { input: ["abbc"], output: "bb" },
+const cases: TestCase<typeof longestPalindrome_EAC>[] = [
+  // { input: ["ababd"], output: "bab" },
+  // { input: ["abbc"], output: "bb" },
   { input: ["babad"], output: "aba" },
   { input: ["cbbd"], output: "bb" },
   { input: ["ac"], output: "c" },
   { input: ["a"], output: "a" },
-]);
+];
+
+runTests([longestPalindrome_EAC], cases);
+runCompare(
+  [longestPalindrome_BF, longestPalindrome_BU, longestPalindrome_EAC],
+  cases,
+  {
+    // showHeader: false,
+    summaryOnly: true,
+    fnDisplay: "number",
+  },
+);
