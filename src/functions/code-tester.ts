@@ -80,6 +80,8 @@ export type ClassTestCase = {
   expected: any[];
 };
 
+export type FnLabelMode = "both" | "number" | "name";
+
 export type TestOptions<F extends (...args: any[]) => any = any> = {
   showHeader?: boolean;
   visualizeInput?: boolean;
@@ -109,6 +111,18 @@ export type TestOptions<F extends (...args: any[]) => any = any> = {
   summaryOnly?: boolean;
   /** When false in runCompare, suppresses per-test outputs (alias for summaryOnly: true). Defaults to true. */
   showTests?: boolean;
+  /** In runCompare, controls how functions are labeled in the summary table and test rows:
+   * - "both" (default): displays badge number and function name (e.g. `[1]  myFn`)
+   * - "number": displays only badge number (e.g. `[1]`), ideal for small width terminals
+   * - "name": displays only function name (e.g. `myFn`)
+   */
+  fnLabel?: FnLabelMode;
+  /** Alias for `fnLabel`. */
+  fnDisplay?: FnLabelMode;
+  /** When false, omits function names in runCompare summary table (alias for fnLabel: "number"). Defaults to true. */
+  showFnName?: boolean;
+  /** When false, omits function badge numbers in runCompare (alias for fnLabel: "name"). Defaults to true. */
+  showFnNumber?: boolean;
 };
 
 // ── Internal Helpers ──────────────────────────────────────────────────────────

@@ -314,6 +314,7 @@ runTests(solve, tests, {
 | `reverseEdges` | `false` | Flips the edge direction in graph visualizations (swaps u↔v). Useful when the raw `[a, b]` convention means "b → a" semantically. Overridden by per-test `reverseEdges`. |
 | `gridMode` | `'auto'` | Suite-level grid visualizer mode (`'auto' \| 'board' \| 'maze' \| 'binary' \| 'sudoku' \| 'numeric' \| 'chess' \| 'none'`). Set to `'none'` to disable table formatting for grids. |
 | `gridMapping` | `undefined` | Custom cell representation and color-coding using hex codes (`"#74b9ff"`), chalk styles, or replacement labels. |
+| `fnLabel` | `'both'` | In `runCompare`, controls function labeling: `'both'` (`[1] myFn`), `'number'` (badge only `[1]`, ideal for narrow terminals), or `'name'` (`myFn` only) |
 | `summaryOnly` | `false` | When `true` in `runCompare`, skips per-test timing rows and renders only the aggregated summary table |
 | `showTests` | `true` | When `false` in `runCompare`, suppresses per-test outputs (alias for `summaryOnly: true`) |
 

@@ -1,10 +1,12 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import type { TestCase, TestOptions } from "#functions/code-tester.js";
+import type { TestCase, TestOptions, FnLabelMode } from "#functions/code-tester.js";
 import { smartCompare } from "#utils/compare.js";
 import { cloneValue } from "#utils/clone.js";
 import { captureConsoleOutput } from "#utils/console-capture.js";
 import { getParamNames, formatValue } from "#utils/display.js";
+
+export type { FnLabelMode };
 
 // ── Internal helpers ────────────────────────────────────────────────────────
 
@@ -32,13 +34,31 @@ function compact(val: any): string {
   try { return JSON.stringify(val); } catch { return String(val); }
 }
 
-/** Width capped at 60 — friendly for narrow side-panel terminals */
-function divWidth(): number {
-  return Math.min(process.stdout.columns || 60, 60);
+function padL(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n - 1) + "…" : s.padEnd(n);
 }
 
-function div(char = "─"): void {
-  console.log(chalk.hex("#5d5d5d")(char.repeat(divWidth())));
+function padR(s: string, n: number): string {
+  return s.padStart(n);
+}
+
+function resolveFnLabelMode(options: TestOptions<any>): FnLabelMode {
+  const raw = options.fnLabel ?? options.fnDisplay;
+  if (typeof raw === "string") {
+    const lower = raw.toLowerCase().trim();
+    if (lower === "number" || lower === "num" || lower === "index" || lower === "id") {
+      return "number";
+    }
+    if (lower === "name" || lower === "fn" || lower === "function") {
+      return "name";
+    }
+    if (lower === "both" || lower === "all") {
+      return "both";
+    }
+  }
+  if (options.showFnName === false) return "number";
+  if (options.showFnNumber === false) return "name";
+  return "both";
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -66,11 +86,42 @@ export function runCompare<F extends (...args: any[]) => any>(
 
   const fnNames = fns.map((fn, i) => fn.name || `fn${i + 1}`);
   const maxNameLen = Math.max(...fnNames.map((n) => n.length), 8);
+  const maxBadgeLen = Math.max(...fns.map((_, i) => badge(i).length));
+  const fnLabelMode = resolveFnLabelMode(options);
   const suiteUnordered = options.unordered ?? false;
   const suiteCompare = options.compare;
   const showHeader = options.showHeader ?? true;
   const showStringInput = options.showStringInput ?? true;
   const summaryOnly = options.summaryOnly ?? (options.showTests === false);
+
+  // Column width calculations
+  const COL_NAME = maxNameLen;
+  const COL_PASS = 5;  // "6/6"
+  const COL_AVG  = 9;  // "0.052 ms"
+  const COL_TOT  = 9;  // "0.314 ms"
+
+  const summaryContentWidth =
+    fnLabelMode === "number"
+      ? 2 + maxBadgeLen + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + 3
+      : fnLabelMode === "name"
+        ? 2 + COL_NAME + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + 3
+        : 2 + maxBadgeLen + 2 + COL_NAME + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + 3;
+
+  const headerContentWidth = Math.max(
+    ...fnNames.map((n) => n.length + maxBadgeLen + 4),
+    35,
+  );
+
+  const baseWidth =
+    fnLabelMode === "number"
+      ? Math.max(summaryContentWidth, 36)
+      : Math.max(summaryContentWidth, headerContentWidth, 50);
+  const termCols = process.stdout.columns || 60;
+  const defaultWidth = Math.min(termCols, baseWidth);
+
+  function div(char = "─", width = defaultWidth): void {
+    console.log(chalk.hex("#5d5d5d")(char.repeat(Math.min(termCols, width))));
+  }
 
   // Per-function accumulators
   const stats = fns.map(() => ({ passed: 0, totalTime: 0 }));
@@ -224,13 +275,17 @@ export function runCompare<F extends (...args: any[]) => any>(
       // ── Timing rows ─────────────────────────────────────────────────────────
       const COL_TIME = 9; // "0.123 ms" right-aligned
       for (const [i, res] of results.entries()) {
-        const b = badge(i);
+        const b = badge(i).padEnd(maxBadgeLen);
         const timeStr = `${res.time.toFixed(3)} ms`.padStart(COL_TIME);
         const fastest = showFastest && i === fastestIdx;
+        const label =
+          fnLabelMode === "name"
+            ? chalk.cyan(padL(fnNames[i], COL_NAME))
+            : badgeColor(b);
 
         if (res.passed) {
           console.log(
-            `  ${chalk.green("✓")}  ${badgeColor(b)}  ${chalk.gray(timeStr)}` +
+            `  ${chalk.green("✓")}  ${label}  ${chalk.gray(timeStr)}` +
             (fastest ? `  ${fastestBadge}` : ""),
           );
         } else {
@@ -242,7 +297,7 @@ export function runCompare<F extends (...args: any[]) => any>(
             : chalk.red(truncate(compact(res.actual), 20));
           const expStr = chalk.green(truncate(compact(output), 20));
           console.log(
-            `  ${chalk.red("✗")}  ${badgeColor(b)}  ${chalk.gray(timeStr)}` +
+            `  ${chalk.red("✗")}  ${label}  ${chalk.gray(timeStr)}` +
             `  ${chalk.gray("got")} ${gotStr}  ${chalk.gray("exp")} ${expStr}`,
           );
         }
@@ -280,23 +335,30 @@ export function runCompare<F extends (...args: any[]) => any>(
     fullPassCount > 1 &&
     overallSecondFastestTime - overallFastestTime >= 0.0005;
 
-  // Tighter columns
-  const COL_NAME = maxNameLen;
-  const COL_PASS = 5;  // "6/6"
-  const COL_AVG  = 9;  // "0.052 ms"
-  const COL_TOT  = 9;  // "0.314 ms"
-
-  const padL = (s: string, n: number) =>
-    s.length > n ? s.slice(0, n - 1) + "…" : s.padEnd(n);
-  const padR = (s: string, n: number) => s.padStart(n);
-
   // Header row
-  console.log(
-    `       ${chalk.gray(padL("Function", COL_NAME))}  ` +
-    `${chalk.gray(padR("Pass", COL_PASS))}  ` +
-    `${chalk.gray(padR("Avg", COL_AVG))}  ` +
-    `${chalk.gray(padR("Total", COL_TOT))}`,
-  );
+  if (fnLabelMode === "number") {
+    console.log(
+      `  ${chalk.gray(padL("Fn", maxBadgeLen))}  ` +
+      `${chalk.gray(padR("Pass", COL_PASS))}  ` +
+      `${chalk.gray(padR("Avg", COL_AVG))}  ` +
+      `${chalk.gray(padR("Total", COL_TOT))}`,
+    );
+  } else if (fnLabelMode === "name") {
+    console.log(
+      `  ${chalk.gray(padL("Function", COL_NAME))}  ` +
+      `${chalk.gray(padR("Pass", COL_PASS))}  ` +
+      `${chalk.gray(padR("Avg", COL_AVG))}  ` +
+      `${chalk.gray(padR("Total", COL_TOT))}`,
+    );
+  } else {
+    // "both"
+    console.log(
+      `${" ".repeat(maxBadgeLen + 4)}${chalk.gray(padL("Function", COL_NAME))}  ` +
+      `${chalk.gray(padR("Pass", COL_PASS))}  ` +
+      `${chalk.gray(padR("Avg", COL_AVG))}  ` +
+      `${chalk.gray(padR("Total", COL_TOT))}`,
+    );
+  }
   div();
 
   for (const [i, stat] of stats.entries()) {
@@ -307,14 +369,33 @@ export function runCompare<F extends (...args: any[]) => any>(
     const fastest = showOverallFastest && i === overallFastestIdx;
     const nameColor = allPassed ? chalk.white : chalk.red;
     const passColor = allPassed ? chalk.green : chalk.red;
+    const b = badge(i).padEnd(maxBadgeLen);
 
-    console.log(
-      `  ${badgeColor(badge(i))}  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
-      `${passColor(padR(passedStr, COL_PASS))}  ` +
-      `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
-      `${chalk.gray(padR(totStr, COL_TOT))}` +
-      (fastest ? `  ${fastestBadge}` : ""),
-    );
+    if (fnLabelMode === "number") {
+      console.log(
+        `  ${badgeColor(b)}  ` +
+        `${passColor(padR(passedStr, COL_PASS))}  ` +
+        `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
+        `${chalk.gray(padR(totStr, COL_TOT))}` +
+        (fastest ? `  ${fastestBadge}` : ""),
+      );
+    } else if (fnLabelMode === "name") {
+      console.log(
+        `  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
+        `${passColor(padR(passedStr, COL_PASS))}  ` +
+        `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
+        `${chalk.gray(padR(totStr, COL_TOT))}` +
+        (fastest ? `  ${fastestBadge}` : ""),
+      );
+    } else {
+      console.log(
+        `  ${badgeColor(b)}  ${nameColor(padL(fnNames[i], COL_NAME))}  ` +
+        `${passColor(padR(passedStr, COL_PASS))}  ` +
+        `${chalk.gray(padR(avgStr, COL_AVG))}  ` +
+        `${chalk.gray(padR(totStr, COL_TOT))}` +
+        (fastest ? `  ${fastestBadge}` : ""),
+      );
+    }
   }
 
   console.log();

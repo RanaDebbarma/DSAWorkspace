@@ -766,9 +766,21 @@ runTests([fibRecursive, fibIterative], [
   { input: [15] as [number], output: 610 },
 ]);
 
-// Runs all functions side-by-side with compact timing comparison + summary table
+// Runs all functions side-by-side with compact timing comparison + summary table (default "both")
 runCompare([fibRecursive, fibIterative], [
   { input: [5]  as [number], output: 5 },
   { input: [10] as [number], output: 55 },
   { input: [15] as [number], output: 610 },
 ]);
+
+// Runs runCompare with fnLabel: "number" (compact number badges only — ideal for narrow terminals)
+runCompare([fibRecursive, fibIterative], [
+  { input: [5]  as [number], output: 5 },
+  { input: [10] as [number], output: 55 },
+], { fnLabel: "number" });
+
+// Runs runCompare with fnLabel: "name" (function names only)
+runCompare([fibRecursive, fibIterative], [
+  { input: [5]  as [number], output: 5 },
+  { input: [10] as [number], output: 55 },
+], { fnLabel: "name" });
