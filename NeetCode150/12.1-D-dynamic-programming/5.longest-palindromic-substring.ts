@@ -55,12 +55,10 @@ function longestPalindrome_BU(s: string): string {
   return res;
 
   function isPalindrome(start: number, end: number): boolean {
-    if (dp[start][end] === undefined) {
-      // Matching outer characters + a palindromic inner substring
-      // Substrings of length <= 3 need no inner check
-      dp[start][end] =
-        s[start] === s[end] && (end - start <= 2 || dp[start + 1][end - 1]);
-    }
+    // Matching outer characters + a palindromic inner substring
+    // Substrings of length <= 3 need no inner check
+    dp[start][end] =
+      s[start] === s[end] && (end - start <= 2 || dp[start + 1][end - 1]);
 
     return dp[start][end];
   }
