@@ -1,7 +1,11 @@
 import { runTests } from "#functions/code-tester.js";
 
+// LeetCode 153
+
+// time: O(log(n))
+// space: O(1)
 // Elegent version
-const myFunc = function findMin(nums: number[]): number {
+function findMin(nums: number[]): number {
   let l = 0;
   let r = nums.length - 1;
 
@@ -18,16 +22,18 @@ const myFunc = function findMin(nums: number[]): number {
     }
   }
 
-  // For max ( learning )
-  // one step back for circular array
-  // const max = nums[(l - 1 + nums.length) % nums.length];
-  // console.log(max);
-
   return nums[l];
-};
+}
+
+// For max
+// one step back for circular array
+// const max = nums[(l - 1 + nums.length) % nums.length];
+// or for this particular problem
+// const max = nums[l - 1];
+// console.log(max);
 
 // My soln
-// const myFunc = function findMin(nums: number[]): number {
+// function findMin(nums: number[]): number {
 //   let l = 0;
 //   let r = nums.length - 1;
 //   let min = nums[0];
@@ -48,7 +54,7 @@ const myFunc = function findMin(nums: number[]): number {
 //   return min;
 // };
 
-runTests(myFunc, [
+runTests(findMin, [
   // Leetcode
   { input: [[3, 4, 5, 1, 2]], output: 1 },
   { input: [[4, 5, 6, 7, 0, 1, 2]], output: 0 },
