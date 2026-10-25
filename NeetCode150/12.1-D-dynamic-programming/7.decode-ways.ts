@@ -22,7 +22,6 @@ function numDecodings(s: string): number {
     }
   }
 
-  console.log(dp);
   return dp[n];
 }
 
