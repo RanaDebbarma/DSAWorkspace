@@ -78,7 +78,4 @@ const cases: TestCase<typeof countSubstrings_BU>[] = [
 ];
 
 runTests(countSubstrings_EAC, cases);
-runCompare([countSubstrings_BU, countSubstrings_EAC], cases, {
-  showTests: false,
-  fnDisplay: "number",
-});
+runCompare([countSubstrings_BU, countSubstrings_EAC], cases);

@@ -112,9 +112,4 @@ runTests([longestPalindrome_EAC], cases);
 runCompare(
   [longestPalindrome_BF, longestPalindrome_BU, longestPalindrome_EAC],
   cases,
-  {
-    // showHeader: false,
-    summaryOnly: true,
-    fnDisplay: "number",
-  },
 );
