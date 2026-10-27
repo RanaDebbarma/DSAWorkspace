@@ -123,8 +123,4 @@ runTests(numDecodings_BUSO, cases);
 runCompare(
   [numDecodings_BF, numDecodings_TDM, numDecodings_BUT, numDecodings_BUSO],
   cases,
-  {
-    summaryOnly: true,
-    fnDisplay: "number",
-  },
 );
