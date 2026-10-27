@@ -5,7 +5,7 @@ import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
 // A = amount, C = coins.length
 // time: O(A x C)
 // space: O(A)
-// Brute-Force
+// BFS solution
 function coinChange_BFS(coins: number[], amount: number): number {
   const que = [0];
   const visited = new Set<number>([0]);
@@ -63,5 +63,6 @@ const cases: TestCase<typeof coinChange_BUT>[] = [
   { input: [[1, 2, 5], 11], output: 3 },
   { input: [[2, 6, 8], 99], output: -1 },
 ];
+
 runTests(coinChange_BUT, cases);
 runCompare([coinChange_BFS, coinChange_BUT], cases);
