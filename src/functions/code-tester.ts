@@ -124,8 +124,8 @@ export type CompareOptions<F extends (...args: any[]) => any = any> = BaseTestOp
   /** When false, omits inline input values in test headers. Defaults to true. */
   showStringInput?: boolean;
   /** In runCompare, controls how functions are labeled in the summary table and test rows:
-   * - "both" (default): displays badge number and function name (e.g. `[1]  myFn`)
-   * - "number": displays only badge number (e.g. `[1]`), ideal for small width terminals
+   * - "number" (default): displays only badge number (e.g. `[1]`), ideal for small width terminals
+   * - "both": displays badge number and function name (e.g. `[1]  myFn`)
    * - "name": displays only function name (e.g. `myFn`)
    */
   fnLabel?: FnLabelMode;
@@ -135,7 +135,7 @@ export type CompareOptions<F extends (...args: any[]) => any = any> = BaseTestOp
   showFnName?: boolean;
   /** When false, omits function badge numbers (alias for fnLabel: "name"). Defaults to true. */
   showFnNumber?: boolean;
-  /** When true, suppresses per-test outputs and displays only the summary table. Defaults to false. */
+  /** When true, suppresses per-test outputs and displays only the summary table. Defaults to true. */
   summaryOnly?: boolean;
   /** When false, suppresses per-test outputs (alias for summaryOnly: true). Defaults to true. */
   showTests?: boolean;

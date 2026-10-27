@@ -65,7 +65,7 @@ function resolveFnLabelMode(options: {
   }
   if (options.showFnName === false) return "number";
   if (options.showFnNumber === false) return "name";
-  return "both";
+  return "number";
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ export function runCompare<F extends (...args: any[]) => any>(
   const suiteCompare = options.compare;
   const showHeader = options.showHeader ?? true;
   const showStringInput = options.showStringInput ?? true;
-  const summaryOnly = options.summaryOnly ?? (options.showTests === false);
+  const summaryOnly = options.summaryOnly ?? (options.showTests !== undefined ? options.showTests === false : true);
   const tableBorders = options.tableBorders ?? true;
   const visualizeInput = options.visualizeInput ?? false;
   const suiteIsDirected = options.isDirected;

@@ -232,6 +232,42 @@ runTests(${fnName}, [
 `;
 }
 
+// 8. COMPARE TEMPLATE (multiple implementations side-by-side)
+export function getCompareTemplate(
+  fnName: string,
+  initialCases?: string,
+  sig?: SignatureInfo,
+  lcNumber?: string | number
+): string {
+  const cases = initialCases || "  { input: [[1, 2, 3]], output: 0 },";
+  const params = sig?.paramsCode || "nums: number[]";
+  const retType = sig?.returnType || "number";
+  const retVal = sig?.defaultReturn || "0";
+  const comment = formatLcComment(lcNumber);
+  const BF  = `${fnName}_BF`;
+  const OPT = `${fnName}_OPT`;
+
+  return `import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
+
+${comment}// Brute-Force
+function ${BF}(${params}): ${retType} {
+  return ${retVal};
+}
+
+// Optimal
+function ${OPT}(${params}): ${retType} {
+  return ${retVal};
+}
+
+const cases: TestCase<typeof ${OPT}>[] = [
+${cases}
+];
+
+runTests(${OPT}, cases);
+runCompare([${BF}, ${OPT}], cases);
+`;
+}
+
 // ============================================================================
 // Template registry for use in the CLI
 // ============================================================================
@@ -283,6 +319,11 @@ export const TEMPLATES: readonly TemplateDefinition[] = [
     label: "Multi-Param Tree  (LCA, path problems)",
     value: "multi-param-tree",
     fn: getMultiParamTreeTemplate,
+  },
+  {
+    label: "Compare           (multiple implementations)",
+    value: "compare",
+    fn: getCompareTemplate,
   },
 ] as const;
 
