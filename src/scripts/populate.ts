@@ -18,13 +18,21 @@ export function detectFileTemplate(fileContent: string, fallbackCases: ParsedRes
   if (fileContent.includes("createCyclicLinkedList")) return "cyclic-linked-list";
   if (fileContent.includes("createLinkedList") || fileContent.includes("#ds/linked-list.js")) return "linked-list";
   if (fileContent.includes("createGraph") || fileContent.includes("#ds/graph.js")) return "graph";
-  
+  if (fileContent.includes("runCompare")) return "compare";
+
   return detectTemplateType(fallbackCases);
 }
 
 /** Appends formatted test cases into runTests or runClassTests array in fileContent. */
 export function appendTestCasesToFile(fileContent: string, formattedCasesStr: string): string {
-  const match = fileContent.match(/(runTests|runClassTests)\s*\(\s*([^,]+),\s*\[/);
+  // Primary: inline array in runTests(fn, [...]) or runClassTests(fn, [...])
+  let match = fileContent.match(/(runTests|runClassTests)\s*\(\s*([^,]+),\s*\[/);
+
+  // Fallback for compare template: `const cases... = [` variable declaration
+  if (!match || match.index === undefined) {
+    match = fileContent.match(/const\s+cases[^=]*=\s*\[/);
+  }
+
   if (!match || match.index === undefined) {
     const trimmed = fileContent.trimEnd();
     return `${trimmed}\n\nrunTests(solution, [\n${formattedCasesStr}\n]);\n`;
