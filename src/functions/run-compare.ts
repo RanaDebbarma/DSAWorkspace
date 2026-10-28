@@ -161,7 +161,7 @@ export function runCompare<F extends (...args: any[]) => any>(
     for (const fn of fns) {
       try {
         const warmupInput = cloneValue(tests[0].input) as Parameters<F>;
-        fn(...warmupInput);
+        captureConsoleOutput(() => fn(...warmupInput));
       } catch {
         // Safe to ignore: official run handles errors and logs
       }
@@ -198,7 +198,7 @@ export function runCompare<F extends (...args: any[]) => any>(
           const actualInput = cloneValue(input) as Parameters<F>;
           const start = performance.now();
           try {
-            fns[i](...actualInput);
+            captureConsoleOutput(() => fns[i](...actualInput));
           } catch {}
           const end = performance.now();
           times[i] = (times[i] + (end - start)) / 2;
