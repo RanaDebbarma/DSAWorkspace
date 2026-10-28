@@ -71,6 +71,8 @@ export type TestCase<F extends (...args: any[]) => any> = {
   gridMapping?: GridMapping;
   /** When false, disables visual table/structure rendering for expected output and diff for this test case. Defaults to true. */
   visualizeOutput?: boolean;
+  /** When false, hides the inline string representation of inputs for this test case. Defaults to the suite-level value. */
+  showStringInput?: boolean;
 };
 
 export type ClassTestCase = {
@@ -606,13 +608,14 @@ export function runTests<F extends (...args: any[]) => any>(
     drawDivider();
 
     // Input + Result blocks
+    const effectiveShowStringInput = test.showStringInput ?? showStringInput;
     console.log();
     try {
       renderInputBlock(
         fn,
         Array.from(input),
         visualizeInput,
-        showStringInput,
+        effectiveShowStringInput,
         test.isDirected,
         suiteIsDirected,
         test.reverseEdges,
@@ -625,7 +628,7 @@ export function runTests<F extends (...args: any[]) => any>(
     } catch {
       console.dir(input.map(formatValue), { depth: null });
     }
-    showStringInput && console.log();
+    effectiveShowStringInput && console.log();
 
     printConsoleOutput(execution.logs);
     const shouldVisualizeOutput = test.visualizeOutput ?? visualizeOutput;

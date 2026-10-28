@@ -261,7 +261,7 @@ export function runCompare<F extends (...args: any[]) => any>(
       div();
 
       const effectiveShowStringInput =
-        (test as any).showStringInput ?? showStringInput;
+        test.showStringInput ?? showStringInput;
       const testTitle = test.name
         ? `Test ${testIdx + 1} — ${test.name}`
         : `Test ${testIdx + 1}`;
