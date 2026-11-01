@@ -24,7 +24,7 @@ function wordBreak_BF(s: string, wordDict: string[]): boolean {
 
       // Check whether the current word matches the substring starting at i.
       let idx = 0;
-      while (idx < word.length && s[i + idx] === word[idx]) idx++;
+      while (idx < word.length && word[idx] === s[i + idx]) idx++;
 
       // If the entire word matches, recursively try segmenting
       // the remaining string starting immediately after that word.
@@ -67,8 +67,42 @@ function wordBreak_TDM(s: string, wordDict: string[]): boolean {
   }
 }
 
+// Time: O(n x k x L)
+// Space: O(n)
+// Bottom-up tabulation
+function wordBreak_BUT(s: string, wordDict: string[]): boolean {
+  const n = s.length;
+  const dp = new Array(n + 1).fill(false);
 
-const cases: TestCase<typeof wordBreak_TDM>[] = [
+  // Base case: an empty suffix is always successfully segmented.
+  dp[n] = true;
+
+  // Process the string backwards so dependent states are already computed.
+  for (let i = n - 1; i >= 0; i--) {
+    for (const word of wordDict) {
+      const len = word.length;
+
+      // Skip words that exceed the remaining string.
+      if (i + len > n) continue;
+
+      // Check whether the word matches the current substring.
+      let j = 0;
+      while (j < len && word[j] === s[i + j]) j++;
+
+      // If the word matches and the remaining suffix is segmentable,
+      // the current position is also segmentable.
+      if (j === len && dp[i + len]) {
+        dp[i] = true;
+        break; // No need to check other words.
+      }
+    }
+  }
+
+  return dp[0];
+}
+
+
+const cases: TestCase<typeof wordBreak_BUT>[] = [
   { input: ["leetcode", ["leet", "code"]], output: true },
   { input: ["applepenapple", ["apple", "pen"]], output: true },
   {
@@ -76,7 +110,16 @@ const cases: TestCase<typeof wordBreak_TDM>[] = [
     output: false,
   },
   { input: ["catsincars", ["cats", "cat", "sin", "in", "car"]], output: false },
+
+  // Exponential branching: many overlapping segmentation possibilities.
+  {
+    input: [
+      "aaaaaaaaaaaaaaaaaab",
+      ["a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa"],
+    ],
+    output: false,
+  },
 ];
 
-runTests(wordBreak_TDM, cases);
-runCompare([wordBreak_BF, wordBreak_TDM], cases);
+runTests(wordBreak_BUT, cases);
+runCompare([wordBreak_BF, wordBreak_TDM, wordBreak_BUT], cases);
