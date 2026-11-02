@@ -1,13 +1,13 @@
 import chalk from "chalk";
 import { performance } from "node:perf_hooks";
-import type { TestCase, CompareOptions, FnLabelMode } from "#functions/code-tester.js";
+import type { TestCase, CompareOptions, FnLabelMode, CompareFormat, CompareMode, CompareAnchor } from "#functions/code-tester.js";
 import { renderInputBlock } from "#functions/code-tester.js";
 import { smartCompare } from "#utils/compare.js";
 import { cloneValue } from "#utils/clone.js";
 import { captureConsoleOutput } from "#utils/console-capture.js";
 import { getParamNames, formatValue, type GridMode, type GridMapping } from "#utils/display.js";
 
-export type { CompareOptions, FnLabelMode };
+export type { CompareOptions, FnLabelMode, CompareFormat, CompareMode, CompareAnchor };
 export type RunCompareOptions<F extends (...args: any[]) => any = any> = CompareOptions<F>;
 
 // ── Internal helpers ────────────────────────────────────────────────────────
@@ -107,18 +107,51 @@ export function runCompare<F extends (...args: any[]) => any>(
   const suiteGridMode = options.gridMode as GridMode | undefined;
   const suiteGridMapping = options.gridMapping as GridMapping | undefined;
 
+  // Relative comparison options
+  let compareFormat: "multiplier" | "percent" | "none" = "multiplier";
+  if (options.compareFormat === false || options.compareFormat === "none" || options.showPercent === false) {
+    compareFormat = "none";
+  } else if (options.compareFormat === "percent") {
+    compareFormat = "percent";
+  } else if (options.compareFormat === "multiplier") {
+    compareFormat = "multiplier";
+  }
+
+  const rawMode = (options.compareMode ?? options.compareAnchor) as string | undefined;
+  let compareMode: "faster" | "slower" | "baseline" = "faster";
+  if (rawMode === "slower" || rawMode === "fastest") {
+    compareMode = "slower";
+  } else if (rawMode === "baseline") {
+    compareMode = "baseline";
+  } else {
+    compareMode = "faster";
+  }
+
+  const showComparisonCol = compareFormat !== "none" && fns.length > 1;
+  const showFastestBadge = options.showFastest ?? true;
+
   // Column width calculations
   const COL_NAME = maxNameLen;
   const COL_PASS = 5;  // "6/6"
   const COL_AVG  = 9;  // "0.052 ms"
   const COL_TOT  = 9;  // "0.314 ms"
+  const COL_PCT  = 6;  // "Slower" / "Faster" / "vs [1]" (tight 6 chars)
+
+  const pctHeaderTitle =
+    compareMode === "faster"
+      ? "Faster"
+      : compareMode === "slower"
+        ? "Slower"
+        : "vs [1]";
+
+  const pctExtra = showComparisonCol ? 2 + COL_PCT + (tableBorders ? 3 : 0) : 0;
 
   const summaryContentWidth =
     fnLabelMode === "number"
-      ? 2 + maxBadgeLen + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + 3
+      ? 2 + maxBadgeLen + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + pctExtra + 3
       : fnLabelMode === "name"
-        ? 2 + COL_NAME + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + 3
-        : 2 + maxBadgeLen + 2 + COL_NAME + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + 3;
+        ? 2 + COL_NAME + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + pctExtra + 3
+        : 2 + maxBadgeLen + 2 + COL_NAME + 2 + COL_PASS + 2 + COL_AVG + 2 + COL_TOT + pctExtra + 3;
 
   const headerContentWidth = Math.max(
     ...fnNames.map((n) => n.length + maxBadgeLen + 4),
@@ -135,6 +168,82 @@ export function runCompare<F extends (...args: any[]) => any>(
   function div(char = "─", width = defaultWidth): void {
     const w = char === "═" ? termCols : Math.min(termCols, width);
     console.log(chalk.hex("#5d5d5d")(char.repeat(w)));
+  }
+
+  function formatRelativeMetric(
+    time: number,
+    isPassed: boolean,
+    fnIdx: number,
+    fastestIdx: number,
+    slowestIdx: number,
+    baselineIdx: number,
+    fastestTime: number,
+    slowestTime: number,
+    baselineTime: number,
+    colWidth: number = COL_PCT,
+  ): string {
+    if (!showComparisonCol || !isPassed || time <= 0) return "";
+
+    let refTime = fastestTime;
+    let isAnchor = false;
+    const isWinner = fnIdx === fastestIdx;
+
+    if (compareMode === "slower") {
+      refTime = fastestTime;
+      isAnchor = fnIdx === fastestIdx;
+    } else if (compareMode === "faster") {
+      refTime = slowestTime;
+      isAnchor = fnIdx === slowestIdx;
+    } else {
+      refTime = baselineTime;
+      isAnchor = fnIdx === baselineIdx;
+    }
+
+    if (refTime <= 0 || !Number.isFinite(refTime)) return "";
+
+    let rawStr = "";
+
+    if (compareFormat === "multiplier") {
+      if (compareMode === "slower") {
+        const mult = time / refTime;
+        rawStr = `${mult.toFixed(2)}×`;
+      } else {
+        const mult = refTime / time;
+        rawStr = `${mult.toFixed(2)}×`;
+      }
+    } else if (compareFormat === "percent") {
+      if (compareMode === "slower") {
+        if (isAnchor) {
+          rawStr = "—";
+        } else {
+          const pct = ((time - refTime) / refTime) * 100;
+          rawStr = `+${pct >= 100 ? Math.round(pct) : pct.toFixed(1)}%`;
+        }
+      } else if (compareMode === "faster") {
+        if (isAnchor) {
+          rawStr = "—";
+        } else {
+          const pct = ((refTime - time) / time) * 100;
+          rawStr = `+${pct >= 100 ? Math.round(pct) : pct.toFixed(1)}%`;
+        }
+      } else {
+        if (isAnchor) {
+          rawStr = "—";
+        } else if (time < refTime) {
+          const pct = ((refTime - time) / time) * 100;
+          rawStr = `+${pct >= 100 ? Math.round(pct) : pct.toFixed(1)}%`;
+        } else {
+          const pct = ((time - refTime) / refTime) * 100;
+          rawStr = `-${pct >= 100 ? Math.round(pct) : pct.toFixed(1)}%`;
+        }
+      }
+    }
+
+    const padded = padR(rawStr, colWidth);
+    if (isWinner) {
+      return `  ${chalk.yellow(padded)}`;
+    }
+    return `  ${chalk.hex("#888888")(padded)}`;
   }
 
   // Per-function accumulators
@@ -236,10 +345,15 @@ export function runCompare<F extends (...args: any[]) => any>(
       stats[i].totalTime += res.time;
     }
 
-    // Identify fastest passing function for this test
+    // Identify fastest, slowest, baseline passing function for this test
     let fastestIdx = -1;
     let fastestTime = Infinity;
     let secondFastestTime = Infinity;
+    let slowestIdx = -1;
+    let slowestTime = -Infinity;
+    const baselineIdx = 0;
+    const baselineTime = results[0]?.passed ? results[0].time : 0;
+
     for (const [i, res] of results.entries()) {
       if (res.passed) {
         if (res.time < fastestTime) {
@@ -249,10 +363,16 @@ export function runCompare<F extends (...args: any[]) => any>(
         } else if (res.time < secondFastestTime) {
           secondFastestTime = res.time;
         }
+
+        if (res.time > slowestTime) {
+          slowestTime = res.time;
+          slowestIdx = i;
+        }
       }
     }
-    // Only show fastest if there are >= 2 passing functions and winner is visibly faster (>= 0.0005 ms)
-    const showFastest =
+    // Only show fastest badge if there are >= 2 passing functions and winner is visibly faster (>= 0.0005 ms)
+    const showFastestThisTest =
+      showFastestBadge &&
       results.filter((r) => r.passed).length > 1 &&
       secondFastestTime - fastestTime >= 0.0005;
 
@@ -330,16 +450,29 @@ export function runCompare<F extends (...args: any[]) => any>(
       for (const [i, res] of results.entries()) {
         const b = badge(i).padEnd(maxBadgeLen);
         const timeStr = `${res.time.toFixed(3)} ms`.padStart(COL_TIME);
-        const fastest = showFastest && i === fastestIdx;
+        const isFastest = showFastestThisTest && i === fastestIdx;
         const label =
           fnLabelMode === "name"
             ? chalk.cyan(padL(fnNames[i], COL_NAME))
             : badgeColor(b);
 
+        const relStr = formatRelativeMetric(
+          res.time,
+          res.passed,
+          i,
+          fastestIdx,
+          slowestIdx,
+          baselineIdx,
+          fastestTime,
+          slowestTime,
+          baselineTime,
+        );
+
         if (res.passed) {
           console.log(
             `  ${chalk.green("✓")}  ${label}  ${chalk.gray(timeStr)}` +
-            (fastest ? `  ${fastestBadge}` : ""),
+            relStr +
+            (isFastest ? `  ${fastestBadge}` : ""),
           );
         } else {
           const gotStr = res.error
@@ -361,20 +494,17 @@ export function runCompare<F extends (...args: any[]) => any>(
   }
 
   // ── Summary table ──────────────────────────────────────────────────────────
-  // Each │ sep adds 3 chars ("  │") vs plain 2-space gap, × 3 separators = 9 extra
-  const borderExtra = tableBorders ? 9 : 0;
-  const sep = tableBorders ? `  ${chalk.hex("#5d5d5d")("│")}` : "  ";
-
-  div("═");
-  console.log(`${chalk.bold.bgBlue.white(" SUMMARY ")}`);
-  div("─", defaultWidth + borderExtra);
-  console.log();
-
-  // Overall fastest = lowest totalTime among fully-passing functions
+  // Overall fastest, slowest, baseline among fully-passing functions
   let overallFastestIdx = -1;
   let overallFastestTime = Infinity;
   let overallSecondFastestTime = Infinity;
+  let overallSlowestIdx = -1;
+  let overallSlowestTime = -Infinity;
+  const overallBaselineIdx = 0;
+  const overallBaselineTime =
+    stats[0]?.passed === tests.length ? stats[0].totalTime : 0;
   let fullPassCount = 0;
+
   for (const [i, stat] of stats.entries()) {
     if (stat.passed === tests.length) {
       fullPassCount++;
@@ -385,27 +515,48 @@ export function runCompare<F extends (...args: any[]) => any>(
       } else if (stat.totalTime < overallSecondFastestTime) {
         overallSecondFastestTime = stat.totalTime;
       }
+
+      if (stat.totalTime > overallSlowestTime) {
+        overallSlowestTime = stat.totalTime;
+        overallSlowestIdx = i;
+      }
     }
   }
-  // Only show overall fastest if there are >= 2 passing functions and winner is visibly faster (>= 0.0005 ms)
+
+  // Only show overall fastest badge if there are >= 2 passing functions and winner is visibly faster (>= 0.0005 ms)
   const showOverallFastest =
+    showFastestBadge &&
     fullPassCount > 1 &&
     overallSecondFastestTime - overallFastestTime >= 0.0005;
 
+  // Each │ sep adds 3 chars ("  │") vs plain 2-space gap, × separators
+  const borderExtra = tableBorders ? (showComparisonCol ? 12 : 9) : 0;
+  const sep = tableBorders ? `  ${chalk.hex("#5d5d5d")("│")}` : "  ";
+
+  div("═");
+  console.log(`${chalk.bold.bgBlue.white(" SUMMARY ")}`);
+  div("─", defaultWidth + borderExtra);
+  console.log();
+
+  const pctHeader = showComparisonCol
+    ? `${sep}  ${chalk.gray(padR(pctHeaderTitle, COL_PCT))}`
+    : "";
 
   if (fnLabelMode === "number") {
     console.log(
       `  ${chalk.gray(padL("Fn", maxBadgeLen))}${sep}` +
       `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
       `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
-      `  ${chalk.gray(padR("Total", COL_TOT))}`,
+      `  ${chalk.gray(padR("Total", COL_TOT))}` +
+      pctHeader,
     );
   } else if (fnLabelMode === "name") {
     console.log(
       `  ${chalk.gray(padL("Function", COL_NAME))}${sep}` +
       `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
       `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
-      `  ${chalk.gray(padR("Total", COL_TOT))}`,
+      `  ${chalk.gray(padR("Total", COL_TOT))}` +
+      pctHeader,
     );
   } else {
     // "both"
@@ -413,7 +564,8 @@ export function runCompare<F extends (...args: any[]) => any>(
       `${" ".repeat(maxBadgeLen + 4)}${chalk.gray(padL("Function", COL_NAME))}${sep}` +
       `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
       `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
-      `  ${chalk.gray(padR("Total", COL_TOT))}`,
+      `  ${chalk.gray(padR("Total", COL_TOT))}` +
+      pctHeader,
     );
   }
   div("─", defaultWidth + borderExtra);
@@ -428,12 +580,28 @@ export function runCompare<F extends (...args: any[]) => any>(
     const passColor = allPassed ? chalk.green : chalk.red;
     const b = badge(i).padEnd(maxBadgeLen);
 
+    const relStr = formatRelativeMetric(
+      stat.totalTime,
+      allPassed,
+      i,
+      overallFastestIdx,
+      overallSlowestIdx,
+      overallBaselineIdx,
+      overallFastestTime,
+      overallSlowestTime,
+      overallBaselineTime,
+    );
+    const relPart = showComparisonCol
+      ? `${sep}${relStr ? relStr : " ".repeat(2 + COL_PCT)}`
+      : "";
+
     if (fnLabelMode === "number") {
       console.log(
         `  ${badgeColor(b)}${sep}` +
         `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
         `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
         `  ${chalk.gray(padR(totStr, COL_TOT))}` +
+        relPart +
         (fastest ? `  ${fastestBadge}` : ""),
       );
     } else if (fnLabelMode === "name") {
@@ -442,6 +610,7 @@ export function runCompare<F extends (...args: any[]) => any>(
         `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
         `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
         `  ${chalk.gray(padR(totStr, COL_TOT))}` +
+        relPart +
         (fastest ? `  ${fastestBadge}` : ""),
       );
     } else {
@@ -450,6 +619,7 @@ export function runCompare<F extends (...args: any[]) => any>(
         `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
         `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
         `  ${chalk.gray(padR(totStr, COL_TOT))}` +
+        relPart +
         (fastest ? `  ${fastestBadge}` : ""),
       );
     }

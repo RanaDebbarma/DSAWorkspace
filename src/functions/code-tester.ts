@@ -121,6 +121,15 @@ export type TestOptions<F extends (...args: any[]) => any = any> = BaseTestOptio
 /** Alias for `TestOptions`. */
 export type RunTestOptions<F extends (...args: any[]) => any = any> = TestOptions<F>;
 
+/** Format of relative speed comparison in runCompare. */
+export type CompareFormat = "multiplier" | "percent" | "none" | false;
+
+/** Mode of relative speed comparison in runCompare. */
+export type CompareMode = "faster" | "slower" | "baseline";
+
+/** @deprecated Use CompareMode instead. */
+export type CompareAnchor = CompareMode | "fastest" | "slowest";
+
 /** Options for multi-implementation runtime comparison (`runCompare`). */
 export type CompareOptions<F extends (...args: any[]) => any = any> = BaseTestOptions<F> & {
   /** When false, omits inline input values in test headers. Defaults to true. */
@@ -153,6 +162,29 @@ export type CompareOptions<F extends (...args: any[]) => any = any> = BaseTestOp
   gridMode?: GridMode;
   /** Custom mapping for matrix grid cell representation and color-coding. */
   gridMapping?: GridMapping;
+  /**
+   * Display format for relative speed comparison:
+   * - "multiplier" (default): e.g. `1.00×`, `32.58×`
+   * - "percent": e.g. `—`, `+3158%`
+   * - "none" | false: disables comparison column
+   */
+  compareFormat?: CompareFormat;
+  /**
+   * Relative speed comparison mode / heading:
+   * - "faster" (default): header "Faster", compares vs slowest (shows how much faster / speedup)
+   * - "slower": header "Slower", compares vs fastest (shows how much slower)
+   * - "baseline": header "vs [1]", compares vs first function [1]
+   */
+  compareMode?: CompareMode;
+  /** Alias for `compareMode`. */
+  compareAnchor?: CompareMode | "fastest" | "slowest";
+  /** Alias: when false, disables relative speed comparison (sets compareFormat: "none"). Defaults to true. */
+  showPercent?: boolean;
+  /**
+   * When false, hides the `◀` fastest-function badge in per-test rows and
+   * the summary table. Defaults to true.
+   */
+  showFastest?: boolean;
 };
 
 /** Alias for `CompareOptions`. */

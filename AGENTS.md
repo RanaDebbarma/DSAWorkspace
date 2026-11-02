@@ -103,13 +103,17 @@ runTests([solve_BF, solve_DP, solve_Optimal], tests);
 // runCompare runs all functions side-by-side with compact timing comparison:
 runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
   // CompareOptions (all optional):
-  // fnLabel?: "both" | "number" | "name"; // Default: "both" ("number" shows only [1] in summary table, ideal for narrow terminals)
-  // summaryOnly?: boolean;  // Default: false (when true, skips individual test rows and prints only the summary table)
+  // fnLabel?: "both" | "number" | "name"; // Default: "number" ("number" shows only [1] in summary table, ideal for narrow terminals)
+  // summaryOnly?: boolean;  // Default: true (when false, prints per-test execution rows with inputs and timings)
   // showStringInput?: boolean; // Default: true (when false, omits inline input values)
   // showHeader?: boolean;   // Default: true
+  // compareFormat?: "multiplier" | "percent" | "none" | false; // Default: "multiplier" (e.g. 1.00× vs 32.58× or — vs +3158%)
+  // compareMode?: "slower" | "faster" | "baseline"; // Default: "faster" (header "Faster" / "Slower" / "vs [1]")
+  // showPercent?: boolean;   // Alias to toggle relative comparison column. Default: true
+  // showFastest?: boolean;   // Default: true (shows ◀ badge on the fastest function)
 });
 ```
-`runCompare` displays a compact per-test timing row with `✓`/`✗`, fastest indicator (`◀`), and an aggregated summary table with average and total runtimes.
+`runCompare` displays a compact per-test timing row with `✓`/`✗`, fastest indicator (`◀`), relative speed comparison column (`Slower`, `Faster`, or `vs [1]`), and an aggregated summary table with average and total runtimes.
 
 ---
 

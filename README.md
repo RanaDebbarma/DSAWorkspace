@@ -275,6 +275,7 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
      - **Narrow-Panel Friendly**: Stacked function headers, bracketed `[1]` function badges, and tight single-line test headers fit narrow side terminals.
      - **Unbiased Benchmarking**: Eliminates V8 engine warmup and positional bias using pre-run JIT warmups and symmetrical forward/reverse passes ($[A, B]$ and $[B, A]$).
      - **`◀` Fastest Indicators**: Automatically highlights the fastest implementation per test and in the summary table.
+     - **Relative Speed Comparison**: Shows multiplier (`1.00×` vs `32.58×`) or percentage (`—` vs `+3158%`) via `compareFormat`, anchored to slowest (`compareMode: 'faster'`), fastest (`compareMode: 'slower'`), or baseline (`compareMode: 'baseline'`).
      - **`summaryOnly: true` Option**: Skip individual test rows and jump straight to the aggregated summary table.
 
 ---
@@ -320,6 +321,10 @@ runTests(solve, tests, {
 | Option | Default | Description |
 |---|---|---|
 | `fnLabel` | `'both'` | Controls function labeling: `'both'` (`[1] myFn`), `'number'` (badge only `[1]`, ideal for narrow terminals), or `'name'` (`myFn` only) |
+| `compareMode` | `'faster'` | Relative comparison anchor & heading: `'faster'` (header `Faster`, compares vs slowest), `'slower'` (header `Slower`, compares vs fastest), or `'baseline'` (header `vs [1]`) |
+| `compareFormat` | `'multiplier'` | Display format: `'multiplier'` (`1.00×`, `32.58×`), `'percent'` (`—`, `+3158%`), `'none'`, or `false` |
+| `showFastest` | `true` | When `false`, hides the `◀` fastest-function indicator badge |
+| `showPercent` | `true` | Alias to toggle the relative speed comparison column |
 | `summaryOnly` | `false` | Skips per-test timing rows and renders only the aggregated summary table |
 | `showTests` | `true` | When `false`, suppresses per-test outputs (alias for `summaryOnly: true`) |
 | `showStringInput` | `true` | When `false`, omits inline input values in test headers |
@@ -419,9 +424,12 @@ runTests([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests)
 import { runCompare } from "#functions/code-tester.js";
 
 runCompare([longestPalindrome_BF, longestPalindrome_BU, longestPalindrome], tests, {
-  // summaryOnly: true,       // skip individual test rows, display only summary table
-  // showStringInput: false,  // omit inline param=value text from test headers
-  // showHeader: false,       // hide the top COMPARE header banner
+  // compareMode: "slower",    // "faster" (default) | "slower" | "baseline"
+  // compareFormat: "percent", // "multiplier" (default) | "percent" | "none"
+  // showFastest: false,       // hide the ◀ badge (default: true)
+  // summaryOnly: true,        // skip individual test rows, display only summary table
+  // showStringInput: false,   // omit inline param=value text from test headers
+  // showHeader: false,        // hide the top COMPARE header banner
 });
 ```
 
