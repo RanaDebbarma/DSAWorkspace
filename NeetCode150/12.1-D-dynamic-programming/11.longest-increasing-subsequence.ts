@@ -5,7 +5,7 @@ import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
 // time: O(2 ^ n)
 // space: O(n)
 // Brute-Force (Backtrack)
-function lengthOfLTS_BF(nums: number[]): number {
+function lengthOfLIS_BF(nums: number[]): number {
   const n = nums.length;
   let maxLen = 0;
 
@@ -22,14 +22,14 @@ function lengthOfLTS_BF(nums: number[]): number {
       }
     }
 
-    maxLen = Math.max(maxLen, len)
+    maxLen = Math.max(maxLen, len);
   }
 }
 
 // time: O(n²)
 // space: O(n)
 // Top-Down Memoization
-function lengthOfLTS_TDM(nums: number[]): number {
+function lengthOfLIS_TDM(nums: number[]): number {
   const n = nums.length;
   const memo = Array(n).fill(0);
   let maxLen = 0;
@@ -48,7 +48,7 @@ function lengthOfLTS_TDM(nums: number[]): number {
         memo[i] = Math.max(memo[i], dfs(next));
       }
     }
-    
+
     return (memo[i] = 1 + memo[i]);
   }
 }
@@ -56,7 +56,7 @@ function lengthOfLTS_TDM(nums: number[]): number {
 // time: O(n²)
 // space: O(n)
 // Bottom-Up Tabulation
-function lengthOfLTS_BUT(nums: number[]): number {
+function lengthOfLIS_BUT(nums: number[]): number {
   const n = nums.length;
   const dp = Array(n).fill(1); // LIS ending at each index (minimum length = 1)
 
@@ -72,16 +72,23 @@ function lengthOfLTS_BUT(nums: number[]): number {
   return Math.max(...dp); // LIS can end at any index
 }
 
-const cases: TestCase<typeof lengthOfLTS_BUT>[] = [
+// time: O(n * long n)
+// space: O(n)
+// Binary search + Greedy
+function lengthOfLIS_BSG(nums: number[]): number {
+  return 0;
+}
+
+const cases: TestCase<typeof lengthOfLIS_BUT>[] = [
   { input: [[10, 9, 2, 5, 3, 7, 101, 18]], output: 4 },
   { input: [[0, 1, 0, 3, 2, 3]], output: 4 },
   { input: [[7, 7, 7, 7, 7, 7, 7]], output: 1 },
   { input: [[9, 1, 4, 2, 3, 3, 7]], output: 4 },
   { input: [[0, 3, 1, 3, 2, 3]], output: 4 },
-  
+
   // edge
   { input: [[1, 5, 2, 3, 4, 0]], output: 4 },
 ];
 
-runTests(lengthOfLTS_BUT, cases);
-runCompare([lengthOfLTS_BF, lengthOfLTS_TDM, lengthOfLTS_BUT], cases);
+runTests(lengthOfLIS_BUT, cases);
+runCompare([lengthOfLIS_BF, lengthOfLIS_TDM, lengthOfLIS_BUT], cases);
