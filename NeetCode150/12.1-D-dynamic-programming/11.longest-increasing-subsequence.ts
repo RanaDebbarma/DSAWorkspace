@@ -72,11 +72,63 @@ function lengthOfLIS_BUT(nums: number[]): number {
   return Math.max(...dp); // LIS can end at any index
 }
 
-// time: O(n * long n)
+// time: O(n long n)
 // space: O(n)
 // Binary search + Greedy
-function lengthOfLIS_BSG(nums: number[]): number {
-  return 0;
+// Intuitive format
+function lengthOfLIS_BSG_I(nums: number[]): number {
+  const n = nums.length;
+  const temp: number[] = [nums[0]];
+
+  for (let i = 1; i < n; i++) {
+    const num = nums[i];
+
+    if (temp.at(-1)! >= num) {
+      BSReplace(num);
+    } else {
+      temp.push(num);
+    }
+  }
+
+  return temp.length;
+
+  function BSReplace(target: number, start = 0, end = temp.length - 1): void {
+    while (start < end) {
+      const mid = start + ((end - start) >> 1);
+
+      if (temp[mid] < target) {
+        start = mid + 1;
+      } else {
+        end = mid;
+      }
+    }
+
+    temp[start] = target;
+  }
+}
+
+// Cleaner format
+function lengthOfLIS_BSG_C(nums: number[]): number {
+  const tails: number[] = [];
+
+  for (const num of nums) {
+    let l = 0;
+    let r = tails.length;
+
+    while (l < r) {
+      const mid = l + ((r - l) >> 1);
+
+      if (tails[mid] < num) {
+        l = mid + 1;
+      } else {
+        r = mid;
+      }
+    }
+
+    tails[l] = num;
+  }
+
+  return tails.length;
 }
 
 const cases: TestCase<typeof lengthOfLIS_BUT>[] = [
@@ -90,5 +142,8 @@ const cases: TestCase<typeof lengthOfLIS_BUT>[] = [
   { input: [[1, 5, 2, 3, 4, 0]], output: 4 },
 ];
 
-runTests(lengthOfLIS_BUT, cases);
-runCompare([lengthOfLIS_BF, lengthOfLIS_TDM, lengthOfLIS_BUT], cases);
+runTests(lengthOfLIS_BSG_C, cases);
+runCompare(
+  [lengthOfLIS_BF, lengthOfLIS_TDM, lengthOfLIS_BUT, lengthOfLIS_BSG_C],
+  cases,
+);
