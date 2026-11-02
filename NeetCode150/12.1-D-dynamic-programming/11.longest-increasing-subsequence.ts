@@ -140,10 +140,18 @@ const cases: TestCase<typeof lengthOfLIS_BUT>[] = [
 
   // edge
   { input: [[1, 5, 2, 3, 4, 0]], output: 4 },
+
+  // big dataset to test performance difference
+  {
+    input: [
+      [8, 1, 6, 2, 10, 3, 7, 4, 9, 5, 12, 11, 13, 14, 15, 2, 16, 17, 18, 19],
+    ],
+    output: 13,
+  },
 ];
 
 runTests(lengthOfLIS_BSG_C, cases);
 runCompare(
-  [lengthOfLIS_BF, lengthOfLIS_TDM, lengthOfLIS_BUT, lengthOfLIS_BSG_C],
+  [lengthOfLIS_BF, lengthOfLIS_TDM, lengthOfLIS_BUT, lengthOfLIS_BSG_C,],
   cases,
 );
