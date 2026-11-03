@@ -184,6 +184,13 @@ export function runCompare<F extends (...args: any[]) => any>(
   ): string {
     if (!showComparisonCol || !isPassed || time <= 0) return "";
 
+    // Suppress ratio when absolute spread is below noise floor (~1µs).
+    // Both times round to "0.000 ms" so any ratio shown would be pure noise.
+    const NOISE_FLOOR_MS = 0.001;
+    if (slowestTime - fastestTime < NOISE_FLOOR_MS) {
+      return `  ${chalk.hex("#888888")(padR("—", colWidth))}`;
+    }
+
     let refTime = fastestTime;
     let isAnchor = false;
     const isWinner = fnIdx === fastestIdx;
@@ -264,18 +271,26 @@ export function runCompare<F extends (...args: any[]) => any>(
   }
 
   // ── Warmup pass ─────────────────────────────────────────────────────────────
-  // Runs each function a few times with cloned input to warm up JIT,
+  // Runs each function several times with cloned input to warm up JIT,
   // initialize V8 Inline Caches (ICs), and ramp the CPU governor out of idle states.
-  for (let w = 0; w < 5; w++) {
+  // Also pre-warms the timed-closure pattern used in both Pass 1 and Pass 2.
+  let _warmT0 = 0;
+  let _warmT1 = 0;
+  for (let w = 0; w < 10; w++) {
     for (const fn of fns) {
       try {
         const warmupInput = cloneValue(tests[0].input) as Parameters<F>;
-        captureConsoleOutput(() => fn(...warmupInput));
+        captureConsoleOutput(() => {
+          _warmT0 = performance.now();
+          fn(...warmupInput);
+          _warmT1 = performance.now();
+        });
       } catch {
         // Safe to ignore: official run handles errors and logs
       }
     }
   }
+  void _warmT0; void _warmT1; // suppress unused warnings
 
   // ── Per-test loop ──────────────────────────────────────────────────────────
   for (const [testIdx, test] of tests.entries()) {
@@ -300,17 +315,23 @@ export function runCompare<F extends (...args: any[]) => any>(
       return { execution, actualInput };
     });
 
-    // Pass 2: Symmetrical reverse execution (neutralizes positional / cache bias)
+    // Pass 2: Symmetrical reverse execution (neutralizes positional / cache bias).
+    // Timer is placed INSIDE captureConsoleOutput (matching Pass 1) so both passes
+    // measure only fn() and exclude wrapper overhead symmetrically.
     if (fns.length > 1) {
       for (let i = fns.length - 1; i >= 0; i--) {
         if (!pass1Results[i].execution.error) {
           const actualInput = cloneValue(input) as Parameters<F>;
-          const start = performance.now();
+          let t0 = 0;
+          let t1 = 0;
           try {
-            captureConsoleOutput(() => fns[i](...actualInput));
+            captureConsoleOutput(() => {
+              t0 = performance.now();
+              fns[i](...actualInput);
+              t1 = performance.now();
+            });
           } catch {}
-          const end = performance.now();
-          times[i] = (times[i] + (end - start)) / 2;
+          times[i] = (times[i] + (t1 - t0)) / 2;
         }
       }
     }
