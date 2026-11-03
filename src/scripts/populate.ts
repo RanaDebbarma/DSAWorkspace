@@ -138,12 +138,11 @@ async function main() {
       outputPath = await promptCustomPath();
     } else {
       const recentFile = detectedFiles[0];
-      p.log.info(`Auto-detected: ${recentFile.relativePath}`);
 
       const selectOptions = [
         // Top-3 most recently modified files with numbered labels
         ...detectedFiles.slice(0, 3).map((f, i) => ({
-          label: `${i === 0 ? "✦" : " "}  [${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+          label: `[${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
           value: f.absolutePath,
         })),
         { label: "✏️  Enter custom file path...", value: "custom" },

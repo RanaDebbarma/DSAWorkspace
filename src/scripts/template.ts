@@ -44,13 +44,11 @@ async function main() {
       outputPath = await promptCustomPath();
     } else {
       const recentFile = detectedFiles[0];
-      p.log.info(`Recent files:`);
-      detectedFiles.slice(0, 3).forEach((f, i) => p.log.info(`  ${i + 1}. ${f.relativePath}`));
 
       const topRecent = detectedFiles.slice(0, 3);
       const selectOptions = [
         ...topRecent.map((f, i) => ({
-          label: `${i === 0 ? "✦" : " "}  [${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+          label: `[${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
           value: f.absolutePath,
         })),
         { label: "✏️   Enter a different file path...", value: "custom" },

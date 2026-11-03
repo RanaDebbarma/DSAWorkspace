@@ -64,14 +64,13 @@ Run the interactive file generator from anywhere in your workspace:
 pnpm new
 ```
 
-The CLI automatically detects your **most recently modified file** and offers its directory as the default location:
+The CLI automatically detects your **recently modified directories** and lists them as numbered options:
 
 ```
-◆  Recent:   NeetCode150/3.Stack/5.daily-temperatures.ts
-◆  Terminal: .
-
 ◆  Create new file in:
-   ✦  NeetCode150/3.Stack
+   [1] NeetCode150/3.Stack
+   [2] NeetCode150/2.Two-Pointers
+   [3] NeetCode150/1.Arrays-Hashing
    📁  .  (terminal dir)
    📂  Choose a different directory...
    📝  Populate template into an existing file

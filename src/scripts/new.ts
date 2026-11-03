@@ -60,49 +60,68 @@ async function main() {
     const detectedFiles = findWorkspaceTsFiles(targetDir);
 
     // ── Step 1: Decide what to do ──────────────────────────────────────────
-    type Action = "new_here" | "new_recent" | "new_choose" | "existing";
+    // Collect unique directories from recent files (up to 3)
+    const recentDirs: { dirPath: string; relDir: string; relFile: string }[] = [];
+    const seenDirs = new Set<string>();
 
-    let action: Action;
-
-    // Top-3 recently modified files — folders are likely where the user is working
-    const recentFiles = detectedFiles.slice(0, 3);
-    const recentFile = recentFiles[0];
-    const recentFolder = recentFile ? path.dirname(recentFile.absolutePath) : targetDir;
-    const relRecentFolder = path.relative(wsRoot, recentFolder).replace(/\\/g, "/") || ".";
-    const relTermDir = path.relative(wsRoot, targetDir).replace(/\\/g, "/") || ".";
-    const recentIsSameAsTerminal = recentFolder.toLowerCase() === path.resolve(targetDir).toLowerCase();
-
-    // Log top-3 recent files above the prompt
-    if (recentFiles.length > 0 && !recentIsSameAsTerminal) {
-      p.log.info(`Recent files:`);
-      recentFiles.forEach((f, i) => p.log.info(`  ${i + 1}. ${f.relativePath}`));
+    for (const file of detectedFiles) {
+      const dir = path.dirname(file.absolutePath);
+      const normalized = dir.toLowerCase();
+      if (!seenDirs.has(normalized)) {
+        seenDirs.add(normalized);
+        const relDir = path.relative(wsRoot, dir).replace(/\\/g, "/") || ".";
+        recentDirs.push({
+          dirPath: dir,
+          relDir,
+          relFile: file.relativePath,
+        });
+        if (recentDirs.length >= 3) break;
+      }
     }
-    p.log.info(`Terminal: ${relTermDir || "."}`);
+
+    const relTermDir = path.relative(wsRoot, targetDir).replace(/\\/g, "/") || ".";
 
     const locationOptions: { label: string; value: string }[] = [];
-    if (recentFile && !recentIsSameAsTerminal) {
-      locationOptions.push({ label: `✦  ${relRecentFolder}`, value: "new_recent" });
+
+    // Top recently modified directories with numbered labels [1], [2], [3]
+    recentDirs.forEach((d, i) => {
+      const isTerminal = d.dirPath.toLowerCase() === path.resolve(targetDir).toLowerCase();
+      locationOptions.push({
+        label: `[${i + 1}] ${d.relDir}${isTerminal ? "  📁 (terminal dir)" : ""}`,
+        value: `dir:${d.dirPath}`,
+      });
+    });
+
+    // Add current terminal directory if not already in recentDirs
+    const terminalInRecent = recentDirs.some(
+      (d) => d.dirPath.toLowerCase() === path.resolve(targetDir).toLowerCase()
+    );
+    if (!terminalInRecent) {
+      locationOptions.push({
+        label: `📁  ${relTermDir || "."}  (terminal dir)`,
+        value: `dir:${targetDir}`,
+      });
     }
+
     locationOptions.push(
-      { label: `📁  ${relTermDir || "."}  (terminal dir)`, value: "new_here" },
       { label: "📂  Choose a different directory...", value: "new_choose" },
       { label: "📝  Populate template into an existing file", value: "existing" }
     );
 
     const choice = await p.select({
       message: "Create new file in:",
-      initialValue: recentFile && !recentIsSameAsTerminal ? "new_recent" : "new_here",
+      initialValue: locationOptions[0]?.value ?? "new_choose",
       options: locationOptions,
     });
     if (p.isCancel(choice)) { p.cancel("Cancelled."); process.exit(0); }
-    action = choice as Action;
 
     // ── Step 2: Determine creation dir or existing file ───────────────────
     let creationDir = targetDir;
+    let isExisting = false;
 
-    if (action === "new_recent") {
-      creationDir = recentFolder;
-    } else if (action === "new_choose") {
+    if (typeof choice === "string" && choice.startsWith("dir:")) {
+      creationDir = choice.slice(4);
+    } else if (choice === "new_choose") {
       const customDir = await p.text({
         message: "Enter target directory path",
         placeholder: `e.g. NeetCode150/3.Stack`,
@@ -113,9 +132,11 @@ async function main() {
         process.exit(0);
       }
       creationDir = path.resolve(wsRoot, (customDir as string).trim());
+    } else if (choice === "existing") {
+      isExisting = true;
     }
 
-    if (action === "existing") {
+    if (isExisting) {
       // ── Browse / custom path for existing file ─────────────────────────
       const promptCustomPath = async (): Promise<string> => {
         const customPath = await p.text({
@@ -136,7 +157,7 @@ async function main() {
         const topRecent = detectedFiles.slice(0, 3);
         const fileOptions = [
           ...topRecent.map((f, i) => ({
-            label: `${i === 0 ? "✦" : " "}  [${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
+            label: `[${i + 1}] ${f.relativePath}${f.isInTargetDir ? "  📁" : ""}`,
             value: f.absolutePath,
           })),
           { label: "✏️  Enter a custom file path...", value: "custom" },
