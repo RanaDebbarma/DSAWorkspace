@@ -55,7 +55,7 @@ function maxSubarray_KA(nums: number[]): number {
 
 const range = { min: 1, max: 1000 };
 const bigInput = Array.from({ length: 1000 }, () =>
-  Math.floor((Math.random() * (range.max - range.min)) + range.min),
+  Math.floor(Math.random() * (range.max - range.min) + range.min),
 );
 
 const cases: TestCase<typeof maxSubarray_KA>[] = [
