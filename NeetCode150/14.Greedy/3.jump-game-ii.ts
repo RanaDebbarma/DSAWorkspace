@@ -7,16 +7,16 @@ import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
 // Greedy
 function jump(nums: number[]): number {
   const n = nums.length;
+  let farthestReach  = 0;
   let currentEnd = 0;
-  let maxDist = 0;
   let jumps = 0;
 
   for (let i = 0; i < n - 1; i++) {
-    maxDist = Math.max(maxDist, i + nums[i]);
+    farthestReach  = Math.max(farthestReach , i + nums[i]);
 
     if (i === currentEnd) {
       jumps++;
-      currentEnd = maxDist; // Extend the reachable range with another jump.
+      currentEnd = farthestReach ; // Extend the reachable range with another jump.
     }
 
     if (currentEnd >= n - 1) return jumps;
