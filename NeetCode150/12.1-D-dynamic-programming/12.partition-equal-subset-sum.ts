@@ -104,9 +104,48 @@ function canPartition_TDM(nums: number[]): boolean {
   }
 }
 
-// Bottom-Up Tabulation
+// Time: O(n × target)
+// Space: O(n x target)
+// Bottom-Up Tabulation (2D DP)
 function canPartition_BUT(nums: number[]): boolean {
-  return false;
+  const n = nums.length;
+  const totalSum = nums.reduce((acc, curr) => acc + curr, 0);
+  if (totalSum % 2 !== 0) return false;
+
+  const target = totalSum >> 1;
+  const dp = Array.from({ length: n + 1 }, () => Array(target + 1).fill(false));
+
+  dp.forEach((row) => (row[0] = true));
+
+  for (let i = 1; i <= n; i++) {
+    for (let sum = 1; sum <= target; sum++) {
+      dp[i][sum] = dp[i - 1][sum] || dp[i - 1][sum - nums[i - 1]];
+    }
+  }
+
+  return dp[n][target];
+}
+
+// Time: O(n × target)
+// Space: O(target)
+// Bottom-Up Tabulation (1D DP)
+function canPartition_BUTSO(nums: number[]): boolean {
+  const n = nums.length;
+  const totalSum = nums.reduce((acc, curr) => acc + curr, 0);
+  if (totalSum % 2 !== 0) return false;
+
+  const target = totalSum >> 1;
+  const dp = Array.from({ length: n + 1 }, () => Array(target + 1).fill(false));
+
+  dp.forEach((row) => (row[0] = true));
+
+  for (let i = 1; i <= n; i++) {
+    for (let sum = 1; sum <= target; sum++) {
+      dp[i][sum] = dp[i - 1][sum] || dp[i - 1][sum - nums[i - 1]];
+    }
+  }
+
+  return dp[n][target];
 }
 
 function generateInput(len: number) {
@@ -128,15 +167,18 @@ const cases: TestCase<typeof canPartition_BUT>[] = [
   // big input
   {
     input: [bigInput1],
-    output: canPartition_TDM(bigInput1),
-    showStringInput: true,
+    output: canPartition_BUT(bigInput1),
+    showStringInput: false,
   },
   {
     input: [bigInput2],
-    output: canPartition_TDM(bigInput2),
-    showStringInput: true,
+    output: canPartition_BUT(bigInput2),
+    showStringInput: false,
   },
 ];
 
-runTests(canPartition_TDM, cases);
-runCompare([canPartition_BF, canPartition_TDM, canPartition_BUT], cases);
+runTests(canPartition_BUTSO, cases);
+runCompare(
+  [canPartition_BF, canPartition_TDM, canPartition_BUT, canPartition_BUTSO],
+  cases,
+);
