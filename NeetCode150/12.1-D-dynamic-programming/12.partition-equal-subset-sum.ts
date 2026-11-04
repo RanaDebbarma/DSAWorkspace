@@ -84,6 +84,7 @@ function canPartition_TDM(nums: number[]): boolean {
   const n = nums.length;
   const totalSum = nums.reduce((acc, nxt) => acc + nxt, 0);
 
+  // single element cant be split
   if (totalSum % 2 !== 0) return false;
 
   const target = totalSum / 2;
@@ -91,25 +92,20 @@ function canPartition_TDM(nums: number[]): boolean {
 
   return dfs(0, target);
 
-  function dfs(idx: number, remaining: number): boolean {
-    if (remaining === 0) return true;
-    if (remaining < 0 || idx >= n) return false;
+  function dfs(i: number, rem: number): boolean {
+    if (rem === 0) return true;
+    if (rem < 0 || i >= n) return false;
 
-    if (memo[idx][remaining] !== undefined) return memo[idx][remaining];
+    if (memo[i][rem] !== undefined) return memo[i][rem];
 
-    // Include
-    if (dfs(idx + 1, remaining - nums[idx])) return true;
-
-    // Exclude
-    if (dfs(idx + 1, remaining)) return true;
-
-    return (memo[idx][remaining] = false);
+    // inlude/exclude
+    const res = dfs(i + 1, rem - nums[i]) || dfs(i + 1, rem);
+    return (memo[i][rem] = res);
   }
 }
 
 // Bottom-Up Tabulation
 function canPartition_BUT(nums: number[]): boolean {
-  
   return false;
 }
 
