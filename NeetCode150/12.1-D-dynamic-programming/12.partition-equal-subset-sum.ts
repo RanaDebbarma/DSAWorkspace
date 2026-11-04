@@ -30,7 +30,7 @@ import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
 function canPartition_BF(nums: number[]): boolean {
   const n = nums.length;
   const totalSum = nums.reduce((acc, nxt) => acc + nxt, 0);
-  const target = totalSum / 2;
+  const target = totalSum >> 1;
 
   if (totalSum % 2 !== 0) return false;
 
@@ -87,7 +87,7 @@ function canPartition_TDM(nums: number[]): boolean {
   // single element cant be split
   if (totalSum % 2 !== 0) return false;
 
-  const target = totalSum / 2;
+  const target = totalSum >> 1;
   const memo = Array.from({ length: n }, () => Array(target + 1));
 
   return dfs(0, target);
@@ -128,35 +128,41 @@ function canPartition_BUT(nums: number[]): boolean {
 
 // Time: O(n × target)
 // Space: O(target)
-// Bottom-Up Tabulation (1D DP)
-function canPartition_BUTSO(nums: number[]): boolean {
-  const n = nums.length;
-  const totalSum = nums.reduce((acc, curr) => acc + curr, 0);
+// Bottom-Up DP (1D Space Optimized)
+// 0/1 Knapsack (Subset sum variant)
+function canPartition_KS(nums: number[]): boolean {
+  const totalSum = nums.reduce((acc, nxt) => acc + nxt, 0);
+
   if (totalSum % 2 !== 0) return false;
 
   const target = totalSum >> 1;
-  const dp = Array.from({ length: n + 1 }, () => Array(target + 1).fill(false));
+  const dp = Array(target + 1).fill(false);
 
-  dp.forEach((row) => (row[0] = true));
+  dp[0] = true; // Sum 0 is always achievable by selecting nothing.
 
-  for (let i = 1; i <= n; i++) {
-    for (let sum = 1; sum <= target; sum++) {
-      dp[i][sum] = dp[i - 1][sum] || dp[i - 1][sum - nums[i - 1]];
+  for (const num of nums) {
+    // Iterate backwards to ensure each number is used at most once.
+    for (let sum = target; sum >= num; sum--) {
+      // Either the sum was already achievable or we can achieve it using num.
+      dp[sum] = dp[sum] || dp[sum - num];
     }
+
+    // Early exit if we've already found the target sum.
+    if (dp[target]) return true;
   }
 
-  return dp[n][target];
+  return dp[target];
 }
 
 function generateInput(len: number) {
-  const range = { min: 1, max: 10 };
+  const range = { min: 1, max: 100 };
   return Array.from({ length: len }, () =>
     Math.floor(Math.random() * (range.max - range.min) + range.min),
   );
 }
 
-const bigInput1 = generateInput(20);
-const bigInput2 = generateInput(30);
+const bigInput1 = generateInput(40);
+const bigInput2 = generateInput(40);
 
 const cases: TestCase<typeof canPartition_BUT>[] = [
   { input: [[1, 5, 11, 5]], output: true },
@@ -167,18 +173,18 @@ const cases: TestCase<typeof canPartition_BUT>[] = [
   // big input
   {
     input: [bigInput1],
-    output: canPartition_BUT(bigInput1),
+    output: canPartition_KS(bigInput1),
     showStringInput: false,
   },
   {
     input: [bigInput2],
-    output: canPartition_BUT(bigInput2),
+    output: canPartition_KS(bigInput2),
     showStringInput: false,
   },
 ];
 
-runTests(canPartition_BUTSO, cases);
+runTests(canPartition_KS, cases);
 runCompare(
-  [canPartition_BF, canPartition_TDM, canPartition_BUT, canPartition_BUTSO],
+  [canPartition_BF, canPartition_TDM, canPartition_BUT, canPartition_KS],
   cases,
 );
