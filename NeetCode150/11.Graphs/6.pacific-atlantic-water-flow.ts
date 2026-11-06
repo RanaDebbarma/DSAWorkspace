@@ -286,5 +286,5 @@ runTests(
     },
     { input: [[[1]]], output: [[0, 0]] },
   ],
-  { showStringInput: false },
+  { showStringInput: false, rawOutput: true },
 );
