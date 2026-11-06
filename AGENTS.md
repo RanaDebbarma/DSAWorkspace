@@ -65,6 +65,7 @@ runTests(solve, [
   // anyOf?: any[];              // Per-test-case list of additional valid answers (output is also valid)
   // compare?: ComparatorFn;     // Custom suite-level comparator (actual, expected, actualInput) => boolean
   // showHint?: boolean;         // Default: true (shows index mismatch hint)
+  // rawOutput?: boolean | number; // Default: false (Node raw inspect without green color; wraps arrays across lines cleanly)
   // gridMode?: GridMode;        // 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'
   // gridMapping?: GridMapping;  // Custom cell mapping & color-coding, e.g. { 2147483647: { label: "INF", color: "#74b9ff" }, [-1]: { label: "W", color: "#ff7675" }, 0: { label: "T", color: "#f1c40f" } }
 });

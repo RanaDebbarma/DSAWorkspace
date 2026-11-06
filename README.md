@@ -300,6 +300,7 @@ runTests(solve, tests, {
   unordered?: boolean;        // Compare array outputs order-insensitively (1D & 2D). Default: false
   compare?: ComparatorFn;     // Custom suite-level comparator (actual, expected, actualInput) => boolean
   showHint?: boolean;         // Show index failure hint (↳ index [i]: expected X, got Y). Default: true
+  rawOutput?: boolean | number; // Node raw inspect without green color; wraps arrays cleanly across lines. Default: false
   isDirected?: boolean;       // Explicitly set graph direction (true/false) across suite. Default: auto
   reverseEdges?: boolean;     // Flip edge direction in graph visualizations (swaps u↔v). Default: false
   gridMode?: GridMode;        // Grid style: 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'chess' | 'none'. Default: 'auto'
@@ -318,6 +319,7 @@ runTests(solve, tests, {
 | `unordered` | `false` | Treats array output order as insensitive (`compareUnorderedArrays` / `compareUnordered2DArrays`) |
 | `compare` | `undefined` | Suite-level custom comparator (`(actual, expected, actualInput) => boolean`). Overridden by per-test case `compare`. |
 | `showHint` | `true` | Shows detailed index mismatch hint on test failure |
+| `rawOutput` | `false` | When `true` (or a number specifying `breakLength`), formats output using Node's raw inspect without green color; dynamically wraps arrays/objects across lines cleanly to keep cards compact. |
 | `isDirected` | `auto` | Suite-level default for graph direction (`true` for directed, `false` for undirected). Overridden by per-test `isDirected`. |
 | `reverseEdges` | `false` | Flips the edge direction in graph visualizations (swaps u↔v). Useful when the raw `[a, b]` convention means "b → a" semantically. Overridden by per-test `reverseEdges`. |
 | `gridMode` | `'auto'` | Suite-level grid visualizer mode (`'auto' \| 'board' \| 'maze' \| 'binary' \| 'sudoku' \| 'numeric' \| 'chess' \| 'none'`). Set to `'none'` to disable table formatting for grids. |

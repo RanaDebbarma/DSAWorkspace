@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import util from "node:util";
 import { performance } from "node:perf_hooks";
 import { ListNode, Node } from "#ds/linked-list.js";
 import { TreeNode } from "#ds/tree.js";
@@ -76,6 +77,11 @@ export type TestCase<F extends (...args: any[]) => any> = {
   visualizeOutput?: boolean;
   /** When false, hides the inline string representation of inputs for this test case. Defaults to the suite-level value. */
   showStringInput?: boolean;
+  /** When true (or a number specifying breakLength), formats output using Node's raw inspect so arrays and objects
+   * dynamically wrap across lines cleanly without green coloring. Keeps card boxes compact for long arrays. */
+  rawOutput?: boolean | number;
+  /** Alias for rawOutput. */
+  prettyOutput?: boolean | number;
 };
 
 export type ClassTestCase = {
@@ -109,6 +115,11 @@ export type TestOptions<F extends (...args: any[]) => any = any> = BaseTestOptio
   visualizeOutput?: boolean;
   /** When false, suppresses the plain `param = value` lines printed below visual input blocks. Defaults to true. */
   showStringInput?: boolean;
+  /** When true (or a number specifying breakLength), formats output using Node's raw inspect so arrays and objects
+   * dynamically wrap across lines cleanly without green coloring. Keeps card boxes compact for long arrays. */
+  rawOutput?: boolean | number;
+  /** Alias for rawOutput. */
+  prettyOutput?: boolean | number;
   /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
@@ -368,8 +379,24 @@ function renderResultBlock(
   gridMode?: GridMode,
   gridMapping?: GridMapping,
   anyOf?: any[],
+  rawOutput: boolean | number = false,
 ): void {
   const displayOpts = { actualInput, visualizeOutput, gridMode, gridMapping };
+  const isRaw = Boolean(rawOutput);
+  const breakLength = typeof rawOutput === "number" ? rawOutput : 40;
+
+  // Helper: serialize a value for display, respecting rawOutput
+  const serialize = (val: any) => {
+    if (isRaw) {
+      return util.inspect(val, {
+        depth: null,
+        maxArrayLength: null,
+        colors: true,
+        breakLength,
+      });
+    }
+    return serializeForDisplay(val, displayOpts);
+  };
 
   if (executionError) {
     const error =
@@ -382,8 +409,8 @@ function renderResultBlock(
     console.log(chalk.red("+ Received:"));
     console.log(indentAll(chalk.red(`Runtime Error: ${error}`), 2));
   } else if (passed) {
-    const outStr = serializeForDisplay(result, displayOpts);
-    const coloredOut = outStr.includes("\u001b") ? outStr : chalk.green(outStr);
+    const outStr = serialize(result);
+    const coloredOut = isRaw ? outStr : (outStr.includes("\u001b") ? outStr : chalk.green(outStr));
     const visLen = stripAnsi(outStr).length;
     if (outStr.includes("\n") || visLen > 30) {
       console.log(chalk.gray("Output:"));
@@ -756,12 +783,13 @@ export function runTests<F extends (...args: any[]) => any>(
   const suiteReverseEdges = typeof options === "object" ? options?.reverseEdges : undefined;
   const suiteGridMode = typeof options === "object" ? options?.gridMode : undefined;
   const suiteGridMapping = typeof options === "object" ? options?.gridMapping : undefined;
+  const suiteRawOutput = typeof options === "object" ? (options?.rawOutput ?? options?.prettyOutput ?? false) : false;
 
   let passedCount = 0;
   const allBlocks: RenderedTestBlock[] = [];
 
   for (const [index, test] of tests.entries()) {
-    const { name, input, output, compare, cloneInput, unordered, anyOf } = test;
+    const { name, input, output, compare, cloneInput, unordered, anyOf, rawOutput: testRawOutput, prettyOutput: testPrettyOutput } = test;
 
     const actualInput = cloneInput
       ? cloneInput(input)
@@ -797,8 +825,10 @@ export function runTests<F extends (...args: any[]) => any>(
     const shouldVisualizeOutput = test.visualizeOutput ?? visualizeOutput;
     const effectiveGridMode = test.gridMode ?? suiteGridMode;
     const effectiveGridMapping = test.gridMapping ?? suiteGridMapping;
+    const effectiveRawOutput = testRawOutput ?? testPrettyOutput ?? suiteRawOutput;
 
-    const body = captureLines(() => {
+    // 1. Render input block (visualizers + string inputs) and measure its visual width
+    const inputLines = captureLines(() => {
       try {
         renderInputBlock(
           fn,
@@ -818,7 +848,18 @@ export function runTests<F extends (...args: any[]) => any>(
         console.log(JSON.stringify(input.map(formatValue)));
       }
       effectiveShowStringInput && console.log();
+    });
 
+    const inputVisualWidth = inputLines.reduce((max, l) => Math.max(max, stripAnsi(l).length), 0);
+
+    // Dynamic breakLength: respect explicit number override, or scale dynamically with the visual input width (min 40)
+    const resolvedBreakLength =
+      typeof effectiveRawOutput === "number"
+        ? effectiveRawOutput
+        : Math.max(40, inputVisualWidth - 4);
+
+    // 2. Render result block with dynamic breakLength
+    const resultLines = captureLines(() => {
       printConsoleOutput(execution.logs);
       renderResultBlock(
         passed,
@@ -831,8 +872,11 @@ export function runTests<F extends (...args: any[]) => any>(
         effectiveGridMode,
         effectiveGridMapping,
         anyOf,
+        effectiveRawOutput ? resolvedBreakLength : false,
       );
     });
+
+    const body = [...inputLines, ...resultLines];
 
     // Trim leading and trailing empty lines from body
     while (body.length > 0 && body[0].trim() === "") body.shift();
