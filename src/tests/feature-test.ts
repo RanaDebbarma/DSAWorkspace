@@ -4,7 +4,7 @@
  * Comprehensive test suite that exercises every feature of the local
  * test-runner framework. Run with:
  *
- *   pnpm exec tsx playground/feature-test.ts
+ *   pnpm test
  */
 
 import chalk from "chalk";
@@ -28,7 +28,6 @@ import {
 import {
   matrixToString,
   isMatrixGrid,
-  resolveCellDisplay,
   stripAnsi,
 } from "#utils/display.js";
 
@@ -56,8 +55,8 @@ function twoSum(nums: number[], target: number): number[] {
 }
 
 runTests(twoSum, [
-  { name: "Two Sum — pass",   input: [[2, 7, 11, 15], 9],  output: [0, 1] },
-  { name: "Two Sum — pass 2", input: [[3, 2, 4], 6],       output: [1, 2] },
+  { input: [[2, 7, 11, 15], 9],  output: [0, 1] },
+  { input: [[3, 2, 4], 6],       output: [1, 2] },
 ]);
 
 function isPalindrome(s: string): boolean {
@@ -66,9 +65,9 @@ function isPalindrome(s: string): boolean {
 }
 
 runTests(isPalindrome, [
-  { name: "Palindrome — pass",   input: ["A man, a plan, a canal: Panama"], output: true  },
-  { name: "Palindrome — pass 2", input: ["race a car"],                     output: false },
-  { name: "Palindrome — FAIL (intentional diff demo)", input: ["hello"],   output: true  },
+  { input: ["A man, a plan, a canal: Panama"], output: true  },
+  { input: ["race a car"],                     output: false },
+  { name: "FAIL demo", input: ["hello"],        output: true  },
 ]);
 
 // =============================================================================
@@ -88,7 +87,6 @@ function groupAnagrams(strs: string[]): string[][] {
 
 runTests(groupAnagrams, [
   {
-    name: "Group Anagrams — pass",
     input: [["eat", "tea", "tan", "ate", "nat", "bat"]],
     output: [["bat"], ["nat", "tan"], ["ate", "eat", "tea"]],
     compare: compareGroupAnagrams,
@@ -112,7 +110,6 @@ function threeSum(nums: number[]): number[][] {
 
 runTests(threeSum, [
   {
-    name: "3Sum — pass",
     input: [[-1, 0, 1, 2, -1, -4]],
     output: [[-1, -1, 2], [-1, 0, 1]],
     compare: compare3Sum,
@@ -120,13 +117,12 @@ runTests(threeSum, [
 ]);
 
 runTests(<T>(a: T[], b: T[]) => compareUnorderedArrays(a, b), [
-  { name: "Unordered 1D — pass", input: [[1, 3, 2], [2, 1, 3]], output: true  },
-  { name: "Unordered 1D — pass (identical)", input: [[5], [5]],  output: true  },
+  { input: [[1, 3, 2], [2, 1, 3]], output: true  },
+  { input: [[5], [5]],             output: true  },
 ]);
 
 runTests(<T>(a: T[][], b: T[][]) => compareUnordered2DArrays(a, b), [
   {
-    name: "Unordered 2D — pass",
     input: [[[3,1],[2]], [[1,3],[2]]],
     output: true,
   },
@@ -142,16 +138,8 @@ function sortArray(nums: number[]): number[] {
 }
 
 runTests(sortArray, [
-  {
-    name: "Sort — pass (input clone prevents cross-test contamination)",
-    input: [[3, 1, 4, 1, 5, 9, 2, 6]],
-    output: [1, 1, 2, 3, 4, 5, 6, 9],
-  },
-  {
-    name: "Sort — pass (same unsorted input works again)",
-    input: [[3, 1, 4, 1, 5, 9, 2, 6]],
-    output: [1, 1, 2, 3, 4, 5, 6, 9],
-  },
+  { input: [[3, 1, 4, 1, 5, 9, 2, 6]], output: [1, 1, 2, 3, 4, 5, 6, 9] },
+  { input: [[3, 1, 4, 1, 5, 9, 2, 6]], output: [1, 1, 2, 3, 4, 5, 6, 9] },
 ]);
 
 // =============================================================================
@@ -167,7 +155,6 @@ function topKFrequent(nums: number[], k: number): number[] {
 
 runTests(topKFrequent, [
   {
-    name: "Top-K Frequent — pass (order-insensitive custom compare)",
     input: [[1, 1, 1, 2, 2, 3], 2],
     output: [1, 2],
     compare: (actual, expected) => compareUnorderedArrays(actual, expected),
@@ -192,8 +179,8 @@ function reverseList(head: ListNode | null): ListNode | null {
 }
 
 runTests(reverseList, [
-  { name: "Reverse List — pass",           input: [createLinkedList([1, 2, 3, 4, 5])], output: createLinkedList([5, 4, 3, 2, 1]) },
-  { name: "Reverse List — FAIL (visual diff demo)", input: [createLinkedList([1, 2, 3])], output: createLinkedList([3, 9, 1]) },
+  { input: [createLinkedList([1, 2, 3, 4, 5])], output: createLinkedList([5, 4, 3, 2, 1]) },
+  { name: "FAIL demo", input: [createLinkedList([1, 2, 3])], output: createLinkedList([3, 9, 1]) },
 ]);
 
 function hasCycle(head: ListNode | null): boolean {
@@ -207,8 +194,8 @@ function hasCycle(head: ListNode | null): boolean {
 }
 
 runTests(hasCycle, [
-  { name: "Cyclic List — has cycle",    input: [createCyclicLinkedList([3, 2, 0, -4], 1)], output: true  },
-  { name: "Cyclic List — no cycle",     input: [createCyclicLinkedList([1], -1)],           output: false },
+  { input: [createCyclicLinkedList([3, 2, 0, -4], 1)], output: true  },
+  { input: [createCyclicLinkedList([1], -1)],           output: false },
 ]);
 
 // =============================================================================
@@ -224,12 +211,11 @@ function invertTree(root: TreeNode | null): TreeNode | null {
 
 runTests(invertTree, [
   {
-    name: "Invert Tree — pass",
     input: [createBinaryTree([4, 2, 7, 1, 3, 6, 9])],
     output: createBinaryTree([4, 7, 2, 9, 6, 3, 1]),
   },
   {
-    name: "Invert Tree — FAIL (visual diff demo)",
+    name: "FAIL demo",
     input: [createBinaryTree([1, 2, 3])],
     output: createBinaryTree([1, 4, 5]),
   },
@@ -242,7 +228,6 @@ section(7, "Graph — undirected cyclic, pass and visual fail");
 
 runTests(cloneGraph, [
   {
-    name: "Clone Graph — 2D Spatial Box (4 Nodes)",
     input: [createGraph([[2, 4], [1, 3], [2, 4], [1, 3]])],
     output: createGraph([[2, 4], [1, 3], [2, 4], [1, 3]]),
   },
@@ -254,7 +239,6 @@ function canFinish(numCourses: number, prerequisites: number[][]): boolean {
 
 runTests(canFinish, [
   {
-    name: "Course Schedule — Large DAG (8 Nodes, non-2D)",
     input: [8, [[1, 0], [2, 0], [3, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6]]],
     output: true,
   },
@@ -266,12 +250,12 @@ function shortestPath(edges: string[][], nodeA: string, nodeB: string): number {
 
 runTests(shortestPath, [
   {
-    name: "Shortest Path — Undirected Edge List (Default)",
+    name: "Undirected edge list",
     input: [[["w", "x"], ["x", "y"], ["z", "y"], ["z", "v"], ["w", "v"]], "w", "z"],
     output: 2,
   },
   {
-    name: "Shortest Path — Per-Test Directed Override",
+    name: "Per-test directed override",
     input: [[["w", "x"], ["x", "y"], ["z", "y"], ["z", "v"], ["w", "v"]], "w", "z"],
     output: 2,
     isDirected: true,
@@ -284,7 +268,6 @@ function countComponents(n: number, edges: number[][]): number {
 
 runTests(countComponents, [
   {
-    name: "Connected Components — Disconnected Graph (8 Nodes, 3 Components)",
     input: [8, [[0, 1], [1, 2], [3, 4], [5, 6], [6, 7]]],
     output: 3,
   },
@@ -296,13 +279,10 @@ function networkDelayTime(times: number[][], n: number, k: number): number {
 
 runTests(networkDelayTime, [
   {
-    name: "Weighted Graph — Network Delay Time",
     input: [[[2, 1, 1], [2, 3, 2], [3, 4, 1]], 4, 2],
     output: 2,
   },
 ]);
-
-
 
 // =============================================================================
 // § 8 — CLASS DESIGN / SYSTEM DESIGN (runClassTests)
@@ -327,13 +307,12 @@ class MinStack {
 
 runClassTests(MinStack, [
   {
-    name: "MinStack — standard operations pass",
     operations: ["MinStack", "push", "push", "push", "getMin", "pop", "top", "getMin"],
     args:       [[], [-2], [0], [-3], [], [], [], []],
     expected:   [null, null, null, null, -3, null, 0, -2],
   },
   {
-    name: "MinStack — FAIL (visual diff demo)",
+    name: "FAIL demo",
     operations: ["MinStack", "push", "getMin"],
     args:       [[], [5], []],
     expected:   [null, null, 99],
@@ -369,7 +348,6 @@ function numIslands(grid: string[][]): number {
 
 runTests(numIslands, [
   {
-    name: "Num Islands — 2D Matrix Grid Visualizer",
     input: [[
       ["1", "1", "0", "0", "0"],
       ["1", "1", "0", "0", "0"],
@@ -399,12 +377,10 @@ function lowestCommonAncestor(
   return null;
 }
 
-
 const lcaTree = createBinaryTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5])!;
 
 runTests(lowestCommonAncestor, [
   {
-    name: "LCA — Unified Tree with Highlighted p & q",
     input: [lcaTree, lcaTree.find(2), lcaTree.find(8)],
     output: 6,
   }
@@ -414,7 +390,6 @@ runTests(lowestCommonAncestor, [
 // § 11 — NEETCODE INTERLEAVED CLASS DESIGN PARSER
 // =============================================================================
 section(11, "NeetCode Interleaved Class Design Parser Test");
-
 
 const neetcodeClipboard = `
 Input:
@@ -441,7 +416,6 @@ if (
 // § 12 — CHESSBOARD MATRIX VISUALIZATION (string[] & "chess" mode)
 // =============================================================================
 section(12, "Chessboard Matrix Visualization (string[] & chess mode)");
-
 
 const nQueensBoard = [
   ".Q..",
@@ -515,7 +489,6 @@ if (
 // =============================================================================
 section(14, "Multiline 2D Array & NeetCode Parser");
 
-
 const neetcodeGridClipboard = `
 Example 1:
 
@@ -569,7 +542,6 @@ if (
 // =============================================================================
 section(15, "Matrix Output & Diff Visualization (with on/off toggles)");
 
-
 const is4x4 = isMatrixGrid([[3, -1, 0, 1], [2, 2, 1, -1], [1, -1, 2, -1], [0, -1, 3, 4]]);
 const isTriplets = isMatrixGrid([[-1, -1, 2], [-1, 0, 1]]);
 const isRagged = isMatrixGrid([["bat"], ["nat", "tan"]]);
@@ -587,12 +559,11 @@ function dummyMatrix(grid: number[][]): number[][] {
 
 runTests(dummyMatrix, [
   {
-    name: "Matrix Output Visualizer — ON by default",
     input: [[[1, 2], [3, 4]]],
     output: [[1, 2], [3, 4]],
   },
   {
-    name: "Matrix Output Visualizer — turned OFF via option",
+    name: "visualizeOutput: false",
     input: [[[1, 2], [3, 4]]],
     output: [[1, 2], [3, 4]],
     visualizeOutput: false,
@@ -603,7 +574,6 @@ runTests(dummyMatrix, [
 // § 16 — CUSTOM GRID CELL MAPPING & COLOR-CODING (chalk, hex codes, labels)
 // =============================================================================
 section(16, "Custom Grid Cell Mapping & Colors (gridMapping with chalk & hex)");
-
 
 const rawTestGrid = [
   [2147483647, -1],
@@ -636,7 +606,6 @@ runTests(
   dummyMatrix,
   [
     {
-      name: "Matrix Grid with gridMapping (hex & chalk colors)",
       input: [rawTestGrid],
       output: rawTestGrid,
     },
@@ -661,17 +630,8 @@ runTests(
   findOrder,
   [
     {
-      name: "Auto-detect valid alternative topological sort order",
-      input: [
-        4,
-        [
-          [1, 0],
-          [2, 0],
-          [3, 1],
-          [3, 2],
-        ],
-      ],
-      // Expected is [0, 2, 1, 3], actual returns [0, 1, 2, 3]. Both are valid!
+      input: [4, [[1, 0], [2, 0], [3, 1], [3, 2]]],
+      // Expected [0, 2, 1, 3], actual returns [0, 1, 2, 3] — both valid topological orders
       output: [0, 2, 1, 3],
     },
   ],
@@ -691,46 +651,17 @@ runTests(
   dummyGraphAlgo,
   [
     {
-      name: "5-Node Linear Chain (N=5)",
-      input: [
-        5,
-        [
-          [0, 1],
-          [1, 2],
-          [2, 3],
-          [3, 4],
-        ],
-      ],
+      input: [5, [[0, 1], [1, 2], [2, 3], [3, 4]]],
       output: true,
       isDirected: true,
     },
     {
-      name: "6-Node 2x3 Grid / Cycle (N=6)",
-      input: [
-        6,
-        [
-          [0, 1],
-          [1, 2],
-          [2, 5],
-          [5, 4],
-          [4, 3],
-          [3, 0],
-        ],
-      ],
+      input: [6, [[0, 1], [1, 2], [2, 5], [5, 4], [4, 3], [3, 0]]],
       output: true,
       isDirected: true,
     },
     {
-      name: "5-Node Star Hub Layout (N=5)",
-      input: [
-        5,
-        [
-          [0, 1],
-          [0, 2],
-          [0, 3],
-          [0, 4],
-        ],
-      ],
+      input: [5, [[0, 1], [0, 2], [0, 3], [0, 4]]],
       output: true,
       isDirected: true,
     },
@@ -766,20 +697,21 @@ runTests([fibRecursive, fibIterative], [
   { input: [15] as [number], output: 610 },
 ]);
 
-// Runs all functions side-by-side with compact timing comparison + summary table (default "both")
+// Runs all functions side-by-side with compact timing comparison + summary table
+// fnLabel defaults to "name" when the full table fits in the terminal, "number" when narrow
 runCompare([fibRecursive, fibIterative], [
   { input: [5]  as [number], output: 5 },
   { input: [10] as [number], output: 55 },
   { input: [15] as [number], output: 610 },
 ]);
 
-// Runs runCompare with fnLabel: "number" (compact number badges only — ideal for narrow terminals)
+// Explicit fnLabel: "number" — compact number badges only (overrides auto-detection)
 runCompare([fibRecursive, fibIterative], [
   { input: [5]  as [number], output: 5 },
   { input: [10] as [number], output: 55 },
 ], { fnLabel: "number" });
 
-// Runs runCompare with fnLabel: "name" (function names only)
+// Explicit fnLabel: "name" — function names always shown (overrides auto-detection)
 runCompare([fibRecursive, fibIterative], [
   { input: [5]  as [number], output: 5 },
   { input: [10] as [number], output: 55 },

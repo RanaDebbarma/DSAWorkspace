@@ -654,28 +654,47 @@ function printCardBlockColumns(blocks: RenderedTestBlock[]): number {
       .join(GAP_X);
     console.log(topBorder);
 
-    // 2. Header row
-    const headerLines = rBlocks.map((b, i) => {
-      const w = colWidths[i];
-      const badge = b.passed ? chalk.bold.bgGreen.black(" PASS ") : chalk.bold.bgRed.white(" FAIL ");
-      const title = chalk.cyan.bold(`Test ${b.testIndex}${b.name ? ` — ${b.name}` : ""}`);
-      const left = `${badge}  ${title}`;
-      const right = b.timeStr;
-      const leftLen = stripAnsi(left).length;
-      const rightLen = stripAnsi(right).length;
-      const space = w - leftLen - rightLen;
-      const inner = space >= 1 ? left + " ".repeat(space) + right : padEndVisible(left + "  " + right, w);
-      return borderColor("│ ") + inner + borderColor(" │");
-    });
-    console.log(headerLines.join(GAP_X));
-
-    // 3. Header separator
-    const midBorder = rBlocks
+    // 2. Badge + timing line (always line 1 of every card)
+    const divider = rBlocks
       .map((_, i) => borderColor("├" + "─".repeat(colWidths[i] + 2) + "┤"))
       .join(GAP_X);
-    console.log(midBorder);
 
-    // 4. Body rows
+    const badgeTimingLine = rBlocks.map((b, i) => {
+      const w = colWidths[i];
+      const badge = b.passed ? chalk.bold.bgGreen.black(" PASS ") : chalk.bold.bgRed.white(" FAIL ");
+      const indexLabel = chalk.cyan.bold(`Test ${b.testIndex}`);
+      const right = b.timeStr;
+      const leftPart = `${badge}  ${indexLabel}`;
+      const leftLen = stripAnsi(leftPart).length;
+      const rightLen = stripAnsi(right).length;
+      const space = w - leftLen - rightLen;
+      const inner = space >= 1
+        ? leftPart + " ".repeat(space) + right
+        : padEndVisible(leftPart + "  " + right, w);
+      return borderColor("│ ") + inner + borderColor(" │");
+    });
+    console.log(badgeTimingLine.join(GAP_X));
+
+    // 3. Name row (optional — only printed if any card in the row has a name)
+    const rowHasName = rBlocks.some((b) => b.name);
+    if (rowHasName) {
+      console.log(divider);
+      const nameLineCells = rBlocks.map((b, i) => {
+        const w = colWidths[i];
+        if (!b.name) return borderColor("│ ") + " ".repeat(w) + borderColor(" │");
+        // Truncate with "…" if the name exceeds the box width
+        const maxNameLen = w;
+        const displayName = b.name.length <= maxNameLen ? b.name : b.name.slice(0, maxNameLen - 1) + "…";
+        const nameStr = chalk.cyan(displayName);
+        return borderColor("│ ") + padEndVisible(nameStr, w) + borderColor(" │");
+      });
+      console.log(nameLineCells.join(GAP_X));
+    }
+
+    // 4. Body separator (between header section and body)
+    console.log(divider);
+
+    // 5. Body rows
     const maxBodyHeight = Math.max(1, ...rBlocks.map((b) => b.body.length));
     for (let lineIdx = 0; lineIdx < maxBodyHeight; lineIdx++) {
       const lineCells = rBlocks.map((b, i) => {
@@ -820,8 +839,8 @@ export function runTests<F extends (...args: any[]) => any>(
     while (body.length > 0 && body[body.length - 1].trim() === "") body.pop();
 
     const maxLineLen = body.reduce((max, l) => Math.max(max, stripAnsi(l).length), 0);
-    const headerMinLen = 22 + (name ? name.length : 0);
-    const naturalWidth = Math.max(26, headerMinLen, maxLineLen);
+    // Box width is driven by body content only — the name wraps inside the header if needed
+    const naturalWidth = Math.max(26, maxLineLen);
 
     allBlocks.push({
       passed,
