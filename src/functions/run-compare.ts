@@ -74,28 +74,10 @@ function resolveFnLabelMode(
   if (options.showFnName === false) return "number";
   if (options.showFnNumber === false) return "name";
 
-  // Calculate required summary table width if using "name"
-  const colFnHeader = "Function";
-  const wFn = Math.max(colFnHeader.length, ...fnNames.map((n) => n.length));
-  const wPass = Math.max("Pass".length, `${testCount}/${testCount}`.length);
-  const wAvg = 8;
-  const wTot = 8;
-  const wPct = showComparisonCol ? Math.max(pctHeaderTitle.length, 10) : 0;
-
-  const cols = [wFn, wPass, wAvg, wTot];
-  if (showComparisonCol) cols.push(wPct);
-  // Each column has 2 padding spaces, plus (cols.length + 1) vertical borders '│'
-  const requiredTableWidth = cols.reduce((sum, w) => sum + w + 3, 0) + 1;
-
-  // Other columns without function column:
-  const otherCols = [wPass, wAvg, wTot];
-  if (showComparisonCol) otherCols.push(wPct);
-  const otherColsWidth = otherCols.reduce((sum, w) => sum + w + 3, 0) + 1;
-
-  // If table fits in terminal columns, or terminal has enough room for function name (>= 8 chars),
-  // default to showing function name (without number)
-  const minColsForName = otherColsWidth + 8 + 3;
-  return termCols >= Math.min(requiredTableWidth, Math.max(52, minColsForName)) ? "name" : "number";
+  // By default, always display full function names directly in the summary table:
+  // on wider terminals it fits all columns; on very small terminals it switches to
+  // a clean 2-column layout (Function | Faster) to fit comfortably.
+  return "name";
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -311,7 +293,7 @@ export function runCompare<F extends (...args: any[]) => any>(
     );
     div();
     for (const [i, name] of fnNames.entries()) {
-      console.log(`  ${badgeColor(badge(i))}  ${chalk.cyan(name)}`);
+      console.log(`  ${badgeColor(badge(i))}  ${chalk.magenta(name)}`);
     }
     if (summaryOnly) console.log();
   }
@@ -520,7 +502,7 @@ export function runCompare<F extends (...args: any[]) => any>(
         const isFastest = showFastestThisTest && i === fastestIdx;
         const label =
           fnLabelMode === "name"
-            ? chalk.cyan(padL(fnNames[i], COL_NAME))
+            ? chalk.magenta(padL(fnNames[i], COL_NAME))
             : badgeColor(b);
 
         const relStr = formatRelativeMetric(
@@ -638,18 +620,26 @@ export function runCompare<F extends (...args: any[]) => any>(
   }
   const wPct = showComparisonCol ? Math.max(maxRelLen, 10) : 0;
 
-  // If showing full function name and table width exceeds terminal columns,
-  // cap wFn so the table fits within termCols perfectly without wrapping
-  const otherCols = [wPass, wAvg, wTot];
-  if (showComparisonCol) otherCols.push(wPct);
-  const otherColsWidth = otherCols.reduce((sum, w) => sum + w + 3, 0) + 1;
-  const maxPossibleFn = termCols - otherColsWidth - 3;
+  const fullOtherCols = [wPass, wAvg, wTot];
+  if (showComparisonCol) fullOtherCols.push(wPct);
+  const fullOtherColsWidth = fullOtherCols.reduce((sum, w) => sum + w + 3, 0) + 1;
+
+  // On very small terminals where all 5 columns cannot comfortably fit,
+  // show only 2 columns: Function name and the Faster (or Total) column
+  const isCompactNarrow = termCols < fullOtherColsWidth + 10;
+  const colMetricHeader = showComparisonCol ? pctHeaderTitle : "Total";
+  const wMetric = showComparisonCol ? wPct : wTot;
+
+  const currentOtherCols = isCompactNarrow ? [wMetric] : fullOtherCols;
+  const currentOtherColsWidth = currentOtherCols.reduce((sum, w) => sum + w + 3, 0) + 1;
+  const maxPossibleFn = termCols - currentOtherColsWidth - 3;
   if (fnLabelMode === "name" && wFn > maxPossibleFn && maxPossibleFn >= 8) {
     wFn = maxPossibleFn;
   }
 
-  const cols = [wFn, wPass, wAvg, wTot];
-  if (showComparisonCol) cols.push(wPct);
+  const cols = isCompactNarrow
+    ? [wFn, wMetric]
+    : [wFn, wPass, wAvg, wTot, ...(showComparisonCol ? [wPct] : [])];
 
   const topBorder = borderColor("┌" + cols.map((w) => "─".repeat(w + 2)).join("┬") + "┐");
   const midBorder = borderColor("├" + cols.map((w) => "─".repeat(w + 2)).join("┼") + "┤");
@@ -660,15 +650,18 @@ export function runCompare<F extends (...args: any[]) => any>(
   console.log(topBorder);
 
   // Header row
-  const headerParts = [
-    chalk.gray(padEndVisible(colFnHeader, wFn)),
-    chalk.gray(padStartVisible("Pass", wPass)),
-    chalk.gray(padStartVisible("Avg", wAvg)),
-    chalk.gray(padStartVisible("Total", wTot)),
-  ];
-  if (showComparisonCol) {
-    headerParts.push(chalk.gray(padStartVisible(pctHeaderTitle, wPct)));
-  }
+  const headerParts = isCompactNarrow
+    ? [
+        chalk.gray(padEndVisible(colFnHeader, wFn)),
+        chalk.gray(padStartVisible(colMetricHeader, wMetric)),
+      ]
+    : [
+        chalk.gray(padEndVisible(colFnHeader, wFn)),
+        chalk.gray(padStartVisible("Pass", wPass)),
+        chalk.gray(padStartVisible("Avg", wAvg)),
+        chalk.gray(padStartVisible("Total", wTot)),
+        ...(showComparisonCol ? [chalk.gray(padStartVisible(pctHeaderTitle, wPct))] : []),
+      ];
   console.log(borderColor("│ ") + headerParts.join(borderColor(" │ ")) + borderColor(" │"));
   console.log(midBorder);
 
@@ -679,7 +672,7 @@ export function runCompare<F extends (...args: any[]) => any>(
     const avgStr = `${(stat.totalTime / tests.length).toFixed(3)} ms`;
     const totStr = `${stat.totalTime.toFixed(3)} ms`;
     const fastest = showOverallFastest && i === overallFastestIdx;
-    const nameColor = allPassed ? chalk.cyan : chalk.red;
+    const nameColor = allPassed ? chalk.magenta : chalk.red;
     const passColor = allPassed ? chalk.green : chalk.red;
     const b = badge(i).padEnd(maxBadgeLen);
 
@@ -705,19 +698,23 @@ export function runCompare<F extends (...args: any[]) => any>(
       fnCell = padEndVisible(`${badgeColor(b)}  ${nameColor(fnNames[i])}`, wFn);
     }
 
-    const rowParts = [
-      fnCell,
-      padStartVisible(passColor(passedStr), wPass),
-      padStartVisible(chalk.gray(avgStr), wAvg),
-      padStartVisible(chalk.gray(totStr), wTot),
-    ];
-    if (showComparisonCol) {
-      const relTrimmed = stripAnsi(relStr).trim();
-      const relContent = relTrimmed.length > 0 ? relTrimmed : "—";
-      const badgeStr = fastest ? "  " + fastestBadge : (showFastestBadge ? "   " : "");
-      const fullText = (fastest ? chalk.yellow(relContent) : chalk.hex("#888888")(relContent)) + badgeStr;
-      rowParts.push(padStartVisible(fullText, wPct));
-    }
+    const relTrimmed = stripAnsi(relStr).trim();
+    const relContent = allPassed ? (relTrimmed.length > 0 ? relTrimmed : "—") : "FAIL";
+    const badgeStr = fastest ? "  " + fastestBadge : (showFastestBadge ? "   " : "");
+    const fullText = (fastest ? chalk.yellow(relContent) : (allPassed ? chalk.hex("#888888")(relContent) : chalk.red(relContent))) + badgeStr;
+    const metricCell = showComparisonCol
+      ? padStartVisible(fullText, wPct)
+      : padStartVisible(chalk.gray(totStr), wTot);
+
+    const rowParts = isCompactNarrow
+      ? [fnCell, metricCell]
+      : [
+          fnCell,
+          padStartVisible(passColor(passedStr), wPass),
+          padStartVisible(chalk.gray(avgStr), wAvg),
+          padStartVisible(chalk.gray(totStr), wTot),
+          ...(showComparisonCol ? [padStartVisible(fullText, wPct)] : []),
+        ];
     console.log(borderColor("│ ") + rowParts.join(borderColor(" │ ")) + borderColor(" │"));
   }
 

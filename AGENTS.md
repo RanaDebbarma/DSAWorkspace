@@ -146,4 +146,5 @@ runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
 
 6. **Dynamic Reporting & Box Borders**:
    * **Enclosed Box Borders**: Full box-drawing frames (`┌─┬─┐`, `├─┼─┤`, `└─┴─┘`) for comparison summary tables and OOP class design traces.
-   * **Adaptive Summary Banner**: Reports passed test count alongside `avg` and `total` execution times, automatically wrapping with clean indentation on narrow terminals.
+   * **Narrow-Terminal 2-Column Summary**: Automatically condenses the comparison summary table to 2 columns (`Function` and `Faster`/`Total`) on narrow screens (< 54 cols) so full function names fit down to 35 columns without overflow.
+   * **Adaptive Summary Banner**: Reports labeled test results (`passed: 5/5 · avg: 0.016 ms · total: 0.082 ms`), automatically wrapping with clean indentation on narrow terminals.

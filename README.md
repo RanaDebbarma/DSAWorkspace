@@ -281,8 +281,9 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 
 10. **Responsive Side-by-Side Cards & Box-Enclosed Reporting**:
     - **Multi-Column Greedy Row Packing**: In `runTests`, individual test case results render as discrete cards (`┌─┐`, `│ │`, `├─┤`, `└─┘`) packed horizontally across available terminal width, with balanced horizontal (3-space) and vertical (1-line) spacing.
-    - **Adaptive Summary Banner**: Displays passed test counts alongside `avg` and `total` execution times, dynamically choosing single-line output or cleanly wrapping with 5-space indentation on narrow terminals.
+    - **Adaptive Summary Banner**: Displays clean labeled metrics (`passed: 5/5 · avg: 0.016 ms · total: 0.082 ms`), dynamically choosing single-line output or cleanly wrapping with 5-space indentation on narrow terminals.
     - **Box-Enclosed Tables**: Full box borders (`┌─┬─┐`, `├─┼─┤`, `└─┴─┘`) for comparison summary tables and interactive OOP class traces (`runClassTests`).
+    - **Narrow-Terminal 2-Column Summary**: When the terminal is narrow (< 54 cols), `runCompare` automatically collapses the summary table to 2 columns (`Function` and `Faster`/`Total`), allowing full function names to fit cleanly down to 35 columns without horizontal wrapping.
 
 ---
 

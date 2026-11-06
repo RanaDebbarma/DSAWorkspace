@@ -842,9 +842,10 @@ export function runTests<F extends (...args: any[]) => any>(
   const isAllPassed = passedCount === tests.length;
   const statusIcon = isAllPassed ? chalk.green.bold("✔") : chalk.red.bold("✖");
   const countMsg = isAllPassed
-    ? chalk.green.bold(`All ${passedCount}/${tests.length} tests passed`)
-    : chalk.red.bold(`Passed ${passedCount}/${tests.length} tests (${tests.length - passedCount} failed)`);
-  const fullSummaryLine = `  ${statusIcon}  ${countMsg}  ${chalk.gray(`·  avg ${avgTime.toFixed(3)} ms/test  ·  ${totalTime.toFixed(3)} ms total`)}`;
+    ? `${chalk.gray("passed:")} ${chalk.green.bold(`${passedCount}/${tests.length}`)}`
+    : `${chalk.gray("passed:")} ${chalk.red.bold(`${passedCount}/${tests.length} (${tests.length - passedCount} failed)`)}`;
+  const timeMsg = `${chalk.gray("·  avg:")} ${chalk.white(`${avgTime.toFixed(3)} ms`)}  ${chalk.gray("·  total:")} ${chalk.white(`${totalTime.toFixed(3)} ms`)}`;
+  const fullSummaryLine = `  ${statusIcon}  ${countMsg}  ${timeMsg}`;
   const fullSummaryWidth = stripAnsi(fullSummaryLine).length;
 
   let testSuiteWidth = 45;
@@ -891,12 +892,12 @@ export function runTests<F extends (...args: any[]) => any>(
     console.log(fullSummaryLine);
   } else {
     console.log(`  ${statusIcon}  ${countMsg}`);
-    const timeShort = chalk.gray(`     avg ${avgTime.toFixed(3)} ms/test  ·  ${totalTime.toFixed(3)} ms total`);
+    const timeShort = `     ${chalk.gray("avg:")} ${chalk.white(`${avgTime.toFixed(3)} ms`)}  ${chalk.gray("·  total:")} ${chalk.white(`${totalTime.toFixed(3)} ms`)}`;
     if (stripAnsi(timeShort).length <= testSuiteWidth) {
       console.log(timeShort);
     } else {
-      console.log(chalk.gray(`     avg ${avgTime.toFixed(3)} ms/test`));
-      console.log(chalk.gray(`     ${totalTime.toFixed(3)} ms total`));
+      console.log(`     ${chalk.gray("avg:")} ${chalk.white(`${avgTime.toFixed(3)} ms`)}`);
+      console.log(`     ${chalk.gray("total:")} ${chalk.white(`${totalTime.toFixed(3)} ms`)}`);
     }
   }
   drawDivider("═", testSuiteWidth);
