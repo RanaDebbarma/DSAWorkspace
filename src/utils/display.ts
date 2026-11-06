@@ -4,7 +4,7 @@ import { TreeNode, binaryTreeToArray } from "#ds/tree.js";
 import { GraphNode, graphToAdjList } from "#ds/graph.js";
 
 import { treeToString } from "./visualizers/tree-visualizer.js";
-import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString, isMatrixGrid, GridMode, GridMapping } from "./visualizers/grid-visualizer.js";
+import { matrixToString, isChessBoard, isChessBoardList, chessBoardsToString, isMatrixGrid, stripAnsi, GridMode, GridMapping } from "./visualizers/grid-visualizer.js";
 import { graphToString, edgeListStringGraphToString, isStringEdgeList, isAdjacencyMap, adjMapToString } from "./visualizers/graph-visualizer.js";
 
 export * from "./visualizers/tree-visualizer.js";
@@ -137,10 +137,55 @@ export function serializeForDisplay(value: unknown, options?: DisplayOptions): s
 }
 
 /**
- * Draws a visual divider in the console.
+ * Pads a string to a visible width on the right (left-aligned text), respecting ANSI escape sequences.
  */
-export function drawDivider(char = "─", colorFn = chalk.hex('#5d5d5d')) {
-  const width = process.stdout.columns || 80;
-  const line = char.repeat(width);
-  console.log(colorFn(line));
+export function padEndVisible(text: string, targetWidth: number): string {
+  const visibleLen = stripAnsi(text).length;
+  const padLen = Math.max(0, targetWidth - visibleLen);
+  return text + " ".repeat(padLen);
+}
+
+/**
+ * Pads a string to a visible width on the left (right-aligned text), respecting ANSI escape sequences.
+ */
+export function padStartVisible(text: string, targetWidth: number): string {
+  const visibleLen = stripAnsi(text).length;
+  const padLen = Math.max(0, targetWidth - visibleLen);
+  return " ".repeat(padLen) + text;
+}
+
+/**
+ * Draws a visual divider in the console with optional custom width.
+ * Defaults to process.stdout.columns or 80.
+ */
+export function drawDivider(char = "─", width?: number, colorFn = chalk.hex('#5d5d5d')) {
+  const termWidth = process.stdout.columns || 80;
+  const w = width !== undefined ? Math.min(termWidth, width) : termWidth;
+  console.log(colorFn(char.repeat(w)));
+}
+
+/**
+ * Captures all console.log output within fn() as an array of raw strings.
+ * Accurately splits embedded newlines so that multiline visualizers and tables
+ * are handled line-by-line in column layouts.
+ */
+export function captureLines(fn: () => void): string[] {
+  const lines: string[] = [];
+  const origLog = console.log;
+  (console as any).log = (...args: any[]) => {
+    if (args.length === 0) {
+      lines.push("");
+      return;
+    }
+    const text = args.map(a => String(a)).join(" ");
+    for (const sub of text.split("\n")) {
+      lines.push(sub);
+    }
+  };
+  try {
+    fn();
+  } finally {
+    (console as any).log = origLog;
+  }
+  return lines;
 }

@@ -103,10 +103,10 @@ runTests([solve_BF, solve_DP, solve_Optimal], tests);
 // runCompare runs all functions side-by-side with compact timing comparison:
 runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
   // CompareOptions (all optional):
-  // fnLabel?: "both" | "number" | "name"; // Default: "number" ("number" shows only [1] in summary table, ideal for narrow terminals)
+  // fnLabel?: "both" | "number" | "name"; // Default: dynamic ("name" when table fits in terminal columns, "number" when narrow)
   // summaryOnly?: boolean;  // Default: true (when false, prints per-test execution rows with inputs and timings)
   // showStringInput?: boolean; // Default: true (when false, omits inline input values)
-  // showHeader?: boolean;   // Default: true
+  // showHeader?: boolean;   // Default: dynamic (false when function names fit directly in the summary table, true when numbers [1] are used as a legend)
   // compareFormat?: "multiplier" | "percent" | "none" | false; // Default: "multiplier" (e.g. 1.00× vs 32.58× or — vs +3158%)
   // compareMode?: "slower" | "faster" | "baseline"; // Default: "faster" (header "Faster" / "Slower" / "vs [1]")
   // showPercent?: boolean;   // Alias to toggle relative comparison column. Default: true
@@ -135,6 +135,7 @@ runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
    * All inputs are deep-cloned with `cloneValue()` before running each test case so in-place mutations (e.g., sorting `nums`, reversing linked list) do not corrupt subsequent test runs.
 
 4. **Rich Input & Output Visualizers (on by default)**:
+   * **Side-by-Side Test Cards**: Dynamically packs test blocks into multi-column rows based on terminal width, with balanced horizontal and vertical spacing.
    * **Binary Trees**: Renders top-down ASCII tree with branch connectors. Supports subnode highlighting for LCA problems (`tree.find(val)`).
    * **2D Grids**: Box-drawing table visualizer (auto-detects Sudoku, chess, maze, binary grid, numeric matrix) for inputs, expected outputs, and diffs. Supports `gridMapping` to customize cell labels and color-code using hex codes (`"#74b9ff"`) or chalk functions/styles.
    * **Graphs**: Visualizes adjacency lists, raw adjacency maps, and edge lists with automatic directed/undirected detection.
@@ -142,3 +143,7 @@ runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
 
 5. **Console Output Capture**:
    * `console.log()` inside solution code is intercepted and formatted cleanly between the input visualizer and test results.
+
+6. **Dynamic Reporting & Box Borders**:
+   * **Enclosed Box Borders**: Full box-drawing frames (`┌─┬─┐`, `├─┼─┤`, `└─┴─┘`) for comparison summary tables and OOP class design traces.
+   * **Adaptive Summary Banner**: Reports passed test count alongside `avg` and `total` execution times, automatically wrapping with clean indentation on narrow terminals.

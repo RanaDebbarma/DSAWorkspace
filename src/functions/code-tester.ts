@@ -30,6 +30,9 @@ import {
   GridMode,
   GridMapping,
   detectGridMode,
+  captureLines,
+  padEndVisible,
+  stripAnsi,
 } from "#utils/display.js";
 import { renderDiff } from "#utils/diff.js";
 import {
@@ -374,23 +377,19 @@ function renderResultBlock(
         ? `${executionError.name}: ${executionError.message}`
         : String(executionError);
     const expStr = serializeForDisplay(output, displayOpts);
-    if (expStr.includes("\n")) {
-      console.log(`${chalk.green("- Expected:")}\n${indentAll(chalk.green(expStr), 2)}`);
-    } else {
-      console.log(`${chalk.green("- Expected:")}  ${padMultiline(chalk.green(expStr), 14)}`);
-    }
-    console.log(
-      `${chalk.red("+ Received:")}  ${padMultiline(chalk.red(`Runtime Error: ${error}`), 14)}`,
-    );
+    console.log(chalk.green("- Expected:"));
+    console.log(indentAll(chalk.green(expStr), 2));
+    console.log(chalk.red("+ Received:"));
+    console.log(indentAll(chalk.red(`Runtime Error: ${error}`), 2));
   } else if (passed) {
     const outStr = serializeForDisplay(result, displayOpts);
     const coloredOut = outStr.includes("\u001b") ? outStr : chalk.green(outStr);
-    if (outStr.includes("\n")) {
-      console.log(`${chalk.grey("Output:")}\n${indentAll(coloredOut, 2)}`);
+    const visLen = stripAnsi(outStr).length;
+    if (outStr.includes("\n") || visLen > 30) {
+      console.log(chalk.gray("Output:"));
+      console.log(indentAll(coloredOut, 2));
     } else {
-      console.log(
-        `${chalk.grey("Output:   ")}  ${padMultiline(coloredOut, 14)}`,
-      );
+      console.log(`${chalk.gray("Output:")} ${coloredOut}`);
     }
   } else {
     if (anyOf && anyOf.length > 0) {
@@ -400,24 +399,30 @@ function renderResultBlock(
         .map((v) => serializeForDisplay(v, displayOpts))
         .join(chalk.gray(" | "));
       const gotStr = serializeForDisplay(result, displayOpts);
-      console.log(`${chalk.green("- Expected (any of):")}  ${anyOfStr}`);
-      console.log(`${chalk.red("+ Received:")}           ${chalk.red(gotStr)}`);
+      const isMulti = anyOfStr.includes("\n") || gotStr.includes("\n") || stripAnsi(anyOfStr).length > 25;
+      if (isMulti) {
+        console.log(chalk.green("- Expected (any of):"));
+        console.log(indentAll(anyOfStr, 2));
+        console.log(chalk.red("+ Received:"));
+        console.log(indentAll(chalk.red(gotStr), 2));
+      } else {
+        console.log(`${chalk.green("- Expected (any of):")} ${anyOfStr}`);
+        console.log(`${chalk.red("+ Received:")} ${chalk.red(gotStr)}`);
+      }
     } else {
       const { expLine, gotLine, hint } = renderDiff(result, output, displayOpts);
-      if (expLine.includes("\n") || gotLine.includes("\n")) {
-        console.log(`${chalk.green("- Expected:")}\n${indentAll(expLine, 2)}`);
-        console.log();
-        console.log(`${chalk.red("+ Received:")}\n${indentAll(gotLine, 2)}`);
-        if (showHint && hint) {
-          console.log();
-          console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
-        }
+      const isMulti = expLine.includes("\n") || gotLine.includes("\n") || stripAnsi(expLine).length > 25 || stripAnsi(gotLine).length > 25;
+      if (isMulti) {
+        console.log(chalk.green("- Expected:"));
+        console.log(indentAll(expLine, 2));
+        console.log(chalk.red("+ Received:"));
+        console.log(indentAll(gotLine, 2));
       } else {
-        console.log(`${chalk.green("- Expected:")}  ${padMultiline(expLine, 14)}`);
-        console.log(`${chalk.red("+ Received:")}  ${padMultiline(gotLine, 14)}`);
-        if (showHint && hint) {
-          console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
-        }
+        console.log(`${chalk.green("- Expected:")} ${expLine}`);
+        console.log(`${chalk.red("+ Received:")} ${gotLine}`);
+      }
+      if (showHint && hint) {
+        console.log(`  ${chalk.yellow("↳")} ${chalk.gray(hint)}`);
       }
     }
   }
@@ -483,7 +488,7 @@ function renderStepTable(
     console.log(`  ${chalk.gray("Instance:")}  ${chalk.magenta(`new ${operations[0]}(${ctorArgStr})`)}`);
   }
 
-  const MAX_COL_VAL = 12;
+  const termWidth = process.stdout.columns || 80;
   const COL_STEP = 5;
 
   // Build method labels first (full args, no truncation) to size the column
@@ -504,6 +509,10 @@ function renderStepTable(
     }
     return `${op}(${formatFullArgs(args[i] ?? [])})`;
   });
+
+  // Dynamically expand COL_VAL on wider terminals instead of fixed 12 cap
+  const availableForVal = Math.floor((termWidth - COL_STEP - COL_OP - 22) / 2);
+  const MAX_COL_VAL = Math.max(12, Math.min(availableForVal, 50));
   const COL_VAL = Math.min(
     MAX_COL_VAL,
     Math.max(8, ...expected.map((v) => (JSON.stringify(v) ?? "null").length + 2)),
@@ -513,15 +522,30 @@ function renderStepTable(
     if (s.length > n) return s.slice(0, n - 1) + "…";
     return s.padEnd(n);
   };
-  // Header: "  "(2) + Step(COL_STEP) + "  "(2) + Op(COL_OP) + "  "(2) + Exp(COL_VAL) + "  "(2) + Got(COL_VAL) + "  Status  "(2+6+2) symmetric trailing gap
-  const hr = chalk.gray("─".repeat(2 + COL_STEP + 2 + COL_OP + 2 + COL_VAL + 2 + COL_VAL + 2 + 6 + 2));
+
+  const borderColor = chalk.hex("#5d5d5d");
+  const COL_STATUS = 8;
+  const wStep = COL_STEP + 2;
+  const wOp = COL_OP + 2;
+  const wExp = COL_VAL + 2;
+  const wGot = COL_VAL + 2;
+  const wStatus = COL_STATUS + 2;
+
+  const topBorder = borderColor("┌" + "─".repeat(wStep) + "┬" + "─".repeat(wOp) + "┬" + "─".repeat(wExp) + "┬" + "─".repeat(wGot) + "┬" + "─".repeat(wStatus) + "┐");
+  const midBorder = borderColor("├" + "─".repeat(wStep) + "┼" + "─".repeat(wOp) + "┼" + "─".repeat(wExp) + "┼" + "─".repeat(wGot) + "┼" + "─".repeat(wStatus) + "┤");
+  const botBorder = borderColor("└" + "─".repeat(wStep) + "┴" + "─".repeat(wOp) + "┴" + "─".repeat(wExp) + "┴" + "─".repeat(wGot) + "┴" + "─".repeat(wStatus) + "┘");
 
   console.log();
-  console.log(hr);
+  console.log(topBorder);
   console.log(
-    "  " + chalk.gray(`${pad("Step", COL_STEP)}  ${pad("Operation", COL_OP)}  ${pad("Expected", COL_VAL)}  ${pad("Got", COL_VAL)}  Status`),
+    borderColor("│ ") +
+    chalk.gray(padEndVisible("Step", COL_STEP)) + borderColor(" │ ") +
+    chalk.gray(padEndVisible("Operation", COL_OP)) + borderColor(" │ ") +
+    chalk.gray(padEndVisible("Expected", COL_VAL)) + borderColor(" │ ") +
+    chalk.gray(padEndVisible("Got", COL_VAL)) + borderColor(" │ ") +
+    chalk.gray(padEndVisible("Status", COL_STATUS)) + borderColor(" │")
   );
-  console.log(hr);
+  console.log(midBorder);
 
   for (let i = 0; i < operations.length; i++) {
     const opLabel = rawOpLabels[i];
@@ -546,13 +570,133 @@ function renderStepTable(
         ? chalk.red("✗ FAIL")
         : chalk.green("✓");
 
-    const stepPad = " ".repeat(Math.max(0, COL_STEP - 3)); // COL_STEP - len("#01")
     console.log(
-      `  ${stepLabel}${stepPad}  ${opColor(pad(opLabel, COL_OP))}  ${expColor(pad(expStr, COL_VAL))}  ${gotColor(pad(gotStr, COL_VAL))}  ${status}`,
+      borderColor("│ ") +
+      padEndVisible(stepLabel, COL_STEP) + borderColor(" │ ") +
+      opColor(padEndVisible(pad(opLabel, COL_OP), COL_OP)) + borderColor(" │ ") +
+      expColor(padEndVisible(pad(expStr, COL_VAL), COL_VAL)) + borderColor(" │ ") +
+      gotColor(padEndVisible(pad(gotStr, COL_VAL), COL_VAL)) + borderColor(" │ ") +
+      padEndVisible(status, COL_STATUS) + borderColor(" │")
     );
   }
 
-  console.log(hr);
+  console.log(botBorder);
+}
+
+// ── Column layout ─────────────────────────────────────────────────────────────
+
+export type RenderedTestBlock = {
+  passed: boolean;
+  testIndex: number;
+  name?: string;
+  timeStr: string;
+  timeMs: number;
+  body: string[];
+  naturalWidth: number;
+};
+
+const GAP_X = "   "; // 3 spaces between cards (visually balances the 1-line vertical gap)
+const GAP_X_LEN = 3;
+
+/**
+ * Prints test blocks as individual cards (┌─┐, ├─┤, └─┘) with a clean gap between them.
+ * Tests are greedily packed into rows as columns based on their measured width.
+ * Shorter cells in the same row are vertically padded to match the tallest cell.
+ * Returns the maximum row width, which is used to size outer dividers dynamically.
+ */
+function printCardBlockColumns(blocks: RenderedTestBlock[]): number {
+  if (blocks.length === 0) return 0;
+  const termWidth = process.stdout.columns || 80;
+  const borderColor = chalk.hex("#5d5d5d");
+
+  // Greedy row packing:
+  // Each card takes `w + 4` characters (┌ + w+2 + ┐)
+  // Plus (N - 1) * GAP_X_LEN spaces between cards
+  const rows: { blocks: RenderedTestBlock[]; colWidths: number[]; rowWidth: number }[] = [];
+  let currentRow: RenderedTestBlock[] = [];
+  let currentWidths: number[] = [];
+
+  for (const b of blocks) {
+    const w = b.naturalWidth;
+    const nextCols = currentRow.length + 1;
+    const nextTotalWidth =
+      [...currentWidths, w].reduce((acc, val) => acc + val + 4, 0) +
+      (nextCols - 1) * GAP_X_LEN;
+
+    if (currentRow.length === 0 || nextTotalWidth <= termWidth) {
+      currentRow.push(b);
+      currentWidths.push(w);
+    } else {
+      const rowWidth =
+        currentWidths.reduce((acc, val) => acc + val + 4, 0) +
+        (currentRow.length - 1) * GAP_X_LEN;
+      rows.push({ blocks: currentRow, colWidths: currentWidths, rowWidth });
+      currentRow = [b];
+      currentWidths = [w];
+    }
+  }
+  if (currentRow.length > 0) {
+    const rowWidth =
+      currentWidths.reduce((acc, val) => acc + val + 4, 0) +
+      (currentRow.length - 1) * GAP_X_LEN;
+    rows.push({ blocks: currentRow, colWidths: currentWidths, rowWidth });
+  }
+
+  // Maximum width across all rows (used to size outer HRs dynamically)
+  const maxSuiteWidth = Math.min(termWidth, Math.max(45, ...rows.map((r) => r.rowWidth)));
+
+  for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+    const { blocks: rBlocks, colWidths } = rows[rIdx];
+
+    // 1. Top borders
+    const topBorder = rBlocks
+      .map((_, i) => borderColor("┌" + "─".repeat(colWidths[i] + 2) + "┐"))
+      .join(GAP_X);
+    console.log(topBorder);
+
+    // 2. Header row
+    const headerLines = rBlocks.map((b, i) => {
+      const w = colWidths[i];
+      const badge = b.passed ? chalk.bold.bgGreen.black(" PASS ") : chalk.bold.bgRed.white(" FAIL ");
+      const title = chalk.cyan.bold(`Test ${b.testIndex}${b.name ? ` — ${b.name}` : ""}`);
+      const left = `${badge}  ${title}`;
+      const right = b.timeStr;
+      const leftLen = stripAnsi(left).length;
+      const rightLen = stripAnsi(right).length;
+      const space = w - leftLen - rightLen;
+      const inner = space >= 1 ? left + " ".repeat(space) + right : padEndVisible(left + "  " + right, w);
+      return borderColor("│ ") + inner + borderColor(" │");
+    });
+    console.log(headerLines.join(GAP_X));
+
+    // 3. Header separator
+    const midBorder = rBlocks
+      .map((_, i) => borderColor("├" + "─".repeat(colWidths[i] + 2) + "┤"))
+      .join(GAP_X);
+    console.log(midBorder);
+
+    // 4. Body rows
+    const maxBodyHeight = Math.max(1, ...rBlocks.map((b) => b.body.length));
+    for (let lineIdx = 0; lineIdx < maxBodyHeight; lineIdx++) {
+      const lineCells = rBlocks.map((b, i) => {
+        const line = b.body[lineIdx] ?? "";
+        return borderColor("│ ") + padEndVisible(line, colWidths[i]) + borderColor(" │");
+      });
+      console.log(lineCells.join(GAP_X));
+    }
+
+    // 5. Bottom border
+    const botBorder = rBlocks
+      .map((_, i) => borderColor("└" + "─".repeat(colWidths[i] + 2) + "┘"))
+      .join(GAP_X);
+    console.log(botBorder);
+
+    if (rIdx < rows.length - 1) {
+      console.log();
+    }
+  }
+
+  return maxSuiteWidth;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -595,11 +739,7 @@ export function runTests<F extends (...args: any[]) => any>(
   const suiteGridMapping = typeof options === "object" ? options?.gridMapping : undefined;
 
   let passedCount = 0;
-
-  drawDivider("═");
-  if (showHeader) {
-    console.log(`${chalk.bold.bgMagenta.black(" RUNS ")}  ${chalk.magenta.bold(`${fn.name || "solve"}()`)}`);
-  }
+  const allBlocks: RenderedTestBlock[] = [];
 
   for (const [index, test] of tests.entries()) {
     const { name, input, output, compare, cloneInput, unordered, anyOf } = test;
@@ -632,62 +772,134 @@ export function runTests<F extends (...args: any[]) => any>(
 
     if (passed) passedCount++;
 
-    // Header
-    drawDivider();
-    const statusBadge = passed ? chalk.bold.bgGreen.black(" PASS ") : chalk.bold.bgRed.white(" FAIL ");
-    const timeStr = chalk.gray(`${(end - start).toFixed(3)} ms`);
-    console.log(`${statusBadge}  ${chalk.cyan.bold(`Test ${index + 1}${name ? ` — ${name}` : ""}`)}  ${timeStr}`);
-    drawDivider();
-
-    // Input + Result blocks
+    const timeMs = end - start;
+    const timeStr = chalk.gray(`${timeMs.toFixed(3)} ms`);
     const effectiveShowStringInput = test.showStringInput ?? showStringInput;
-    console.log();
-    try {
-      renderInputBlock(
-        fn,
-        Array.from(input),
-        visualizeInput,
-        effectiveShowStringInput,
-        test.isDirected,
-        suiteIsDirected,
-        test.reverseEdges,
-        suiteReverseEdges,
-        test.gridMode,
-        suiteGridMode,
-        test.gridMapping,
-        suiteGridMapping,
-      );
-    } catch {
-      console.dir(input.map(formatValue), { depth: null });
-    }
-    effectiveShowStringInput && console.log();
-
-    printConsoleOutput(execution.logs);
     const shouldVisualizeOutput = test.visualizeOutput ?? visualizeOutput;
     const effectiveGridMode = test.gridMode ?? suiteGridMode;
     const effectiveGridMapping = test.gridMapping ?? suiteGridMapping;
-    renderResultBlock(
+
+    const body = captureLines(() => {
+      try {
+        renderInputBlock(
+          fn,
+          Array.from(input),
+          visualizeInput,
+          effectiveShowStringInput,
+          test.isDirected,
+          suiteIsDirected,
+          test.reverseEdges,
+          suiteReverseEdges,
+          test.gridMode,
+          suiteGridMode,
+          test.gridMapping,
+          suiteGridMapping,
+        );
+      } catch {
+        console.log(JSON.stringify(input.map(formatValue)));
+      }
+      effectiveShowStringInput && console.log();
+
+      printConsoleOutput(execution.logs);
+      renderResultBlock(
+        passed,
+        result,
+        output,
+        execution.error,
+        showHint,
+        actualInput,
+        shouldVisualizeOutput,
+        effectiveGridMode,
+        effectiveGridMapping,
+        anyOf,
+      );
+    });
+
+    // Trim leading and trailing empty lines from body
+    while (body.length > 0 && body[0].trim() === "") body.shift();
+    while (body.length > 0 && body[body.length - 1].trim() === "") body.pop();
+
+    const maxLineLen = body.reduce((max, l) => Math.max(max, stripAnsi(l).length), 0);
+    const headerMinLen = 22 + (name ? name.length : 0);
+    const naturalWidth = Math.max(26, headerMinLen, maxLineLen);
+
+    allBlocks.push({
       passed,
-      result,
-      output,
-      execution.error,
-      showHint,
-      actualInput,
-      shouldVisualizeOutput,
-      effectiveGridMode,
-      effectiveGridMapping,
-      anyOf,
-    );
-    console.log();
+      testIndex: index + 1,
+      name,
+      timeStr,
+      timeMs,
+      body,
+      naturalWidth,
+    });
   }
 
-  drawDivider();
-  if (passedCount === tests.length) {
-    console.log(chalk.green.bold(`🎉 All ${passedCount}/${tests.length} tests passed!`));
-  } else {
-    console.log(chalk.red.bold(`❌ Passed ${passedCount}/${tests.length} tests`));
+  // Pre-calculate suite width to dynamically size top header and bottom summary banner
+  const termWidth = process.stdout.columns || 80;
+  const totalTime = allBlocks.reduce((sum, b) => sum + b.timeMs, 0);
+  const avgTime = tests.length > 0 ? totalTime / tests.length : 0;
+
+  const isAllPassed = passedCount === tests.length;
+  const statusIcon = isAllPassed ? chalk.green.bold("✔") : chalk.red.bold("✖");
+  const countMsg = isAllPassed
+    ? chalk.green.bold(`All ${passedCount}/${tests.length} tests passed`)
+    : chalk.red.bold(`Passed ${passedCount}/${tests.length} tests (${tests.length - passedCount} failed)`);
+  const fullSummaryLine = `  ${statusIcon}  ${countMsg}  ${chalk.gray(`·  avg ${avgTime.toFixed(3)} ms/test  ·  ${totalTime.toFixed(3)} ms total`)}`;
+  const fullSummaryWidth = stripAnsi(fullSummaryLine).length;
+
+  let testSuiteWidth = 45;
+  {
+    let currentCols = 0;
+    let currentW = 0;
+    for (const b of allBlocks) {
+      const nextCols = currentCols + 1;
+      const nextTotal = currentW + b.naturalWidth + 4 + (nextCols - 1) * GAP_X_LEN;
+      if (currentCols === 0 || nextTotal <= termWidth) {
+        currentCols = nextCols;
+        currentW += b.naturalWidth + 4;
+      } else {
+        const rowW = currentW + (currentCols - 1) * GAP_X_LEN;
+        testSuiteWidth = Math.max(testSuiteWidth, rowW);
+        currentCols = 1;
+        currentW = b.naturalWidth + 4;
+      }
+    }
+    if (currentCols > 0) {
+      const rowW = currentW + (currentCols - 1) * GAP_X_LEN;
+      testSuiteWidth = Math.max(testSuiteWidth, rowW);
+    }
+    if (fullSummaryWidth <= termWidth) {
+      testSuiteWidth = Math.max(testSuiteWidth, fullSummaryWidth);
+    }
+    testSuiteWidth = Math.min(termWidth, testSuiteWidth);
   }
-  drawDivider("═");
+
+  // Top header banner (dynamic width matching the suite)
+  if (showHeader) {
+    drawDivider("═", testSuiteWidth);
+    console.log(`${chalk.bold.bgMagenta.black(" RUNS ")}  ${chalk.magenta.bold(`${fn.name || "solve"}()`)}`);
+    drawDivider("─", testSuiteWidth);
+  }
+
+  // Print test cards
+  printCardBlockColumns(allBlocks);
+
+  // Sleek final summary banner (handles narrow terminals with clean line-wrapping)
+  drawDivider("─", testSuiteWidth);
+
+  if (fullSummaryWidth <= testSuiteWidth) {
+    console.log(fullSummaryLine);
+  } else {
+    console.log(`  ${statusIcon}  ${countMsg}`);
+    const timeShort = chalk.gray(`     avg ${avgTime.toFixed(3)} ms/test  ·  ${totalTime.toFixed(3)} ms total`);
+    if (stripAnsi(timeShort).length <= testSuiteWidth) {
+      console.log(timeShort);
+    } else {
+      console.log(chalk.gray(`     avg ${avgTime.toFixed(3)} ms/test`));
+      console.log(chalk.gray(`     ${totalTime.toFixed(3)} ms total`));
+    }
+  }
+  drawDivider("═", testSuiteWidth);
 }
 
 /**

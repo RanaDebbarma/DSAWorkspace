@@ -279,6 +279,13 @@ The CLI (`pnpm new`) lets you pick from these templates at creation time:
 
 ---
 
+10. **Responsive Side-by-Side Cards & Box-Enclosed Reporting**:
+    - **Multi-Column Greedy Row Packing**: In `runTests`, individual test case results render as discrete cards (`┌─┐`, `│ │`, `├─┤`, `└─┘`) packed horizontally across available terminal width, with balanced horizontal (3-space) and vertical (1-line) spacing.
+    - **Adaptive Summary Banner**: Displays passed test counts alongside `avg` and `total` execution times, dynamically choosing single-line output or cleanly wrapping with 5-space indentation on narrow terminals.
+    - **Box-Enclosed Tables**: Full box borders (`┌─┬─┐`, `├─┼─┤`, `└─┴─┘`) for comparison summary tables and interactive OOP class traces (`runClassTests`).
+
+---
+
 ## ⚙️ Test Options Reference
 
 The third argument to `runTests(fn, tests, options)` controls display behavior. All options default to `true` and `visualizeInput` & `visualizeOutput` are **on by default**.
@@ -319,15 +326,15 @@ runTests(solve, tests, {
 
 | Option | Default | Description |
 |---|---|---|
-| `fnLabel` | `'both'` | Controls function labeling: `'both'` (`[1] myFn`), `'number'` (badge only `[1]`, ideal for narrow terminals), or `'name'` (`myFn` only) |
+| `fnLabel` | `auto` | Controls function labeling: dynamic by default (`'name'` with no number badge when table fits in terminal columns; `'number'` badge `[1]` when narrow) |
 | `compareMode` | `'faster'` | Relative comparison anchor & heading: `'faster'` (header `Faster`, compares vs slowest), `'slower'` (header `Slower`, compares vs fastest), or `'baseline'` (header `vs [1]`) |
 | `compareFormat` | `'multiplier'` | Display format: `'multiplier'` (`1.00×`, `32.58×`), `'percent'` (`—`, `+3158%`), `'none'`, or `false` |
 | `showFastest` | `true` | When `false`, hides the `◀` fastest-function indicator badge |
 | `showPercent` | `true` | Alias to toggle the relative speed comparison column |
-| `summaryOnly` | `false` | Skips per-test timing rows and renders only the aggregated summary table |
-| `showTests` | `true` | When `false`, suppresses per-test outputs (alias for `summaryOnly: true`) |
+| `summaryOnly` | `true` | Skips per-test timing rows and renders only the aggregated summary table (pass `false` to print per-test execution rows) |
+| `showTests` | `false` | When `true`, prints per-test outputs (alias for `summaryOnly: false`) |
 | `showStringInput` | `true` | When `false`, omits inline input values in test headers |
-| `showHeader` | `true` | Displays the `COMPARE` header banner with function badge mapping |
+| `showHeader` | `auto` | Displays the `COMPARE` header banner (automatically hidden when function names fit directly in the summary table; shown when numbers are used as a legend) |
 | `unordered` | `false` | Treats array output order as insensitive across all functions |
 | `compare` | `undefined` | Custom comparator applied across all functions |
 

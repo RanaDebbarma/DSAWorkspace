@@ -5,7 +5,7 @@ import { renderInputBlock } from "#functions/code-tester.js";
 import { smartCompare } from "#utils/compare.js";
 import { cloneValue } from "#utils/clone.js";
 import { captureConsoleOutput } from "#utils/console-capture.js";
-import { getParamNames, formatValue, type GridMode, type GridMapping } from "#utils/display.js";
+import { getParamNames, formatValue, padEndVisible, padStartVisible, stripAnsi, type GridMode, type GridMapping } from "#utils/display.js";
 
 export type { CompareOptions, FnLabelMode, CompareFormat, CompareMode, CompareAnchor };
 export type RunCompareOptions<F extends (...args: any[]) => any = any> = CompareOptions<F>;
@@ -44,12 +44,19 @@ function padR(s: string, n: number): string {
   return s.padStart(n);
 }
 
-function resolveFnLabelMode(options: {
-  fnLabel?: FnLabelMode;
-  fnDisplay?: FnLabelMode;
-  showFnName?: boolean;
-  showFnNumber?: boolean;
-}): FnLabelMode {
+function resolveFnLabelMode(
+  options: {
+    fnLabel?: FnLabelMode;
+    fnDisplay?: FnLabelMode;
+    showFnName?: boolean;
+    showFnNumber?: boolean;
+  },
+  termCols: number,
+  fnNames: string[],
+  testCount: number,
+  showComparisonCol: boolean,
+  pctHeaderTitle: string,
+): FnLabelMode {
   const raw = options.fnLabel ?? options.fnDisplay;
   if (typeof raw === "string") {
     const lower = raw.toLowerCase().trim();
@@ -63,9 +70,32 @@ function resolveFnLabelMode(options: {
       return "both";
     }
   }
+  if (options.showFnName === true && options.showFnNumber === true) return "both";
   if (options.showFnName === false) return "number";
   if (options.showFnNumber === false) return "name";
-  return "number";
+
+  // Calculate required summary table width if using "name"
+  const colFnHeader = "Function";
+  const wFn = Math.max(colFnHeader.length, ...fnNames.map((n) => n.length));
+  const wPass = Math.max("Pass".length, `${testCount}/${testCount}`.length);
+  const wAvg = 8;
+  const wTot = 8;
+  const wPct = showComparisonCol ? Math.max(pctHeaderTitle.length, 10) : 0;
+
+  const cols = [wFn, wPass, wAvg, wTot];
+  if (showComparisonCol) cols.push(wPct);
+  // Each column has 2 padding spaces, plus (cols.length + 1) vertical borders '│'
+  const requiredTableWidth = cols.reduce((sum, w) => sum + w + 3, 0) + 1;
+
+  // Other columns without function column:
+  const otherCols = [wPass, wAvg, wTot];
+  if (showComparisonCol) otherCols.push(wPct);
+  const otherColsWidth = otherCols.reduce((sum, w) => sum + w + 3, 0) + 1;
+
+  // If table fits in terminal columns, or terminal has enough room for function name (>= 8 chars),
+  // default to showing function name (without number)
+  const minColsForName = otherColsWidth + 8 + 3;
+  return termCols >= Math.min(requiredTableWidth, Math.max(52, minColsForName)) ? "name" : "number";
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -94,10 +124,9 @@ export function runCompare<F extends (...args: any[]) => any>(
   const fnNames = fns.map((fn, i) => fn.name || `fn${i + 1}`);
   const maxNameLen = Math.max(...fnNames.map((n) => n.length), 8);
   const maxBadgeLen = Math.max(...fns.map((_, i) => badge(i).length));
-  const fnLabelMode = resolveFnLabelMode(options);
+  const termCols = process.stdout.columns || 60;
   const suiteUnordered = options.unordered ?? false;
   const suiteCompare = options.compare;
-  const showHeader = options.showHeader ?? true;
   const showStringInput = options.showStringInput ?? true;
   const summaryOnly = options.summaryOnly ?? (options.showTests !== undefined ? options.showTests === false : true);
   const tableBorders = options.tableBorders ?? true;
@@ -144,6 +173,23 @@ export function runCompare<F extends (...args: any[]) => any>(
         ? "Slower"
         : "vs [1]";
 
+  // Dynamically resolve fnLabelMode: if the summary table with full function names fits
+  // inside the terminal columns, default to showing full function name (without number).
+  const fnLabelMode = resolveFnLabelMode(
+    options,
+    termCols,
+    fnNames,
+    tests.length,
+    showComparisonCol,
+    pctHeaderTitle,
+  );
+
+  // If showHeader is not explicitly set:
+  // When fnLabelMode is "name", function names are already clearly shown in the summary table,
+  // so the redundant top header can be hidden (false).
+  // When fnLabelMode is "number", the top header is needed as a legend for [1], [2], etc.
+  const showHeader = options.showHeader ?? (fnLabelMode === "name" ? false : true);
+
   const pctExtra = showComparisonCol ? 2 + COL_PCT + (tableBorders ? 3 : 0) : 0;
 
   const summaryContentWidth =
@@ -162,11 +208,11 @@ export function runCompare<F extends (...args: any[]) => any>(
     fnLabelMode === "number"
       ? Math.max(summaryContentWidth, 36)
       : Math.max(summaryContentWidth, headerContentWidth, 50);
-  const termCols = process.stdout.columns || 60;
-  const defaultWidth = Math.min(termCols, baseWidth);
+  const borderExtra = tableBorders ? (showComparisonCol ? 12 : 9) : 0;
+  const defaultWidth = Math.min(termCols, baseWidth + borderExtra);
 
   function div(char = "─", width = defaultWidth): void {
-    const w = char === "═" ? termCols : Math.min(termCols, width);
+    const w = Math.min(termCols, width);
     console.log(chalk.hex("#5d5d5d")(char.repeat(w)));
   }
 
@@ -550,54 +596,90 @@ export function runCompare<F extends (...args: any[]) => any>(
     fullPassCount > 1 &&
     overallSecondFastestTime - overallFastestTime >= 0.0005;
 
-  // Each │ sep adds 3 chars ("  │") vs plain 2-space gap, × separators
-  const borderExtra = tableBorders ? (showComparisonCol ? 12 : 9) : 0;
-  const sep = tableBorders ? `  ${chalk.hex("#5d5d5d")("│")}` : "  ";
+  const borderColor = chalk.hex("#5d5d5d");
+  const colFnHeader = fnLabelMode === "number" ? "Fn" : "Function";
+  let wFn = Math.max(
+    colFnHeader.length,
+    ...fns.map((fn, i) =>
+      fnLabelMode === "number"
+        ? badge(i).length
+        : fnLabelMode === "name"
+          ? fnNames[i].length
+          : badge(i).length + 2 + fnNames[i].length,
+    ),
+  );
+  const wPass = Math.max("Pass".length, `${tests.length}/${tests.length}`.length);
+  const wAvg = Math.max("Avg".length, ...stats.map((s) => `${(s.totalTime / tests.length).toFixed(3)} ms`.length));
+  const wTot = Math.max("Total".length, ...stats.map((s) => `${s.totalTime.toFixed(3)} ms`.length));
 
-  div("═");
-  console.log(`${chalk.bold.bgBlue.white(" SUMMARY ")}`);
-  div("─", defaultWidth + borderExtra);
-  console.log();
-
-  const pctHeader = showComparisonCol
-    ? `${sep}  ${chalk.gray(padR(pctHeaderTitle, COL_PCT))}`
-    : "";
-
-  if (fnLabelMode === "number") {
-    console.log(
-      `  ${chalk.gray(padL("Fn", maxBadgeLen))}${sep}` +
-      `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
-      `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
-      `  ${chalk.gray(padR("Total", COL_TOT))}` +
-      pctHeader,
-    );
-  } else if (fnLabelMode === "name") {
-    console.log(
-      `  ${chalk.gray(padL("Function", COL_NAME))}${sep}` +
-      `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
-      `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
-      `  ${chalk.gray(padR("Total", COL_TOT))}` +
-      pctHeader,
-    );
-  } else {
-    // "both"
-    console.log(
-      `${" ".repeat(maxBadgeLen + 4)}${chalk.gray(padL("Function", COL_NAME))}${sep}` +
-      `  ${chalk.gray(padR("Pass", COL_PASS))}${sep}` +
-      `  ${chalk.gray(padR("Avg", COL_AVG))}${sep}` +
-      `  ${chalk.gray(padR("Total", COL_TOT))}` +
-      pctHeader,
-    );
+  // Measure exact maximum width needed for comparison column including fastest badge "  ◀"
+  let maxRelLen = pctHeaderTitle.length;
+  if (showComparisonCol) {
+    for (const [i, stat] of stats.entries()) {
+      const allPassed = stat.passed === tests.length;
+      const fastest = showOverallFastest && i === overallFastestIdx;
+      const relStr = formatRelativeMetric(
+        stat.totalTime,
+        allPassed,
+        i,
+        overallFastestIdx,
+        overallSlowestIdx,
+        overallBaselineIdx,
+        overallFastestTime,
+        overallSlowestTime,
+        overallBaselineTime,
+      );
+      const relTrimmed = stripAnsi(relStr).trim();
+      const relContent = relTrimmed.length > 0 ? relTrimmed : "—";
+      const badgeStr = fastest ? "  " + fastestBadge : (showFastestBadge ? "   " : "");
+      const fullLen = stripAnsi(relContent + badgeStr).length;
+      if (fullLen > maxRelLen) maxRelLen = fullLen;
+    }
   }
-  div("─", defaultWidth + borderExtra);
+  const wPct = showComparisonCol ? Math.max(maxRelLen, 10) : 0;
 
+  // If showing full function name and table width exceeds terminal columns,
+  // cap wFn so the table fits within termCols perfectly without wrapping
+  const otherCols = [wPass, wAvg, wTot];
+  if (showComparisonCol) otherCols.push(wPct);
+  const otherColsWidth = otherCols.reduce((sum, w) => sum + w + 3, 0) + 1;
+  const maxPossibleFn = termCols - otherColsWidth - 3;
+  if (fnLabelMode === "name" && wFn > maxPossibleFn && maxPossibleFn >= 8) {
+    wFn = maxPossibleFn;
+  }
+
+  const cols = [wFn, wPass, wAvg, wTot];
+  if (showComparisonCol) cols.push(wPct);
+
+  const topBorder = borderColor("┌" + cols.map((w) => "─".repeat(w + 2)).join("┬") + "┐");
+  const midBorder = borderColor("├" + cols.map((w) => "─".repeat(w + 2)).join("┼") + "┤");
+  const botBorder = borderColor("└" + cols.map((w) => "─".repeat(w + 2)).join("┴") + "┘");
+
+  console.log();
+  console.log(`${chalk.bold.bgBlue.white(" SUMMARY ")}`);
+  console.log(topBorder);
+
+  // Header row
+  const headerParts = [
+    chalk.gray(padEndVisible(colFnHeader, wFn)),
+    chalk.gray(padStartVisible("Pass", wPass)),
+    chalk.gray(padStartVisible("Avg", wAvg)),
+    chalk.gray(padStartVisible("Total", wTot)),
+  ];
+  if (showComparisonCol) {
+    headerParts.push(chalk.gray(padStartVisible(pctHeaderTitle, wPct)));
+  }
+  console.log(borderColor("│ ") + headerParts.join(borderColor(" │ ")) + borderColor(" │"));
+  console.log(midBorder);
+
+  // Data rows
   for (const [i, stat] of stats.entries()) {
     const allPassed = stat.passed === tests.length;
     const passedStr = `${stat.passed}/${tests.length}`;
     const avgStr = `${(stat.totalTime / tests.length).toFixed(3)} ms`;
     const totStr = `${stat.totalTime.toFixed(3)} ms`;
     const fastest = showOverallFastest && i === overallFastestIdx;
-    const nameColor = allPassed ? chalk.white : chalk.red;
+    const nameColor = allPassed ? chalk.cyan : chalk.red;
     const passColor = allPassed ? chalk.green : chalk.red;
     const b = badge(i).padEnd(maxBadgeLen);
 
@@ -612,41 +694,33 @@ export function runCompare<F extends (...args: any[]) => any>(
       overallSlowestTime,
       overallBaselineTime,
     );
-    const relPart = showComparisonCol
-      ? `${sep}${relStr ? relStr : " ".repeat(2 + COL_PCT)}`
-      : "";
 
+    let fnCell = "";
     if (fnLabelMode === "number") {
-      console.log(
-        `  ${badgeColor(b)}${sep}` +
-        `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
-        `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
-        `  ${chalk.gray(padR(totStr, COL_TOT))}` +
-        relPart +
-        (fastest ? `  ${fastestBadge}` : ""),
-      );
+      fnCell = padEndVisible(badgeColor(b), wFn);
     } else if (fnLabelMode === "name") {
-      console.log(
-        `  ${nameColor(padL(fnNames[i], COL_NAME))}${sep}` +
-        `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
-        `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
-        `  ${chalk.gray(padR(totStr, COL_TOT))}` +
-        relPart +
-        (fastest ? `  ${fastestBadge}` : ""),
-      );
+      const displayName = fnNames[i].length > wFn ? fnNames[i].slice(0, wFn - 1) + "…" : fnNames[i];
+      fnCell = padEndVisible(nameColor(displayName), wFn);
     } else {
-      console.log(
-        `  ${badgeColor(b)}  ${nameColor(padL(fnNames[i], COL_NAME))}${sep}` +
-        `  ${passColor(padR(passedStr, COL_PASS))}${sep}` +
-        `  ${chalk.gray(padR(avgStr, COL_AVG))}${sep}` +
-        `  ${chalk.gray(padR(totStr, COL_TOT))}` +
-        relPart +
-        (fastest ? `  ${fastestBadge}` : ""),
-      );
+      fnCell = padEndVisible(`${badgeColor(b)}  ${nameColor(fnNames[i])}`, wFn);
     }
+
+    const rowParts = [
+      fnCell,
+      padStartVisible(passColor(passedStr), wPass),
+      padStartVisible(chalk.gray(avgStr), wAvg),
+      padStartVisible(chalk.gray(totStr), wTot),
+    ];
+    if (showComparisonCol) {
+      const relTrimmed = stripAnsi(relStr).trim();
+      const relContent = relTrimmed.length > 0 ? relTrimmed : "—";
+      const badgeStr = fastest ? "  " + fastestBadge : (showFastestBadge ? "   " : "");
+      const fullText = (fastest ? chalk.yellow(relContent) : chalk.hex("#888888")(relContent)) + badgeStr;
+      rowParts.push(padStartVisible(fullText, wPct));
+    }
+    console.log(borderColor("│ ") + rowParts.join(borderColor(" │ ")) + borderColor(" │"));
   }
 
-  console.log();
-  div("═");
+  console.log(botBorder);
 }
 
