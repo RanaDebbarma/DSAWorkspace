@@ -537,6 +537,23 @@ if (
   console.log(chalk.red("❌ Failed to parse NeetCode multiline 2D array:"), { parsedGridCases, gridSig });
 }
 
+// Explanation blocks with non-JSON pseudo-arrays e.g. [max(2,1), max(5,7)]
+const textWithPseudoArrays = `Example 1:
+Input: triplets = [[2,5,3],[1,8,4],[1,7,5]], target = [2,7,5]
+Output: true
+Explanation: Update triplet to be [max(2,1), max(5,7), max(3,5)] = [2,7,5].
+`;
+const parsedPseudo = parseLeetCodeText(textWithPseudoArrays);
+if (
+  parsedPseudo.length === 1 &&
+  parsedPseudo[0].type === "standard" &&
+  parsedPseudo[0].output === true
+) {
+  console.log(chalk.green("✔ Handled text containing non-JSON bracket expressions without hanging!"));
+} else {
+  console.log(chalk.red("❌ Failed to parse example with explanation brackets:"), parsedPseudo);
+}
+
 // =============================================================================
 // § 15 — MATRIX OUTPUT & DIFF VISUALIZATION (with on/off toggles)
 // =============================================================================

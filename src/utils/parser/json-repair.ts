@@ -203,6 +203,8 @@ export function extractTopLevelJsonArrays(text: string): any[] {
           if (Array.isArray(val)) {
             results.push(val);
             i = j + 1;
+          } else {
+            i++;
           }
           break;
         }
