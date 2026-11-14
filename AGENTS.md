@@ -66,6 +66,7 @@ runTests(solve, [
   // compare?: ComparatorFn;     // Custom suite-level comparator (actual, expected, actualInput) => boolean
   // showHint?: boolean;         // Default: true (shows index mismatch hint)
   // rawOutput?: boolean | number; // Default: false (Node raw inspect without green color; wraps arrays across lines cleanly)
+  // hideBigOutput?: boolean | number | "omit"; // Default: false (hides large outputs with <hidden (N items)> badge or omits them)
   // gridMode?: GridMode;        // 'auto' | 'board' | 'maze' | 'binary' | 'sudoku' | 'numeric' | 'none'
   // gridMapping?: GridMapping;  // Custom cell mapping & color-coding, e.g. { 2147483647: { label: "INF", color: "#74b9ff" }, [-1]: { label: "W", color: "#ff7675" }, 0: { label: "T", color: "#f1c40f" } }
 });

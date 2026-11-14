@@ -82,6 +82,15 @@ export type TestCase<F extends (...args: any[]) => any> = {
   rawOutput?: boolean | number;
   /** Alias for rawOutput. */
   prettyOutput?: boolean | number;
+  /** When true (or a number specifying threshold), hides large output (e.g. long arrays, big strings)
+   * to keep test cards compact. Displays `<hidden (N items)>` or can be set to `"omit"` to completely omit the output line. */
+  hideBigOutput?: boolean | number | "omit";
+  /** Alias for hideBigOutput. */
+  hideLargeOutput?: boolean | number | "omit";
+  /** When true, hides output for this test case. Set to "omit" to completely omit the output line. */
+  hideOutput?: boolean | "omit";
+  /** When false, completely suppresses output display for this test case. Defaults to true. */
+  showOutput?: boolean;
 };
 
 export type ClassTestCase = {
@@ -120,6 +129,15 @@ export type TestOptions<F extends (...args: any[]) => any = any> = BaseTestOptio
   rawOutput?: boolean | number;
   /** Alias for rawOutput. */
   prettyOutput?: boolean | number;
+  /** When true (or a number specifying threshold), hides large output (e.g. long arrays, big strings)
+   * to keep test cards compact. Displays `<hidden (N items)>` or can be set to `"omit"` to completely omit the output line. Defaults to false. */
+  hideBigOutput?: boolean | number | "omit";
+  /** Alias for hideBigOutput. */
+  hideLargeOutput?: boolean | number | "omit";
+  /** When true, hides output across all test cases. Set to "omit" to completely omit the output line. Defaults to false. */
+  hideOutput?: boolean | "omit";
+  /** When false, completely suppresses output display. Defaults to true. */
+  showOutput?: boolean;
   /** Controls whether the index failure hint (↳ index [i]: expected X, got Y) is displayed on failure. Defaults to true. */
   showHint?: boolean;
   /** Suite-level default for graph direction (true for directed, false for undirected). Overridden by per-test case `isDirected`. */
@@ -365,6 +383,82 @@ export function renderInputBlock(
   }
 }
 
+function getOutputSummary(val: any, visLen?: number): string {
+  if (val === null || val === undefined) return "";
+  if (Array.isArray(val)) {
+    if (val.length > 0 && Array.isArray(val[0])) {
+      return `${val.length}×${val[0].length} matrix`;
+    }
+    return `${val.length} items`;
+  }
+  if (typeof val === "string") {
+    return `${val.length} chars`;
+  }
+  if (val instanceof Set) {
+    return `${val.size} items`;
+  }
+  if (val instanceof Map) {
+    return `${val.size} entries`;
+  }
+  if (val instanceof TreeNode) {
+    return "tree";
+  }
+  if (val instanceof ListNode) {
+    return "linked list";
+  }
+  if (val instanceof GraphNode) {
+    return "graph";
+  }
+  if (typeof val === "object") {
+    const keys = Object.keys(val);
+    return `${keys.length} keys`;
+  }
+  if (typeof visLen === "number" && visLen > 0) {
+    return `${visLen} chars`;
+  }
+  return "";
+}
+
+function isBigOutputValue(
+  val: any,
+  outStr: string,
+  threshold: boolean | number | "omit",
+): boolean {
+  if (!threshold) return false;
+
+  const visLen = stripAnsi(outStr).length;
+  const lineCount = outStr.split("\n").length;
+
+  if (typeof threshold === "number") {
+    if (Array.isArray(val)) return val.length > threshold;
+    if (typeof val === "string") return val.length > threshold;
+    if (val instanceof Set || val instanceof Map) return val.size > threshold;
+    if (val && typeof val === "object" && !(val instanceof ListNode || val instanceof TreeNode || val instanceof GraphNode)) {
+      return Object.keys(val).length > threshold;
+    }
+    return visLen > threshold;
+  }
+
+  // Boolean true or "omit" default threshold:
+  if (Array.isArray(val)) {
+    if (val.length > 20) return true;
+    if (visLen > 50) return true;
+  }
+
+  if (typeof val === "string" && val.length > 60) return true;
+
+  if (val instanceof Set && val.size > 20) return true;
+  if (val instanceof Map && val.size > 20) return true;
+  if (val && typeof val === "object" && !(val instanceof ListNode || val instanceof TreeNode || val instanceof GraphNode)) {
+    if (Object.keys(val).length > 20) return true;
+  }
+
+  if (lineCount > 5) return true;
+  if (visLen > 50) return true;
+
+  return false;
+}
+
 /**
  * Renders the result block (Expected / Got / diff or Output) for a single test case.
  */
@@ -380,6 +474,9 @@ function renderResultBlock(
   gridMapping?: GridMapping,
   anyOf?: any[],
   rawOutput: boolean | number = false,
+  hideBigOutput: boolean | number | "omit" = false,
+  hideOutput: boolean | "omit" = false,
+  showOutput: boolean = true,
 ): void {
   const displayOpts = { actualInput, visualizeOutput, gridMode, gridMapping };
   const isRaw = Boolean(rawOutput);
@@ -409,14 +506,32 @@ function renderResultBlock(
     console.log(chalk.red("+ Received:"));
     console.log(indentAll(chalk.red(`Runtime Error: ${error}`), 2));
   } else if (passed) {
+    if (!showOutput || hideOutput === "omit") {
+      return;
+    }
+
     const outStr = serialize(result);
-    const coloredOut = isRaw ? outStr : (outStr.includes("\u001b") ? outStr : chalk.green(outStr));
     const visLen = stripAnsi(outStr).length;
-    if (outStr.includes("\n") || visLen > 30) {
-      console.log(chalk.gray("Output:"));
-      console.log(indentAll(coloredOut, 2));
+    const isBig = isBigOutputValue(result, outStr, hideBigOutput);
+
+    if (hideBigOutput === "omit" && isBig) {
+      return;
+    }
+
+    if (hideOutput === true || isBig) {
+      const summary = getOutputSummary(result, visLen);
+      const badge = summary
+        ? `${chalk.gray("<hidden")} ${chalk.cyan(`(${summary})`)}${chalk.gray(">")}`
+        : chalk.gray("<hidden>");
+      console.log(`${chalk.gray("Output:")} ${badge}`);
     } else {
-      console.log(`${chalk.gray("Output:")} ${coloredOut}`);
+      const coloredOut = isRaw ? outStr : (outStr.includes("\u001b") ? outStr : chalk.green(outStr));
+      if (outStr.includes("\n") || visLen > 30) {
+        console.log(chalk.gray("Output:"));
+        console.log(indentAll(coloredOut, 2));
+      } else {
+        console.log(`${chalk.gray("Output:")} ${coloredOut}`);
+      }
     }
   } else {
     if (anyOf && anyOf.length > 0) {
@@ -784,12 +899,31 @@ export function runTests<F extends (...args: any[]) => any>(
   const suiteGridMode = typeof options === "object" ? options?.gridMode : undefined;
   const suiteGridMapping = typeof options === "object" ? options?.gridMapping : undefined;
   const suiteRawOutput = typeof options === "object" ? (options?.rawOutput ?? options?.prettyOutput ?? false) : false;
+  const suiteHideBigOutput = typeof options === "object"
+    ? (options?.hideBigOutput ?? options?.hideLargeOutput ?? false)
+    : false;
+  const suiteHideOutput = typeof options === "object" ? (options?.hideOutput ?? false) : false;
+  const suiteShowOutput = typeof options === "object" ? (options?.showOutput ?? true) : true;
 
   let passedCount = 0;
   const allBlocks: RenderedTestBlock[] = [];
 
   for (const [index, test] of tests.entries()) {
-    const { name, input, output, compare, cloneInput, unordered, anyOf, rawOutput: testRawOutput, prettyOutput: testPrettyOutput } = test;
+    const {
+      name,
+      input,
+      output,
+      compare,
+      cloneInput,
+      unordered,
+      anyOf,
+      rawOutput: testRawOutput,
+      prettyOutput: testPrettyOutput,
+      hideBigOutput: testHideBigOutput,
+      hideLargeOutput: testHideLargeOutput,
+      hideOutput: testHideOutput,
+      showOutput: testShowOutput,
+    } = test;
 
     const actualInput = cloneInput
       ? cloneInput(input)
@@ -826,6 +960,9 @@ export function runTests<F extends (...args: any[]) => any>(
     const effectiveGridMode = test.gridMode ?? suiteGridMode;
     const effectiveGridMapping = test.gridMapping ?? suiteGridMapping;
     const effectiveRawOutput = testRawOutput ?? testPrettyOutput ?? suiteRawOutput;
+    const effectiveHideBigOutput = testHideBigOutput ?? testHideLargeOutput ?? suiteHideBigOutput;
+    const effectiveHideOutput = testHideOutput ?? suiteHideOutput;
+    const effectiveShowOutput = testShowOutput ?? suiteShowOutput;
 
     // 1. Render input block (visualizers + string inputs) and measure its visual width
     const inputLines = captureLines(() => {
@@ -873,6 +1010,9 @@ export function runTests<F extends (...args: any[]) => any>(
         effectiveGridMapping,
         anyOf,
         effectiveRawOutput ? resolvedBreakLength : false,
+        effectiveHideBigOutput,
+        effectiveHideOutput,
+        effectiveShowOutput,
       );
     });
 

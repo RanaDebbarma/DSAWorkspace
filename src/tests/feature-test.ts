@@ -733,3 +733,25 @@ runCompare([fibRecursive, fibIterative], [
   { input: [5]  as [number], output: 5 },
   { input: [10] as [number], output: 55 },
 ], { fnLabel: "name" });
+
+// =============================================================================
+// § 20 — OUTPUT VISIBILITY & HIDING BIG OUTPUT
+// =============================================================================
+section(20, "Output Visibility & Hiding Big Output (hideBigOutput, hideOutput, showOutput)");
+
+function makeBigArray(n: number): number[] {
+  return Array.from({ length: n }, (_, i) => i);
+}
+
+// 1. Suite-level hideBigOutput: true
+runTests(makeBigArray, [
+  { name: "Small array (shown)", input: [3], output: [0, 1, 2] },
+  { name: "Big array (hidden badge)", input: [50], output: makeBigArray(50) },
+], { hideBigOutput: true });
+
+// 2. Per-test case hideBigOutput override & numeric threshold
+runTests(makeBigArray, [
+  { name: "Over threshold 10 (hidden badge)", input: [15], output: makeBigArray(15), hideBigOutput: 10 },
+  { name: "Omit big output completely", input: [40], output: makeBigArray(40), hideBigOutput: "omit" },
+]);
+
