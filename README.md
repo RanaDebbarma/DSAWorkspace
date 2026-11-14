@@ -351,7 +351,7 @@ runTests(solve, tests, {
 | `unordered` | `false` | Treats array output order as insensitive across method operations |
 | `showHint` | `true` | Shows step failure mismatch hint |
 
-> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered`, `anyOf`, `isDirected`, `reverseEdges`, `gridMode`, `gridMapping`, and `visualizeOutput` for granular per-test control.
+> 💡 **Per-Test Case Options**: Individual test case objects in `runTests` also support `unordered`, `anyOf`, `isDirected`, `reverseEdges`, `gridMode`, `gridMapping`, `rawOutput`, and `hideBigOutput` for granular per-test control.
 
 ### Visualizer Output by Type
 

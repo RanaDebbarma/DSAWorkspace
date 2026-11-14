@@ -302,19 +302,25 @@ export function runCompare<F extends (...args: any[]) => any>(
   // Runs each function several times with cloned input to warm up JIT,
   // initialize V8 Inline Caches (ICs), and ramp the CPU governor out of idle states.
   // Also pre-warms the timed-closure pattern used in both Pass 1 and Pass 2.
+  // ── Warmup pass ─────────────────────────────────────────────────────────────
+  // Runs each function across test cases to warm up JIT,
+  // initialize V8 Inline Caches (ICs), and ramp the CPU governor out of idle states.
+  // Also pre-warms the timed-closure pattern used in both Pass 1 and Pass 2.
   let _warmT0 = 0;
   let _warmT1 = 0;
-  for (let w = 0; w < 10; w++) {
-    for (const fn of fns) {
-      try {
-        const warmupInput = cloneValue(tests[0].input) as Parameters<F>;
-        captureConsoleOutput(() => {
-          _warmT0 = performance.now();
-          fn(...warmupInput);
-          _warmT1 = performance.now();
-        });
-      } catch {
-        // Safe to ignore: official run handles errors and logs
+  for (let w = 0; w < 3; w++) {
+    for (const t of tests) {
+      for (const fn of fns) {
+        try {
+          const warmupInput = cloneValue(t.input) as Parameters<F>;
+          captureConsoleOutput(() => {
+            _warmT0 = performance.now();
+            fn(...warmupInput);
+            _warmT1 = performance.now();
+          });
+        } catch {
+          // Safe to ignore: official run handles errors and logs
+        }
       }
     }
   }

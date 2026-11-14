@@ -41,7 +41,7 @@ const cases: TestCase<typeof countingBits>[] = [
   { input: [4], output: [0, 1, 1, 2, 1] },
 
   // bigInput
-  { input: [10000], output: countingBits(10000) },
+  { input: [10000], output: countingBits_DP(10000) },
 ];
 
 runTests(countingBits_DP, cases, { hideBigOutput: true });

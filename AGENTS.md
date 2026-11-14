@@ -150,3 +150,8 @@ runCompare([solve_BF, solve_DP, solve_Optimal], tests, {
    * **Enclosed Box Borders**: Full box-drawing frames (`┌─┬─┐`, `├─┼─┤`, `└─┴─┘`) for comparison summary tables and OOP class design traces.
    * **Narrow-Terminal 2-Column Summary**: Automatically condenses the comparison summary table to 2 columns (`Function` and `Faster`/`Total`) on narrow screens (< 54 cols) so full function names fit down to 35 columns without overflow.
    * **Adaptive Summary Banner**: Reports labeled test results (`passed: 5/5 · avg: 0.016 ms · total: 0.082 ms`), automatically wrapping with clean indentation on narrow terminals.
+
+7. **JIT Warmup & Dual-Pass Benchmarking (`runCompare`)**:
+   * Pre-warms every candidate function across test inputs to eliminate V8 JIT compilation tier-up and cold-start bias.
+   * Executes symmetric forward and reverse passes (`(t1 + t2) / 2`) to neutralize execution order and CPU cache bias. (Note: `runTests` runs each test once without warmup to reflect raw first-run execution).
+
