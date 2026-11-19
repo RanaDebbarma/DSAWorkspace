@@ -4,7 +4,7 @@ import { runCompare, runTests, TestCase } from "#functions/code-tester.js";
 
 // time: O(1) — always processes exactly 32 bits
 // space: O(1) — uses constant extra space
-function reverseBits(n: number): number {
+function reverseBits_1(n: number): number {
   let rev = 0;
 
   for (let i = 0; i < 32; i++) {
@@ -19,7 +19,24 @@ function reverseBits(n: number): number {
   return rev >>> 0;
 }
 
-const cases: TestCase<typeof reverseBits>[] = [
+// time: O(1) — always processes exactly 32 bits
+// space: O(1) — uses constant extra space
+function reverseBits_2(n: number): number {
+  let rev = 0;
+
+  for (let i = 0; i < 32; i++) {
+    // Extract the rightmost bit and append it to the reversed number
+    rev = (rev << 1) | (n & 1);
+
+    // Remove the processed rightmost bit
+    n >>>= 1;
+  }
+
+  // Convert signed 32-bit result to unsigned 32-bit integer
+  return rev >>> 0;
+}
+
+const cases: TestCase<typeof reverseBits_1>[] = [
   { input: [43261596], output: 964176192 },
   // 43261596:	00000010100101000001111010011100
   // 964176192:	00111001011110000010100101000000
@@ -31,5 +48,5 @@ const cases: TestCase<typeof reverseBits>[] = [
   },
 ];
 
-runTests(reverseBits, cases);
-runCompare([reverseBits], cases);
+runTests(reverseBits_1, cases);
+runCompare([reverseBits_1, reverseBits_2], cases);
